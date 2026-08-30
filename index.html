@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Siaka Phones - Premium Mobile Store</title>
+  <meta name="description" content="Shop the latest flagship smartphones, iPhones, Galaxy, Pixel, and premium accessories at unbeatable prices with official warranty at Siaka Phones.">
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+  <!-- Presentation Wrapper for Interactive Preview & Device Mockup -->
+  <div class="device-preview-wrapper" id="preview-wrapper">
+    
+    <!-- Top Showcase Controller Bar -->
+    <div class="preview-control-bar">
+      <div class="brand-badge">
+        <span class="logo-phone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3" ry="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </span>
+        <div class="brand-name">Siaka <span>Phones</span></div>
+      </div>
+      
+      <div class="preview-controls">
+        <label for="page-jump-select" style="font-size:12px; color:#94A3B8; font-weight:500;">Jump to Page:</label>
+        <select id="page-jump-select" class="page-jump-select">
+          <option value="home">1. Home Screen ✅</option>
+          <option value="product-details">2. Product Details ✅</option>
+          <option value="cart">3. My Cart ✅</option>
+          <option value="shipping">4. Checkout - Shipping ✅</option>
+          <option value="payment">5. Checkout - Payment ✅</option>
+          <option value="review-order">6. Checkout - Review Order ✅</option>
+          <option value="order-confirmation">7. Order Confirmation ✅</option>
+          <option value="order-tracking">8. Order Tracking</option>
+          <option value="search">9. Search Page</option>
+          <option value="categories">10. Categories</option>
+          <option value="wishlist">11. Wishlist</option>
+          <option value="profile">12. Profile</option>
+          <option value="login">13. Login / Register</option>
+          <option value="onboarding">14. Onboarding</option>
+        </select>
+
+        <button id="view-toggle-btn" class="view-toggle-btn" title="Toggle Full Width View">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          Full Width
+        </button>
+      </div>
+    </div>
+
+    <!-- Smartphone Mobile Mockup Frame -->
+    <div class="smartphone-frame">
+      
+      <!-- iOS Status Bar & Dynamic Island -->
+      <div class="ios-status-bar">
+        <div class="status-time">9:41</div>
+        <div class="dynamic-island"></div>
+        <div class="status-icons">
+          <!-- Cellular -->
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor">
+            <rect x="0" y="8" width="3" height="3" rx="0.5"/>
+            <rect x="4.5" y="5.5" width="3" height="5.5" rx="0.5"/>
+            <rect x="9" y="3" width="3" height="8" rx="0.5"/>
+            <rect x="13.5" y="0" width="3" height="11" rx="0.5"/>
+          </svg>
+          <!-- Wifi -->
+          <svg width="15" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <line x1="12" y1="20" x2="12.01" y2="20"/>
+          </svg>
+          <!-- Battery -->
+          <svg width="22" height="11" viewBox="0 0 24 12" fill="currentColor">
+            <rect x="1" y="1" width="19" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <rect x="3" y="3" width="12" height="6" rx="1.5"/>
+            <path d="M21 4.5v3a1.5 1.5 0 0 0 1.5-1.5v0a1.5 1.5 0 0 0-1.5-1.5z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- App Viewport Container (Scrollable) -->
+      <div class="app-viewport" id="app-viewport">
+        
+        <!-- =================================================================
+             1. HOME SCREEN (Matches Image 1)
+             ================================================================= -->
+        <section id="page-home" class="screen-page active">
+          <!-- App Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="categories" aria-label="Menu">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="header-brand-logo">
+              <div class="brand-icon-box">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3" ry="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              </div>
+              <div>Siaka<span class="logo-accent">Phones</span></div>
+            </div>
+            <button class="icon-btn" data-navigate="order-tracking" aria-label="Notifications">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="badge-dot">2</span>
+            </button>
+          </header>
+
+          <!-- Search Bar -->
+          <div class="home-search-bar" data-navigate="search">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search for phones, accessories..." readonly>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+
+          <!-- Hero Banner / Carousel (Matches Image 1) -->
+          <div class="hero-promo-card">
+            <div class="hero-promo-content">
+              <div class="hero-text-col">
+                <h2>Discover the Latest Smartphones</h2>
+                <p>Shop flagship devices at unbeatable prices.</p>
+                <div class="hero-buttons-row">
+                  <button class="hero-btn-primary" data-navigate="product-details">Shop Now</button>
+                  <button class="hero-btn-secondary" data-navigate="categories">Explore Deals</button>
+                </div>
+              </div>
+              <div class="hero-image-col">
+                <!-- Dual Phone Graphic matching Image 1 -->
+                <svg viewBox="0 0 260 220" width="100%" height="100%" fill="none">
+                  <g transform="translate(10, 10)">
+                    <rect x="20" y="10" width="95" height="190" rx="20" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="2"/>
+                    <rect x="28" y="18" width="42" height="42" rx="12" fill="#CBD5E1"/>
+                    <circle cx="40" cy="30" r="7" fill="#334155" stroke="#94A3B8" stroke-width="2"/>
+                    <circle cx="58" cy="30" r="7" fill="#334155" stroke="#94A3B8" stroke-width="2"/>
+                    <circle cx="49" cy="48" r="7" fill="#334155" stroke="#94A3B8" stroke-width="2"/>
+                    <path d="M68 95 c-1 2 -2 4 -3 6 c-2 3 -4 5 -6 5 c-2 0 -4 -1 -6 -1 c-2 0 -4 1 -6 1 c-2 0 -4 -2 -6 -5 c-3 -4 -4 -9 -4 -15 c0 -7 2 -12 6 -16 c3 -4 7 -6 12 -6 c3 0 5 1 7 2 c2 1 3 1 4 1 c1 0 3 -1 5 -1 c3 0 7 1 9 4 c-5 3 -7 7 -7 12 c0 4 1 7 4 9 z" fill="#94A3B8"/>
+                  </g>
+                  <g transform="translate(105, 0)">
+                    <rect x="20" y="10" width="95" height="195" rx="20" fill="#334155" stroke="#64748B" stroke-width="2"/>
+                    <rect x="24" y="14" width="87" height="187" rx="16" fill="#0F172A"/>
+                    <rect x="52" y="19" width="30" height="7" rx="3.5" fill="#000000"/>
+                    <path d="M24 120 C50 60, 70 170, 111 90 L111 201 L24 201 Z" fill="url(#heroGrad1)"/>
+                  </g>
+                  <defs>
+                    <linearGradient id="heroGrad1" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#0284C7"/>
+                      <stop offset="100%" stop-color="#38BDF8"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+            </div>
+            <!-- Carousel Pagination Dots -->
+            <div class="hero-carousel-dots">
+              <span class="dot active"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+
+          <!-- Shop by Brand (Matches Image 1) -->
+          <div class="section-header-row">
+            <h3>Shop by Brand</h3>
+            <button data-navigate="categories">View all</button>
+          </div>
+          <div class="brand-strip-grid">
+            <div class="brand-chip-card" data-navigate="search">
+              <div class="brand-chip-icon">
+                <svg viewBox="0 0 170 170" width="22" height="22" fill="currentColor"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.6-7.7-11.7-13.97-6.09-9.35-10.74-20.15-13.96-32.41-3.23-12.26-4.84-23.77-4.84-34.53 0-14.9 3.63-27.18 10.89-36.85 7.26-9.66 16.48-14.65 27.67-14.97 4.79 0 10.22 1.34 16.29 4.01 6.07 2.68 9.99 4.07 11.75 4.19 1.55-.12 5.58-1.57 12.1-4.35 6.52-2.78 12.15-4.01 16.89-3.69 12.63.87 22.75 5.76 30.36 14.66-10.89 6.64-16.22 15.67-15.98 27.09.24 8.92 3.64 16.38 10.2 22.38 6.56 6 14.38 9.4 23.47 10.21-2.07 6.32-4.57 12.63-7.51 18.94zM119.22 31.85c0-7.29 2.59-14.28 7.77-20.97C132.17 4.19 138.83.6 146.97 0c.22 1.09.33 2.07.33 2.94 0 7.39-2.77 14.6-8.31 21.64-5.54 7.03-12.44 10.96-20.7 10.79.11-1.19.93-3.52-.93-3.52z"/></svg>
+              </div>
+              <span class="brand-chip-label">Apple</span>
+            </div>
+            <div class="brand-chip-card" data-navigate="search">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; letter-spacing:0.5px; color:#1428A0;">SAMSUNG</div>
+              </div>
+              <span class="brand-chip-label">Samsung</span>
+            </div>
+            <div class="brand-chip-card" data-navigate="search">
+              <div class="brand-chip-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+              </div>
+              <span class="brand-chip-label">Google</span>
+            </div>
+            <div class="brand-chip-card" data-navigate="search">
+              <div class="brand-chip-icon">
+                <div style="background:#EB0029; color:#FFF; font-weight:800; font-size:10px; padding:2px 4px; border-radius:3px;">1+</div>
+              </div>
+              <span class="brand-chip-label">OnePlus</span>
+            </div>
+            <div class="brand-chip-card" data-navigate="search">
+              <div class="brand-chip-icon">
+                <div style="background:#FF6900; color:#FFF; font-weight:800; font-size:10px; padding:2px 4px; border-radius:4px;">mi</div>
+              </div>
+              <span class="brand-chip-label">Xiaomi</span>
+            </div>
+          </div>
+
+          <!-- Featured Phones (Matches Image 1) -->
+          <div class="section-header-row">
+            <h3>Featured Phones</h3>
+            <button data-navigate="categories">View all</button>
+          </div>
+          <div class="featured-phones-grid">
+            
+            <!-- Card 1: iPhone 15 Pro Max -->
+            <div class="product-card" data-navigate="product-details">
+              <span class="product-card-badge">New</span>
+              <button class="product-card-wishlist active" aria-label="Wishlist">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </button>
+              <div class="product-image-box">
+                <!-- iPhone SVG -->
+                <svg viewBox="0 0 160 220" width="100%" height="100%" fill="none">
+                  <rect x="30" y="10" width="100" height="200" rx="20" fill="#4B5563" stroke="#9CA3AF" stroke-width="2"/>
+                  <rect x="34" y="14" width="92" height="192" rx="16" fill="#0F172A"/>
+                  <rect x="66" y="20" width="28" height="7" rx="3.5" fill="#000000"/>
+                  <path d="M34 130 C60 90, 80 180, 126 120 L126 206 L34 206 Z" fill="rgba(56, 189, 248, 0.45)"/>
+                </svg>
+              </div>
+              <div class="product-info-title">iPhone 15 Pro Max</div>
+              <div class="product-info-price">From $1,099</div>
+              <div class="product-info-rating">
+                <span class="star-icon">★</span> 4.8 <span class="reviews-count">(245)</span>
+              </div>
+              <button class="product-buy-btn" data-navigate="product-details">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                Buy Now
+              </button>
+            </div>
+
+            <!-- Card 2: Galaxy S24 Ultra -->
+            <div class="product-card" data-navigate="product-details">
+              <span class="product-card-badge">New</span>
+              <button class="product-card-wishlist" aria-label="Wishlist">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </button>
+              <div class="product-image-box">
+                <!-- Galaxy S24 Ultra with S-Pen SVG -->
+                <svg viewBox="0 0 160 220" width="100%" height="100%" fill="none">
+                  <rect x="32" y="12" width="96" height="196" rx="6" fill="#334155" stroke="#94A3B8" stroke-width="1.5"/>
+                  <rect x="35" y="15" width="90" height="190" rx="4" fill="#1E1B4B"/>
+                  <circle cx="80" cy="22" r="3" fill="#000000"/>
+                  <polygon points="40,160 80,70 120,180" fill="rgba(129, 140, 248, 0.4)"/>
+                  <line x1="22" y1="40" x2="22" y2="180" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+                  <polygon points="20,180 24,180 22,192" fill="#475569"/>
+                </svg>
+              </div>
+              <div class="product-info-title">Galaxy S24 Ultra</div>
+              <div class="product-info-price">From $1,099</div>
+              <div class="product-info-rating">
+                <span class="star-icon">★</span> 4.7 <span class="reviews-count">(189)</span>
+              </div>
+              <button class="product-buy-btn" data-navigate="product-details">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                Buy Now
+              </button>
+            </div>
+
+            <!-- Card 3: Google Pixel 8 Pro -->
+            <div class="product-card" data-navigate="product-details">
+              <span class="product-card-badge">New</span>
+              <button class="product-card-wishlist" aria-label="Wishlist">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </button>
+              <div class="product-image-box">
+                <!-- Pixel 8 Pro SVG -->
+                <svg viewBox="0 0 160 220" width="100%" height="100%" fill="none">
+                  <rect x="32" y="12" width="96" height="196" rx="22" fill="#64748B" stroke="#94A3B8" stroke-width="1.5"/>
+                  <rect x="36" y="16" width="88" height="188" rx="18" fill="#0369A1"/>
+                  <circle cx="80" cy="24" r="3" fill="#000000"/>
+                  <circle cx="90" cy="110" r="38" fill="rgba(255,255,255,0.2)"/>
+                  <circle cx="60" cy="140" r="28" fill="rgba(14, 165, 233, 0.4)"/>
+                </svg>
+              </div>
+              <div class="product-info-title">Google Pixel 8 Pro</div>
+              <div class="product-info-price">From $899</div>
+              <div class="product-info-rating">
+                <span class="star-icon">★</span> 4.6 <span class="reviews-count">(156)</span>
+              </div>
+              <button class="product-buy-btn" data-navigate="product-details">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                Buy Now
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Value Propositions Banner (Matches Image 1) -->
+          <div style="padding: 0 16px;">
+            <div class="value-props-banner">
+              <div class="value-prop-item">
+                <div class="value-prop-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                </div>
+                <div class="value-prop-title">Free Shipping</div>
+                <div class="value-prop-desc">On orders over $50</div>
+              </div>
+              <div class="value-prop-item">
+                <div class="value-prop-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                </div>
+                <div class="value-prop-title">1 Year Warranty</div>
+                <div class="value-prop-desc">Official warranty</div>
+              </div>
+              <div class="value-prop-item">
+                <div class="value-prop-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </div>
+                <div class="value-prop-title">14-Day Returns</div>
+                <div class="value-prop-desc">Easy returns</div>
+              </div>
+              <div class="value-prop-item">
+                <div class="value-prop-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <div class="value-prop-title">Secure Payments</div>
+                <div class="value-prop-desc">100% safe & secure</div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- =================================================================
+             2. PRODUCT DETAILS SCREEN (Matches Image 2)
+             ================================================================= -->
+        <section id="page-product-details" class="screen-page">
+          <!-- Top Header -->
+          <header class="app-header header-transparent">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-actions">
+              <button class="icon-btn" aria-label="Share">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              </button>
+              <button class="icon-btn icon-btn-wishlist active" aria-label="Wishlist">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="product-details-container">
+            <!-- Product Gallery Section with Thumbnail Strip -->
+            <div class="product-gallery-section">
+              <div class="thumbnail-strip">
+                <div class="thumb-item active">
+                  <svg viewBox="0 0 60 70" width="100%" height="100%" fill="none">
+                    <rect x="10" y="5" width="40" height="60" rx="6" fill="#D1D5DB"/>
+                    <circle cx="20" cy="15" r="3" fill="#374151"/>
+                  </svg>
+                </div>
+                <div class="thumb-item">
+                  <svg viewBox="0 0 60 70" width="100%" height="100%" fill="none">
+                    <rect x="25" y="5" width="10" height="60" rx="2" fill="#9CA3AF"/>
+                  </svg>
+                </div>
+                <div class="thumb-item">
+                  <svg viewBox="0 0 60 70" width="100%" height="100%" fill="none">
+                    <rect x="10" y="5" width="40" height="40" rx="8" fill="#E5E7EB"/>
+                    <circle cx="20" cy="15" r="4" fill="#374151"/>
+                    <circle cx="35" cy="15" r="4" fill="#374151"/>
+                    <circle cx="28" cy="28" r="4" fill="#374151"/>
+                  </svg>
+                </div>
+                <div class="thumb-item">
+                  <svg viewBox="0 0 60 70" width="100%" height="100%" fill="none">
+                    <rect x="15" y="5" width="30" height="60" rx="4" fill="#F3F4F6"/>
+                  </svg>
+                </div>
+                <div class="thumb-item thumb-more">+2</div>
+              </div>
+
+              <!-- Main Hero Product Render -->
+              <div class="main-product-image-box">
+                <svg viewBox="0 0 260 250" width="100%" height="100%" fill="none">
+                  <!-- Titanium Back -->
+                  <g transform="translate(10, 15)">
+                    <rect x="20" y="10" width="100" height="210" rx="22" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="2"/>
+                    <rect x="28" y="18" width="44" height="44" rx="12" fill="#CBD5E1"/>
+                    <circle cx="42" cy="30" r="8" fill="#334155" stroke="#94A3B8" stroke-width="2"/>
+                    <circle cx="60" cy="30" r="8" fill="#334155" stroke="#94A3B8" stroke-width="2"/>
+                    <circle cx="51" cy="50" r="8" fill="#334155" stroke="#94A3B8" stroke-width="2"/>
+                    <path d="M72 105 c-1 2 -2 4 -3 6 c-2 3 -4 5 -6 5 c-2 0 -4 -1 -6 -1 c-2 0 -4 1 -6 1 c-2 0 -4 -2 -6 -5 c-3 -4 -4 -9 -4 -15 c0 -7 2 -12 6 -16 c3 -4 7 -6 12 -6 c3 0 5 1 7 2 c2 1 3 1 4 1 c1 0 3 -1 5 -1 c3 0 7 1 9 4 c-5 3 -7 7 -7 12 c0 4 1 7 4 9 z" fill="#94A3B8"/>
+                  </g>
+                  <!-- Titanium Natural Display -->
+                  <g transform="translate(115, 5)">
+                    <rect x="15" y="10" width="105" height="220" rx="22" fill="#D6D3CD" stroke="#A8A29E" stroke-width="2"/>
+                    <rect x="19" y="14" width="97" height="212" rx="18" fill="#1C1917"/>
+                    <rect x="52" y="20" width="32" height="8" rx="4" fill="#000000"/>
+                    <path d="M19 140 C55 70, 75 190, 116 100 L116 226 L19 226 Z" fill="#78716C"/>
+                    <path d="M19 180 C60 120, 85 210, 116 150 L116 226 L19 226 Z" fill="#A8A29E" fill-opacity="0.6"/>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Product Title & Rating -->
+            <div class="details-title-row">
+              <h1>iPhone 15 Pro Max</h1>
+            </div>
+            <div class="details-rating-row">
+              <span style="color:var(--warning);">★</span>
+              <span>4.8</span>
+              <a href="#" style="text-decoration:none;">(245 Reviews)</a>
+            </div>
+
+            <!-- Price -->
+            <div class="details-price-row">
+              <span class="details-price-tag">$1,099</span>
+              <span class="details-price-subtext">Inclusive of all taxes</span>
+            </div>
+
+            <!-- Storage Selector -->
+            <div class="option-selector-group">
+              <div class="option-selector-label">Storage</div>
+              <div class="storage-options-grid">
+                <button class="storage-pill-btn active">128GB</button>
+                <button class="storage-pill-btn">256GB</button>
+                <button class="storage-pill-btn">512GB</button>
+                <button class="storage-pill-btn">1TB</button>
+              </div>
+            </div>
+
+            <!-- Color Selector -->
+            <div class="option-selector-group">
+              <div class="option-selector-label">Color: <span id="selected-color-label" style="font-weight:500; color:var(--text-secondary);">Natural Titanium</span></div>
+              <div class="color-swatches-row">
+                <div class="color-swatch-item active" data-color-name="Natural Titanium">
+                  <div class="color-circle-fill" style="background:#B8B5AF;"></div>
+                </div>
+                <div class="color-swatch-item" data-color-name="Black Titanium">
+                  <div class="color-circle-fill" style="background:#3B3C3E;"></div>
+                </div>
+                <div class="color-swatch-item" data-color-name="White Titanium">
+                  <div class="color-circle-fill" style="background:#E3E4E5;"></div>
+                </div>
+                <div class="color-swatch-item" data-color-name="Blue Titanium">
+                  <div class="color-circle-fill" style="background:#2F3B4B;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons (Add to Cart & Buy Now) -->
+            <div class="details-action-buttons">
+              <button class="btn-primary" data-navigate="cart">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                Add to Cart
+              </button>
+              <button class="btn-secondary" data-navigate="shipping">
+                Buy Now
+              </button>
+            </div>
+
+            <!-- Delivery ETA Box (Matches Image 2) -->
+            <div class="delivery-eta-box">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              <div>Order within <strong style="color:var(--success);">2h 15m</strong> for delivery by <br><strong style="color:var(--success);">May 27, 2025</strong></div>
+            </div>
+
+            <!-- Value Props Row -->
+            <div class="value-props-banner" style="margin: 10px 0 16px; grid-template-columns: repeat(3, 1fr);">
+              <div class="value-prop-item">
+                <div class="value-prop-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                </div>
+                <div class="value-prop-title">Free Shipping</div>
+                <div class="value-prop-desc">On orders over $50</div>
+              </div>
+              <div class="value-prop-item">
+                <div class="value-prop-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                </div>
+                <div class="value-prop-title">1 Year Warranty</div>
+                <div class="value-prop-desc">Official warranty</div>
+              </div>
+              <div class="value-prop-item">
+                <div class="value-prop-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </div>
+                <div class="value-prop-title">14-Day Returns</div>
+                <div class="value-prop-desc">Easy returns</div>
+              </div>
+            </div>
+
+            <!-- Product Highlights (Matches Image 2) -->
+            <div class="product-highlights-box">
+              <h3>Product Highlights</h3>
+              <div class="highlight-item">
+                <div class="highlight-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
+                <span>6.7-inch Super Retina XDR display with ProMotion</span>
+              </div>
+              <div class="highlight-item">
+                <div class="highlight-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/></svg>
+                </div>
+                <span>A17 Pro chip with 6-core GPU</span>
+              </div>
+              <div class="highlight-item">
+                <div class="highlight-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+                <span>Pro camera system with 48MP Main | 12MP Ultra Wide | 12MP Telephoto</span>
+              </div>
+              <div class="highlight-item">
+                <div class="highlight-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/></svg>
+                </div>
+                <span>Up to 29 hours video playback</span>
+              </div>
+              <div class="highlight-item">
+                <div class="highlight-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="20" x2="2" y2="20"/><line x1="7" y1="20" x2="7" y2="16"/><line x1="12" y1="20" x2="12" y2="12"/><line x1="17" y1="20" x2="17" y2="8"/><line x1="22" y1="20" x2="22" y2="4"/></svg>
+                </div>
+                <span>5G Connectivity</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- =================================================================
+             3. CART SCREEN (Matches Image 3)
+             ================================================================= -->
+        <section id="page-cart" class="screen-page">
+          <!-- Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-title-center">My Cart <span style="font-weight:500; font-size:15px; color:var(--text-muted);">(3 Items)</span></div>
+            <button style="background:transparent; color:var(--primary); font-size:14px; font-weight:600;">Edit</button>
+          </header>
+
+          <div class="cart-screen">
+            <!-- Free Shipping Progress Bar (Matches Image 3) -->
+            <div class="free-shipping-bar">
+              <div class="free-shipping-text-row">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                <span>You are $13 away from free shipping!</span>
+              </div>
+              <div class="progress-track-row">
+                <div class="progress-track">
+                  <div class="progress-fill"></div>
+                </div>
+                <div class="progress-amount-left">$13 left</div>
+              </div>
+            </div>
+
+            <!-- Cart Items List (3 Items Matching Image 3) -->
+            <div class="cart-items-list">
+              
+              <!-- Item 1: iPhone 15 Pro Max -->
+              <div class="cart-item-card">
+                <div class="cart-item-thumb">
+                  <svg viewBox="0 0 100 120" width="100%" height="100%" fill="none">
+                    <rect x="20" y="10" width="60" height="100" rx="12" fill="#4B5563" stroke="#9CA3AF" stroke-width="1.5"/>
+                    <rect x="23" y="13" width="54" height="94" rx="10" fill="#0F172A"/>
+                    <rect x="42" y="17" width="16" height="4" rx="2" fill="#000000"/>
+                    <path d="M23 70 C40 40, 50 90, 77 60 L77 107 L23 107 Z" fill="rgba(56, 189, 248, 0.4)"/>
+                  </svg>
+                </div>
+                <div class="cart-item-details">
+                  <div class="cart-item-header">
+                    <h4>iPhone 15 Pro Max</h4>
+                    <button class="icon-btn" style="width:28px; height:28px; color:var(--text-muted);" aria-label="Delete">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                  <div class="cart-item-spec">128GB, Natural Titanium</div>
+                  <div class="cart-item-price-row">
+                    <div class="cart-item-price">$1,099</div>
+                    <div class="qty-stepper">
+                      <button class="qty-stepper-btn">−</button>
+                      <span class="qty-value">1</span>
+                      <button class="qty-stepper-btn">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Item 2: Galaxy Buds2 Pro -->
+              <div class="cart-item-card">
+                <div class="cart-item-thumb">
+                  <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none">
+                    <rect x="16" y="20" width="68" height="60" rx="16" fill="#1E293B" stroke="#475569" stroke-width="1.5"/>
+                    <rect x="20" y="24" width="60" height="52" rx="12" fill="#0F172A"/>
+                    <ellipse cx="36" cy="50" rx="11" ry="13" fill="#334155"/>
+                    <ellipse cx="64" cy="50" rx="11" ry="13" fill="#334155"/>
+                    <circle cx="36" cy="46" r="3" fill="#0284C7"/>
+                    <circle cx="64" cy="46" r="3" fill="#0284C7"/>
+                  </svg>
+                </div>
+                <div class="cart-item-details">
+                  <div class="cart-item-header">
+                    <h4>Galaxy Buds2 Pro</h4>
+                    <button class="icon-btn" style="width:28px; height:28px; color:var(--text-muted);" aria-label="Delete">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                  <div class="cart-item-spec">Graphite</div>
+                  <div class="cart-item-price-row">
+                    <div class="cart-item-price">$149</div>
+                    <div class="qty-stepper">
+                      <button class="qty-stepper-btn">−</button>
+                      <span class="qty-value">1</span>
+                      <button class="qty-stepper-btn">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Item 3: Spigen Ultra Hybrid Case -->
+              <div class="cart-item-card">
+                <div class="cart-item-thumb">
+                  <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none">
+                    <rect x="22" y="10" width="56" height="80" rx="14" fill="rgba(241, 245, 249, 0.8)" stroke="#CBD5E1" stroke-width="1.5"/>
+                    <rect x="26" y="14" width="48" height="72" rx="10" fill="#E2E8F0"/>
+                    <rect x="30" y="18" width="20" height="20" rx="6" fill="#CBD5E1"/>
+                    <circle cx="36" cy="24" r="3" fill="#64748B"/>
+                    <circle cx="44" cy="24" r="3" fill="#64748B"/>
+                  </svg>
+                </div>
+                <div class="cart-item-details">
+                  <div class="cart-item-header">
+                    <h4>Spigen Ultra Hybrid Case</h4>
+                    <button class="icon-btn" style="width:28px; height:28px; color:var(--text-muted);" aria-label="Delete">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                  <div class="cart-item-spec">iPhone 15 Pro Max, Clear</div>
+                  <div class="cart-item-price-row">
+                    <div class="cart-item-price">$39</div>
+                    <div class="qty-stepper">
+                      <button class="qty-stepper-btn">−</button>
+                      <span class="qty-value">1</span>
+                      <button class="qty-stepper-btn">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Price Breakdown Summary Box (Matches Image 3) -->
+            <div class="price-breakdown-box">
+              <div class="price-row">
+                <span>Subtotal</span>
+                <span>$1,287</span>
+              </div>
+              <div class="price-row">
+                <span>Shipping</span>
+                <span class="free-tag">FREE</span>
+              </div>
+              <div class="price-row">
+                <span style="display:flex; align-items:center; gap:4px;">
+                  Estimated Tax
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </span>
+                <span>$103</span>
+              </div>
+              <div class="price-row total-row">
+                <span>Total</span>
+                <span class="total-amount-highlight">$1,390</span>
+              </div>
+            </div>
+
+            <!-- Proceed to Checkout Button -->
+            <div style="margin-top: 20px;">
+              <button class="btn-primary" data-navigate="shipping">
+                Proceed to Checkout
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- =================================================================
+             4. CHECKOUT - SHIPPING SCREEN (Matches Image 4)
+             ================================================================= -->
+        <section id="page-shipping" class="screen-page">
+          <!-- Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="cart" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-title-center">Checkout</div>
+            <div style="width:38px;"></div>
+          </header>
+
+          <!-- Stepper Step 1 Active (Matches Image 4) -->
+          <div class="checkout-stepper">
+            <div class="stepper-step active">
+              <div class="step-circle">1</div>
+              <div class="step-label">Shipping</div>
+            </div>
+            <div class="stepper-line"></div>
+            <div class="stepper-step">
+              <div class="step-circle">2</div>
+              <div class="step-label">Payment</div>
+            </div>
+            <div class="stepper-line"></div>
+            <div class="stepper-step">
+              <div class="step-circle">3</div>
+              <div class="step-label">Review</div>
+            </div>
+          </div>
+
+          <div class="checkout-screen">
+            <!-- Shipping Address Section -->
+            <div class="checkout-section-title">
+              <span>Shipping Address</span>
+              <a href="#">Change</a>
+            </div>
+
+            <div class="selection-group">
+              <!-- Address 1 (Selected) -->
+              <div class="selection-card selected">
+                <div class="custom-radio"></div>
+                <div class="address-details-box">
+                  <div class="address-header-row">
+                    <span class="address-name">John Doe</span>
+                    <span class="badge-tag">Default</span>
+                  </div>
+                  <div class="address-text">123 Tech Street, Silicon Valley<br>San Francisco, CA 94107, USA</div>
+                  <div class="address-phone">+1 (555) 123-4567</div>
+                </div>
+              </div>
+
+              <!-- Address 2 -->
+              <div class="selection-card">
+                <div class="custom-radio"></div>
+                <div class="address-details-box">
+                  <div class="address-header-row">
+                    <span class="address-name">John Doe</span>
+                  </div>
+                  <div class="address-text">456 Innovation Drive, Apt 12B<br>New York, NY 10001, USA</div>
+                  <div class="address-phone">+1 (555) 987-6543</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Add New Address Button -->
+            <button class="add-address-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add New Address
+            </button>
+
+            <!-- Shipping Method Section -->
+            <div class="checkout-section-title">
+              <span>Shipping Method</span>
+            </div>
+
+            <div class="selection-group">
+              <!-- Method 1: Standard (Selected) -->
+              <div class="selection-card selected">
+                <div class="custom-radio"></div>
+                <div class="shipping-method-row">
+                  <span class="shipping-method-title">Standard Shipping <span style="font-weight:400; color:var(--text-muted);">(3–5 days)</span></span>
+                  <span class="shipping-method-price free-tag">FREE</span>
+                </div>
+              </div>
+
+              <!-- Method 2: Expedited -->
+              <div class="selection-card">
+                <div class="custom-radio"></div>
+                <div class="shipping-method-row">
+                  <span class="shipping-method-title">Expedited Shipping <span style="font-weight:400; color:var(--text-muted);">(2–3 days)</span></span>
+                  <span class="shipping-method-price" style="color:var(--text-main);">$9.99</span>
+                </div>
+              </div>
+
+              <!-- Method 3: Overnight -->
+              <div class="selection-card">
+                <div class="custom-radio"></div>
+                <div class="shipping-method-row">
+                  <span class="shipping-method-title">Overnight Shipping <span style="font-weight:400; color:var(--text-muted);">(1 day)</span></span>
+                  <span class="shipping-method-price" style="color:var(--text-main);">$19.99</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Order Summary Mini Card -->
+            <div class="checkout-section-title">
+              <span>Order Summary</span>
+            </div>
+            <div class="mini-order-item">
+              <div class="mini-order-item-img">
+                <svg viewBox="0 0 80 80" width="100%" height="100%" fill="none">
+                  <rect x="20" y="8" width="40" height="64" rx="8" fill="#4B5563"/>
+                  <rect x="22" y="10" width="36" height="60" rx="6" fill="#0F172A"/>
+                </svg>
+              </div>
+              <div class="mini-order-item-info">
+                <h5>iPhone 15 Pro Max</h5>
+                <p>128GB, Natural Titanium</p>
+              </div>
+              <div class="mini-order-item-qty">x1</div>
+              <div class="mini-order-item-price">$1,099</div>
+            </div>
+
+            <!-- Price Breakdown Summary -->
+            <div class="price-breakdown-box">
+              <div class="price-row">
+                <span>Subtotal</span>
+                <span>$1,287</span>
+              </div>
+              <div class="price-row">
+                <span>Shipping</span>
+                <span class="free-tag">FREE</span>
+              </div>
+              <div class="price-row">
+                <span style="display:flex; align-items:center; gap:4px;">
+                  Estimated Tax
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </span>
+                <span>$103</span>
+              </div>
+              <div class="price-row total-row">
+                <span>Total</span>
+                <span class="total-amount-highlight">$1,390</span>
+              </div>
+            </div>
+
+            <!-- Continue to Payment Button -->
+            <div style="margin-top: 20px;">
+              <button class="btn-primary" data-navigate="payment">
+                Continue to Payment
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- =================================================================
+             5. CHECKOUT - PAYMENT SCREEN (Matches Image 5)
+             ================================================================= -->
+        <section id="page-payment" class="screen-page">
+          <!-- Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="shipping" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-title-center">Checkout</div>
+            <div style="width:38px;"></div>
+          </header>
+
+          <!-- Stepper Step 2 Active (Matches Image 5) -->
+          <div class="checkout-stepper">
+            <div class="stepper-step completed">
+              <div class="step-circle">✓</div>
+              <div class="step-label">Shipping</div>
+            </div>
+            <div class="stepper-line completed"></div>
+            <div class="stepper-step active">
+              <div class="step-circle">2</div>
+              <div class="step-label">Payment</div>
+            </div>
+            <div class="stepper-line"></div>
+            <div class="stepper-step">
+              <div class="step-circle">3</div>
+              <div class="step-label">Review</div>
+            </div>
+          </div>
+
+          <div class="checkout-screen">
+            <!-- Payment Methods List -->
+            <div class="checkout-section-title">
+              <span>Payment Method</span>
+            </div>
+
+            <div class="payment-accordion-group">
+              
+              <!-- Option 1: Credit / Debit Card (Selected & Expanded) -->
+              <div class="payment-accordion-card selected">
+                <div class="payment-header">
+                  <div class="custom-radio"></div>
+                  <div class="payment-brand-badge" style="color:#1E3A8A; font-style:italic;">VISA</div>
+                  <div class="payment-title-box">
+                    <h5>Credit / Debit Card</h5>
+                    <p>Pay securely using your card</p>
+                  </div>
+                  <div class="payment-chevron">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+                  </div>
+                </div>
+
+                <!-- Expanded Card Form (Matches Image 5) -->
+                <div class="payment-body-form" style="display:block;">
+                  <div class="form-group">
+                    <label class="form-label">Card Number</label>
+                    <div class="input-with-icon" style="background:#FFFFFF;">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                      <input type="text" value="1234 5678 9012 3456">
+                      <span class="card-brand-logo-inline">VISA</span>
+                    </div>
+                  </div>
+
+                  <div class="payment-form-row-2">
+                    <div class="form-group">
+                      <label class="form-label">Expiry Date</label>
+                      <div class="input-with-icon" style="background:#FFFFFF;">
+                        <input type="text" placeholder="MM / YY" value="08 / 28">
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">CVV</label>
+                      <div class="input-with-icon" style="background:#FFFFFF;">
+                        <input type="password" value="123">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Name on Card</label>
+                    <div class="input-with-icon" style="background:#FFFFFF;">
+                      <input type="text" value="John Doe">
+                    </div>
+                  </div>
+
+                  <label class="remember-checkbox" style="font-size:12px; margin-top:10px;">
+                    <input type="checkbox" checked style="accent-color:var(--primary); width:16px; height:16px;">
+                    <span>Save this card for faster checkout</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Option 2: Mastercard -->
+              <div class="payment-accordion-card">
+                <div class="payment-header">
+                  <div class="custom-radio"></div>
+                  <div class="payment-brand-badge">
+                    <svg viewBox="0 0 24 24" width="22" height="22">
+                      <circle cx="9" cy="12" r="6" fill="#EB001B" opacity="0.8"/>
+                      <circle cx="15" cy="12" r="6" fill="#F79E1B" opacity="0.8"/>
+                    </svg>
+                  </div>
+                  <div class="payment-title-box">
+                    <h5>Mastercard</h5>
+                    <p>Pay securely using your card</p>
+                  </div>
+                  <div class="payment-chevron">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Option 3: PayPal -->
+              <div class="payment-accordion-card">
+                <div class="payment-header">
+                  <div class="custom-radio"></div>
+                  <div class="payment-brand-badge" style="color:#003087; font-weight:900;">P</div>
+                  <div class="payment-title-box">
+                    <h5>PayPal</h5>
+                    <p>Pay with your PayPal account</p>
+                  </div>
+                  <div class="payment-chevron">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Option 4: Apple Pay -->
+              <div class="payment-accordion-card">
+                <div class="payment-header">
+                  <div class="custom-radio"></div>
+                  <div class="payment-brand-badge" style="color:#000000; font-weight:800;">Pay</div>
+                  <div class="payment-title-box">
+                    <h5>Apple Pay</h5>
+                    <p>Pay using Apple Pay</p>
+                  </div>
+                  <div class="payment-chevron">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Option 5: Google Pay -->
+              <div class="payment-accordion-card">
+                <div class="payment-header">
+                  <div class="custom-radio"></div>
+                  <div class="payment-brand-badge">
+                    <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                  </div>
+                  <div class="payment-title-box">
+                    <h5>Google Pay</h5>
+                    <p>Pay using Google Pay</p>
+                  </div>
+                  <div class="payment-chevron">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Price Details (Matches Image 5) -->
+            <div class="price-breakdown-box">
+              <div style="font-weight:700; font-size:14px; margin-bottom:12px;">Price Details</div>
+              <div class="price-row">
+                <span>Subtotal</span>
+                <span>$1,287</span>
+              </div>
+              <div class="price-row">
+                <span>Shipping</span>
+                <span class="free-tag">FREE</span>
+              </div>
+              <div class="price-row">
+                <span style="display:flex; align-items:center; gap:4px;">
+                  Estimated Tax
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </span>
+                <span>$103</span>
+              </div>
+              <div class="price-row total-row">
+                <span>Total</span>
+                <span class="total-amount-highlight">$1,390</span>
+              </div>
+            </div>
+
+            <!-- Continue to Review Button -->
+            <div style="margin-top: 20px;">
+              <button class="btn-primary" data-navigate="review-order">
+                Continue to Review
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- =================================================================
+             6. CHECKOUT - REVIEW ORDER SCREEN (Matches Step 3)
+             ================================================================= -->
+        <section id="page-review-order" class="screen-page">
+          <!-- Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="payment" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-title-center">Checkout</div>
+            <div style="width:38px;"></div>
+          </header>
+
+          <!-- Stepper Step 3 Active -->
+          <div class="checkout-stepper">
+            <div class="stepper-step completed">
+              <div class="step-circle">✓</div>
+              <div class="step-label">Shipping</div>
+            </div>
+            <div class="stepper-line completed"></div>
+            <div class="stepper-step completed">
+              <div class="step-circle">✓</div>
+              <div class="step-label">Payment</div>
+            </div>
+            <div class="stepper-line completed"></div>
+            <div class="stepper-step active">
+              <div class="step-circle">3</div>
+              <div class="step-label">Review</div>
+            </div>
+          </div>
+
+          <div class="checkout-screen">
+            <!-- Review Section 1: Shipping Address -->
+            <div class="checkout-section-title">
+              <span>Delivery Summary</span>
+            </div>
+            <div class="review-summary-card">
+              <div class="review-card-header">
+                <h5>Shipping Address</h5>
+                <a href="#" data-navigate="shipping">Edit</a>
+              </div>
+              <div style="font-size:13px; font-weight:600; color:var(--text-main);">John Doe (+1 555-123-4567)</div>
+              <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">123 Tech Street, Silicon Valley, San Francisco, CA 94107</div>
+            </div>
+
+            <!-- Review Section 2: Payment Method -->
+            <div class="review-summary-card">
+              <div class="review-card-header">
+                <h5>Payment Method</h5>
+                <a href="#" data-navigate="payment">Edit</a>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="card-brand-logo-inline">VISA</span>
+                <span style="font-size:13px; font-weight:600;">•••• •••• •••• 3456</span>
+              </div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Expires 08/28</div>
+            </div>
+
+            <!-- Review Section 3: Shipping Method -->
+            <div class="review-summary-card">
+              <div class="review-card-header">
+                <h5>Shipping Speed</h5>
+                <a href="#" data-navigate="shipping">Edit</a>
+              </div>
+              <div style="font-size:13px; font-weight:600; color:var(--text-main);">Standard Shipping (3–5 days)</div>
+              <div style="font-size:12px; color:var(--success); font-weight:600; margin-top:2px;">FREE Delivery by May 27, 2025</div>
+            </div>
+
+            <!-- Promo Code Field -->
+            <div class="promo-code-box">
+              <input type="text" class="promo-input" placeholder="Enter Promo Code (e.g. SIAKA10)" value="SIAKA10">
+              <button class="btn-primary btn-sm" style="width:auto; padding:0 18px;">Apply</button>
+            </div>
+
+            <!-- Price Breakdown Summary -->
+            <div class="price-breakdown-box">
+              <div class="price-row">
+                <span>Subtotal</span>
+                <span>$1,287</span>
+              </div>
+              <div class="price-row">
+                <span>Discount (SIAKA10)</span>
+                <span style="color:var(--success); font-weight:600;">-$0.00</span>
+              </div>
+              <div class="price-row">
+                <span>Shipping</span>
+                <span class="free-tag">FREE</span>
+              </div>
+              <div class="price-row">
+                <span>Estimated Tax</span>
+                <span>$103</span>
+              </div>
+              <div class="price-row total-row">
+                <span>Total</span>
+                <span class="total-amount-highlight">$1,390</span>
+              </div>
+            </div>
+
+            <!-- Place Order Button -->
+            <div style="margin-top: 20px;">
+              <button class="btn-primary" data-navigate="order-confirmation">
+                Place Order ($1,390)
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             7. ORDER CONFIRMATION SCREEN (Matches ✅)
+             ================================================================= -->
+        <section id="page-order-confirmation" class="screen-page no-bottom-nav">
+          <div class="confirmation-screen">
+            <!-- Animated Success Circle -->
+            <div class="success-check-circle">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+
+            <h1>Order Placed Successfully! 🎉</h1>
+            <p>Thank you for shopping at <strong>Siaka Phones</strong>. We've sent your order confirmation receipt to <strong>john.doe@example.com</strong>.</p>
+
+            <!-- Order Receipt Card -->
+            <div class="order-receipt-card">
+              <div class="receipt-row">
+                <span>Order Number:</span>
+                <span style="color:var(--primary); font-weight:700;">#SP-89421</span>
+              </div>
+              <div class="receipt-row">
+                <span>Order Date:</span>
+                <span>August 30, 2026</span>
+              </div>
+              <div class="receipt-row">
+                <span>Estimated Delivery:</span>
+                <span style="color:var(--success);">May 27, 2025</span>
+              </div>
+              <div class="receipt-row">
+                <span>Payment Method:</span>
+                <span>Visa (•••• 3456)</span>
+              </div>
+              <div class="receipt-row" style="border-top:1px solid var(--border-color); padding-top:8px; margin-top:8px;">
+                <span>Total Amount Paid:</span>
+                <span style="font-size:15px; color:var(--primary); font-weight:800;">$1,390.00</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="width:100%; display:flex; flex-direction:column; gap:12px;">
+              <button class="btn-primary" data-navigate="order-tracking">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                Track Your Order
+              </button>
+              <button class="btn-secondary" data-navigate="home">
+                Continue Shopping
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             8. ORDER TRACKING SCREEN
+             ================================================================= -->
+        <section id="page-order-tracking" class="screen-page">
+          <!-- Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-title-center">Track Order</div>
+            <button class="icon-btn" data-navigate="profile" aria-label="Help">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+          </header>
+
+          <div class="tracking-screen">
+            <!-- Status Banner -->
+            <div class="tracking-status-banner">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; opacity:0.9;">Order #SP-89421</div>
+              <h3>Out for Delivery 🚚</h3>
+              <p>Estimated arrival: <strong>Today by 4:30 PM</strong></p>
+              <div style="font-size:11px; margin-top:8px; opacity:0.85;">Carrier: FedEx Express (Tracking #FDX-88392014)</div>
+            </div>
+
+            <!-- Courier Driver Card -->
+            <div class="courier-card">
+              <div class="courier-info">
+                <div class="courier-avatar">MR</div>
+                <div>
+                  <div style="font-size:13px; font-weight:700;">Michael R.</div>
+                  <div style="font-size:11px; color:var(--text-muted);">Siaka Verified Courier</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="icon-btn icon-btn-pill" aria-label="Call">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </button>
+                <button class="icon-btn icon-btn-pill" aria-label="Message">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- 5-Step Interactive Timeline -->
+            <div class="tracking-timeline-box">
+              <div class="timeline-step completed">
+                <div class="timeline-indicator">✓</div>
+                <div class="timeline-content">
+                  <h5>Order Placed</h5>
+                  <p>May 24, 2025 • 10:30 AM</p>
+                </div>
+              </div>
+
+              <div class="timeline-step completed">
+                <div class="timeline-indicator">✓</div>
+                <div class="timeline-content">
+                  <h5>Order Confirmed & Payment Verified</h5>
+                  <p>May 24, 2025 • 11:15 AM</p>
+                </div>
+              </div>
+
+              <div class="timeline-step completed">
+                <div class="timeline-indicator">✓</div>
+                <div class="timeline-content">
+                  <h5>Shipped from Warehouse</h5>
+                  <p>May 25, 2025 • 08:45 AM • San Francisco Hub</p>
+                </div>
+              </div>
+
+              <div class="timeline-step current">
+                <div class="timeline-indicator">🚚</div>
+                <div class="timeline-content">
+                  <h5>Out for Delivery</h5>
+                  <p>Today • 09:15 AM • Driver is 4 stops away</p>
+                </div>
+              </div>
+
+              <div class="timeline-step">
+                <div class="timeline-indicator">📦</div>
+                <div class="timeline-content">
+                  <h5>Delivered</h5>
+                  <p>Expected Today by 04:30 PM</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Back to Shopping Button -->
+            <button class="btn-outline" data-navigate="home">
+              Back to Home
+            </button>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             9. SEARCH PAGE
+             ================================================================= -->
+        <section id="page-search" class="screen-page">
+          <!-- Search Header Bar -->
+          <div class="search-header-bar">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="search-input-box">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search iPhones, Samsung, Pixel..." value="iPhone 15">
+              <button style="background:transparent; color:var(--text-muted);">✕</button>
+            </div>
+            <button class="icon-btn icon-btn-pill" aria-label="Filter">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            </button>
+          </div>
+
+          <!-- Quick Filter Chips -->
+          <div class="search-chips-row">
+            <button class="search-chip active">All Results (18)</button>
+            <button class="search-chip">Apple</button>
+            <button class="search-chip">Samsung</button>
+            <button class="search-chip">Google</button>
+            <button class="search-chip">Cases</button>
+            <button class="search-chip">Audio</button>
+          </div>
+
+          <!-- Search Results Grid -->
+          <div class="featured-phones-grid" style="margin-top:10px;">
+            <div class="product-card" data-navigate="product-details">
+              <span class="product-card-badge">New</span>
+              <div class="product-image-box">
+                <svg viewBox="0 0 160 220" width="100%" height="100%" fill="none">
+                  <rect x="30" y="10" width="100" height="200" rx="20" fill="#4B5563" stroke="#9CA3AF" stroke-width="2"/>
+                  <rect x="34" y="14" width="92" height="192" rx="16" fill="#0F172A"/>
+                  <rect x="66" y="20" width="28" height="7" rx="3.5" fill="#000000"/>
+                  <path d="M34 130 C60 90, 80 180, 126 120 L126 206 L34 206 Z" fill="rgba(56, 189, 248, 0.45)"/>
+                </svg>
+              </div>
+              <div class="product-info-title">iPhone 15 Pro Max</div>
+              <div class="product-info-price">From $1,099</div>
+              <div class="product-info-rating"><span class="star-icon">★</span> 4.8 (245)</div>
+              <button class="product-buy-btn" data-navigate="product-details">Buy Now</button>
+            </div>
+
+            <div class="product-card" data-navigate="product-details">
+              <span class="product-card-badge" style="background:#4B5563;">Popular</span>
+              <div class="product-image-box">
+                <svg viewBox="0 0 160 220" width="100%" height="100%" fill="none">
+                  <rect x="32" y="12" width="96" height="196" rx="18" fill="#1E293B" stroke="#475569" stroke-width="1.5"/>
+                  <rect x="36" y="16" width="88" height="188" rx="14" fill="#0284C7"/>
+                </svg>
+              </div>
+              <div class="product-info-title">iPhone 15 Plus</div>
+              <div class="product-info-price">From $899</div>
+              <div class="product-info-rating"><span class="star-icon">★</span> 4.7 (142)</div>
+              <button class="product-buy-btn" data-navigate="product-details">Buy Now</button>
+            </div>
+
+            <div class="product-card" data-navigate="product-details">
+              <div class="product-image-box">
+                <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none">
+                  <rect x="22" y="10" width="56" height="80" rx="14" fill="rgba(241, 245, 249, 0.8)" stroke="#CBD5E1" stroke-width="1.5"/>
+                  <rect x="26" y="14" width="48" height="72" rx="10" fill="#E2E8F0"/>
+                </svg>
+              </div>
+              <div class="product-info-title">Spigen Clear Case</div>
+              <div class="product-info-price">$39</div>
+              <div class="product-info-rating"><span class="star-icon">★</span> 4.9 (531)</div>
+              <button class="product-buy-btn" data-navigate="cart">Add to Cart</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             10. CATEGORIES PAGE
+             ================================================================= -->
+        <section id="page-categories" class="screen-page">
+          <!-- Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-title-center">Categories</div>
+            <button class="icon-btn" data-navigate="search" aria-label="Search">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+          </header>
+
+          <div class="categories-screen">
+            <!-- Banner -->
+            <div class="category-banner">
+              <div>
+                <h3>Explore All Categories</h3>
+                <p>Over 250+ certified devices & accessories</p>
+              </div>
+              <div style="font-size:32px;">📱</div>
+            </div>
+
+            <!-- Categories Grid -->
+            <div class="categories-grid">
+              <div class="category-card" data-navigate="search">
+                <div class="category-card-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                </div>
+                <div class="category-card-info">
+                  <h4>Flagship Phones</h4>
+                  <span>64 Models</span>
+                </div>
+              </div>
+
+              <div class="category-card" data-navigate="search">
+                <div class="category-card-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="12" y1="3" x2="12" y2="17"/></svg>
+                </div>
+                <div class="category-card-info">
+                  <h4>Foldables & Flip</h4>
+                  <span>18 Models</span>
+                </div>
+              </div>
+
+              <div class="category-card" data-navigate="search">
+                <div class="category-card-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+                </div>
+                <div class="category-card-info">
+                  <h4>Wireless Audio</h4>
+                  <span>42 Models</span>
+                </div>
+              </div>
+
+              <div class="category-card" data-navigate="search">
+                <div class="category-card-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div class="category-card-info">
+                  <h4>Cases & Covers</h4>
+                  <span>120+ Items</span>
+                </div>
+              </div>
+
+              <div class="category-card" data-navigate="search">
+                <div class="category-card-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </div>
+                <div class="category-card-info">
+                  <h4>Fast Chargers</h4>
+                  <span>56 Items</span>
+                </div>
+              </div>
+
+              <div class="category-card" data-navigate="search">
+                <div class="category-card-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><polyline points="12 9 12 12 13.5 13.5"/><path d="M16.51 17.35l-.35 3.83a2 2 0 0 1-2 1.82H9.83a2 2 0 0 1-2-1.82l-.35-3.83m.01-10.7l.35-3.83A2 2 0 0 1 9.83 1h4.35a2 2 0 0 1 2 1.82l.35 3.83"/></svg>
+                </div>
+                <div class="category-card-info">
+                  <h4>Smartwatches</h4>
+                  <span>34 Models</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             11. WISHLIST PAGE
+             ================================================================= -->
+        <section id="page-wishlist" class="screen-page">
+          <!-- Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-title-center">My Wishlist <span style="font-weight:500; font-size:15px; color:var(--text-muted);">(3)</span></div>
+            <button style="background:transparent; color:var(--primary); font-size:14px; font-weight:600;">Clear</button>
+          </header>
+
+          <div class="wishlist-screen">
+            <!-- Wishlist Card 1 -->
+            <div class="wishlist-item-card">
+              <div class="wishlist-img">
+                <svg viewBox="0 0 100 120" width="100%" height="100%" fill="none">
+                  <rect x="20" y="10" width="60" height="100" rx="12" fill="#4B5563"/>
+                  <rect x="23" y="13" width="54" height="94" rx="10" fill="#0F172A"/>
+                </svg>
+              </div>
+              <div class="wishlist-info">
+                <h4>iPhone 15 Pro Max</h4>
+                <div class="price">$1,099</div>
+                <span class="badge-tag" style="background:#ECFDF5; color:#16A34A; margin-bottom:8px;">In Stock</span>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-primary btn-sm" data-navigate="cart">Move to Cart</button>
+                  <button class="icon-btn" style="color:var(--danger);" aria-label="Remove">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Wishlist Card 2 -->
+            <div class="wishlist-item-card">
+              <div class="wishlist-img">
+                <svg viewBox="0 0 100 120" width="100%" height="100%" fill="none">
+                  <rect x="20" y="10" width="60" height="100" rx="6" fill="#334155"/>
+                  <rect x="23" y="13" width="54" height="94" rx="4" fill="#1E1B4B"/>
+                </svg>
+              </div>
+              <div class="wishlist-info">
+                <h4>Galaxy S24 Ultra</h4>
+                <div class="price">$1,099</div>
+                <span class="badge-tag" style="background:#ECFDF5; color:#16A34A; margin-bottom:8px;">In Stock</span>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-primary btn-sm" data-navigate="cart">Move to Cart</button>
+                  <button class="icon-btn" style="color:var(--danger);" aria-label="Remove">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             12. PROFILE PAGE
+             ================================================================= -->
+        <section id="page-profile" class="screen-page">
+          <!-- Header -->
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-title-center">My Account</div>
+            <button class="icon-btn" data-navigate="login" aria-label="Logout">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+          </header>
+
+          <div class="profile-screen">
+            <!-- Profile Header Card -->
+            <div class="profile-header-card">
+              <div class="profile-avatar-box">JD</div>
+              <div class="profile-details">
+                <h3>John Doe</h3>
+                <p>john.doe@example.com</p>
+                <span class="badge-tag">VIP Gold Member 👑</span>
+              </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="profile-stats-grid">
+              <div class="profile-stat-box" data-navigate="order-tracking" style="cursor:pointer;">
+                <div class="profile-stat-number">3</div>
+                <div class="profile-stat-label">Orders</div>
+              </div>
+              <div class="profile-stat-box" data-navigate="wishlist" style="cursor:pointer;">
+                <div class="profile-stat-number">4</div>
+                <div class="profile-stat-label">Wishlist</div>
+              </div>
+              <div class="profile-stat-box" data-navigate="shipping" style="cursor:pointer;">
+                <div class="profile-stat-number">2</div>
+                <div class="profile-stat-label">Addresses</div>
+              </div>
+            </div>
+
+            <!-- Account Menu Items -->
+            <div class="profile-menu-section">
+              <div class="profile-menu-item" data-navigate="order-tracking">
+                <div class="profile-menu-left">
+                  <div class="profile-menu-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  </div>
+                  <span>My Orders & Tracking</span>
+                </div>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+
+              <div class="profile-menu-item" data-navigate="shipping">
+                <div class="profile-menu-left">
+                  <div class="profile-menu-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </div>
+                  <span>Saved Delivery Addresses</span>
+                </div>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+
+              <div class="profile-menu-item" data-navigate="payment">
+                <div class="profile-menu-left">
+                  <div class="profile-menu-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  </div>
+                  <span>Saved Payment Methods</span>
+                </div>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+
+              <div class="profile-menu-item" data-navigate="wishlist">
+                <div class="profile-menu-left">
+                  <div class="profile-menu-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  </div>
+                  <span>My Wishlist</span>
+                </div>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+
+            <!-- Logout Button -->
+            <button class="btn-outline" data-navigate="login" style="color:var(--danger); border-color:#FCA5A5;">
+              Sign Out
+            </button>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             13. LOGIN / AUTH SCREEN
+             ================================================================= -->
+        <section id="page-login" class="screen-page no-bottom-nav">
+          <header class="app-header header-transparent">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-brand-logo">
+              <div>Siaka<span class="logo-accent">Phones</span></div>
+            </div>
+            <div style="width:38px;"></div>
+          </header>
+
+          <div class="auth-screen">
+            <div class="auth-header">
+              <h1>Welcome Back 👋</h1>
+              <p>Sign in to your account to explore exclusive offers</p>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="auth-tabs">
+              <button class="auth-tab-btn active">Sign In</button>
+              <button class="auth-tab-btn">Create Account</button>
+            </div>
+
+            <!-- Social Logins -->
+            <div class="social-auth-grid">
+              <button class="social-btn" data-navigate="home">
+                <svg viewBox="0 0 170 170" width="18" height="18" fill="currentColor"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.6-7.7-11.7-13.97-6.09-9.35-10.74-20.15-13.96-32.41-3.23-12.26-4.84-23.77-4.84-34.53 0-14.9 3.63-27.18 10.89-36.85 7.26-9.66 16.48-14.65 27.67-14.97 4.79 0 10.22 1.34 16.29 4.01 6.07 2.68 9.99 4.07 11.75 4.19 1.55-.12 5.58-1.57 12.1-4.35 6.52-2.78 12.15-4.01 16.89-3.69 12.63.87 22.75 5.76 30.36 14.66-10.89 6.64-16.22 15.67-15.98 27.09.24 8.92 3.64 16.38 10.2 22.38 6.56 6 14.38 9.4 23.47 10.21-2.07 6.32-4.57 12.63-7.51 18.94zM119.22 31.85c0-7.29 2.59-14.28 7.77-20.97C132.17 4.19 138.83.6 146.97 0c.22 1.09.33 2.07.33 2.94 0 7.39-2.77 14.6-8.31 21.64-5.54 7.03-12.44 10.96-20.7 10.79.11-1.19.93-3.52-.93-3.52z"/></svg>
+                Apple
+              </button>
+              <button class="social-btn" data-navigate="home">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                Google
+              </button>
+            </div>
+
+            <div class="auth-divider">or continue with email</div>
+
+            <form onsubmit="event.preventDefault();">
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <div class="input-with-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  <input type="email" placeholder="name@example.com" value="john.doe@example.com">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <div class="input-with-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <input type="password" value="••••••••••••">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+              </div>
+
+              <div class="form-options-row">
+                <label class="remember-checkbox">
+                  <input type="checkbox" checked style="accent-color:var(--primary);">
+                  <span>Remember me</span>
+                </label>
+                <a href="#">Forgot Password?</a>
+              </div>
+
+              <button class="btn-primary" data-navigate="home">
+                Sign In
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             14. ONBOARDING SCREEN
+             ================================================================= -->
+        <section id="page-onboarding" class="screen-page no-bottom-nav">
+          <div class="onboarding-screen">
+            <div class="onboarding-top-bar">
+              <button class="skip-btn" data-navigate="home">Skip</button>
+            </div>
+
+            <div class="onboarding-hero-carousel">
+              <div class="onboarding-image-box">
+                <svg viewBox="0 0 260 220" width="100%" height="100%" fill="none">
+                  <g transform="translate(10, 10)">
+                    <rect x="20" y="10" width="95" height="190" rx="20" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="2"/>
+                    <rect x="28" y="18" width="42" height="42" rx="12" fill="#CBD5E1"/>
+                    <circle cx="40" cy="30" r="7" fill="#334155"/>
+                    <circle cx="58" cy="30" r="7" fill="#334155"/>
+                  </g>
+                  <g transform="translate(105, 0)">
+                    <rect x="20" y="10" width="95" height="195" rx="20" fill="#334155" stroke="#64748B" stroke-width="2"/>
+                    <rect x="24" y="14" width="87" height="187" rx="16" fill="#0F172A"/>
+                    <path d="M24 120 C50 60, 70 170, 111 90 L111 201 L24 201 Z" fill="#38BDF8"/>
+                  </g>
+                </svg>
+              </div>
+              <h1 class="onboarding-title">Experience Next-Gen Mobile Technology</h1>
+              <p class="onboarding-subtitle">Shop the latest iPhones, Samsungs, Pixels and accessories with official warranty and fast delivery.</p>
+              <div class="onboarding-dots">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
+
+            <div class="onboarding-actions">
+              <button class="btn-primary" data-navigate="home">
+                Get Started
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+              <button class="btn-secondary" data-navigate="login">
+                Sign In to Account
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Bottom Navigation Bar (Fixed 5-Tab iOS Dock) -->
+      <nav class="bottom-nav-bar" id="bottom-nav-bar">
+        <button class="nav-item active" id="nav-home" data-navigate="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Home</span>
+        </button>
+
+        <button class="nav-item" id="nav-search" data-navigate="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Search</span>
+        </button>
+
+        <button class="nav-item" id="nav-wishlist" data-navigate="wishlist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span>Wishlist</span>
+        </button>
+
+        <button class="nav-item" id="nav-cart" data-navigate="cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span class="nav-badge">3</span>
+          <span>Cart</span>
+        </button>
+
+        <button class="nav-item" id="nav-profile" data-navigate="profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Profile</span>
+        </button>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- JavaScript Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
