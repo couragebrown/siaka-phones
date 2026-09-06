@@ -13,8 +13,8 @@ class RepairsViewModel extends ChangeNotifier {
   String _description = '';
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String _timeSlot = '10:00 AM - 12:00 PM';
-  String _customerName = 'Courage Brown';
-  String _customerPhone = '+1 (555) 839-2041';
+  final String _customerName = 'Courage Brown';
+  final String _customerPhone = '+1 (555) 839-2041';
   bool _isSubmitting = false;
   RepairBooking? _lastBooking;
 

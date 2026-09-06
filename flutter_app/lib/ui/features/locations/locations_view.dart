@@ -58,15 +58,15 @@ class _LocationsViewState extends State<LocationsView> {
                     const SizedBox(height: 20),
 
                     // Map View Simulation Glass Banner
-                    GlassContainer(
-                      padding: const EdgeInsets.all(20),
+                    const GlassContainer(
+                      padding: EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          const Icon(Icons.map_outlined, size: 40, color: AppColors.cyan),
-                          const SizedBox(height: 8),
-                          const Text('3 Boutiques Near You', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                          const SizedBox(height: 4),
-                          const Text('All locations support same-day pickup and warranty diagnostics.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                          Icon(Icons.map_outlined, size: 40, color: AppColors.cyan),
+                          SizedBox(height: 8),
+                          Text('3 Boutiques Near You', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                          SizedBox(height: 4),
+                          Text('All locations support same-day pickup and warranty diagnostics.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                         ],
                       ),
                     ),
@@ -104,7 +104,7 @@ class _LocationsViewState extends State<LocationsView> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: loc.isOpenNow ? AppColors.neonEmerald.withOpacity(0.15) : AppColors.neonPink.withOpacity(0.15),
+                    color: loc.isOpenNow ? AppColors.neonEmerald.withValues(alpha: 0.15) : AppColors.neonPink.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: loc.isOpenNow ? AppColors.neonEmerald : AppColors.neonPink),
                   ),

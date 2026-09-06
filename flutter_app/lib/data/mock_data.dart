@@ -14,13 +14,19 @@ class MockData {
       originalPrice: 1299.99,
       rating: 4.9,
       reviewCount: 428,
-      description: 'The pinnacle of mobile engineering. Featuring the HyperDrive Gen-4 3nm chip, Quantum Crystal AMOLED 120Hz display, and an aerospace-grade titanium frame with liquid-cooling graphene substrate.',
+      description:
+          'The pinnacle of mobile engineering. Featuring the HyperDrive Gen-4 3nm chip, Quantum Crystal AMOLED 120Hz display, and an aerospace-grade titanium frame with liquid-cooling graphene substrate.',
       images: [
         'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1511707171634-5f897ff02560?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80',
       ],
-      colors: ['Titanium Cyber', 'Obsidian Black', 'Aurora Cyan', 'Deep Violet'],
+      colors: [
+        'Titanium Cyber',
+        'Obsidian Black',
+        'Aurora Cyan',
+        'Deep Violet'
+      ],
       storageOptions: ['256 GB', '512 GB', '1 TB'],
       specs: {
         'Display': '6.8" Quad HD+ Quantum AMOLED 1-120Hz LTPO',
@@ -44,7 +50,8 @@ class MockData {
       originalPrice: 1899.99,
       rating: 4.8,
       reviewCount: 219,
-      description: 'Zero-crease titanium micro-gear hinge with an 8.02-inch expansive folding canvas. Dual stereo sound chambers tuned by master acoustic engineers.',
+      description:
+          'Zero-crease titanium micro-gear hinge with an 8.02-inch expansive folding canvas. Dual stereo sound chambers tuned by master acoustic engineers.',
       images: [
         'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=800&q=80',
@@ -72,7 +79,8 @@ class MockData {
       originalPrice: 499.99,
       rating: 4.7,
       reviewCount: 840,
-      description: 'Uncompromising power and aesthetic beauty at an unbeatable price point. Silky smooth 120Hz FHD+ display and two-day marathon battery life.',
+      description:
+          'Uncompromising power and aesthetic beauty at an unbeatable price point. Silky smooth 120Hz FHD+ display and two-day marathon battery life.',
       images: [
         'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
@@ -99,7 +107,8 @@ class MockData {
       originalPrice: 399.99,
       rating: 4.9,
       reviewCount: 312,
-      description: 'Military-grade forged titanium smartwatch with continuous ECG, dual-band precision GPS, sapphire crystal lens, and up to 14 days battery life.',
+      description:
+          'Military-grade forged titanium smartwatch with continuous ECG, dual-band precision GPS, sapphire crystal lens, and up to 14 days battery life.',
       images: [
         'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=800&q=80',
@@ -126,7 +135,8 @@ class MockData {
       originalPrice: 229.99,
       rating: 4.8,
       reviewCount: 580,
-      description: 'Studio-grade spatial audio with dynamic head tracking, 52dB hybrid active noise cancellation, and lossless Hi-Res audio transmission.',
+      description:
+          'Studio-grade spatial audio with dynamic head tracking, 52dB hybrid active noise cancellation, and lossless Hi-Res audio transmission.',
       images: [
         'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=800&q=80',
@@ -143,6 +153,118 @@ class MockData {
       isNewArrival: false,
       inStock: true,
       stockCount: 60,
+    ),
+    Product(
+      id: 'phone-6',
+      name: 'Siaka Vertex Pro 5G',
+      brand: 'Siaka',
+      category: 'Smartphones',
+      price: 899.99,
+      originalPrice: 999.99,
+      rating: 4.8,
+      reviewCount: 361,
+      description:
+          'A precision-machined flagship with a bright 144Hz AMOLED display, pro-grade imaging, and all-day intelligent power management.',
+      images: [
+        'https://images.unsplash.com/photo-1510557880182-3b1a7c2b1c6c?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80',
+      ],
+      colors: ['Graphite', 'Glacier Silver', 'Ocean Blue'],
+      storageOptions: ['256 GB', '512 GB'],
+      specs: {
+        'Display': '6.7" 144Hz AMOLED',
+        'Processor': 'Siaka HyperDrive 4',
+        'Camera': '50MP OIS Main + 50MP Ultra-wide',
+        'Battery': '5,100 mAh with 80W fast charging',
+      },
+      isFeatured: true,
+      isNewArrival: true,
+      inStock: true,
+      stockCount: 31,
+    ),
+    Product(
+      id: 'phone-7',
+      name: 'Siaka Orbit Mini',
+      brand: 'Siaka',
+      category: 'Smartphones',
+      price: 649.99,
+      originalPrice: 699.99,
+      rating: 4.7,
+      reviewCount: 274,
+      description:
+          'Compact flagship performance in a pocket-friendly design, complete with a cinematic display and versatile dual-camera system.',
+      images: [
+        'https://images.unsplash.com/photo-1556656793-08538906a9f8?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
+      ],
+      colors: ['Midnight', 'Coral', 'Mist White'],
+      storageOptions: ['128 GB', '256 GB'],
+      specs: {
+        'Display': '6.1" FHD+ OLED 120Hz',
+        'Processor': 'Siaka HyperDrive 3',
+        'Camera': '50MP Main + 13MP Ultra-wide',
+        'Battery': '4,500 mAh with 45W fast charging',
+      },
+      isFeatured: true,
+      isNewArrival: true,
+      inStock: true,
+      stockCount: 44,
+    ),
+    Product(
+      id: 'phone-8',
+      name: 'Siaka Vision Max',
+      brand: 'Siaka',
+      category: 'Smartphones',
+      price: 1099.99,
+      originalPrice: 1199.99,
+      rating: 4.9,
+      reviewCount: 198,
+      description:
+          'Built for visual storytelling with a large edge-to-edge display, 8K video capture, and a dedicated imaging processor.',
+      images: [
+        'https://images.unsplash.com/photo-1603898037225-1bea7a8086c5?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=800&q=80',
+      ],
+      colors: ['Titanium Gray', 'Forest Green', 'Ice Blue'],
+      storageOptions: ['256 GB', '512 GB', '1 TB'],
+      specs: {
+        'Display': '6.9" QHD+ LTPO AMOLED 1-120Hz',
+        'Processor': 'Siaka HyperDrive-X',
+        'Camera': '200MP Main + 50MP Periscope + 50MP Ultra-wide',
+        'Battery': '5,500 mAh with 100W fast charging',
+      },
+      isFeatured: true,
+      isNewArrival: false,
+      inStock: true,
+      stockCount: 18,
+    ),
+    Product(
+      id: 'phone-9',
+      name: 'Siaka Flex Air',
+      brand: 'Siaka',
+      category: 'Foldables',
+      price: 1299.99,
+      originalPrice: 1449.99,
+      rating: 4.8,
+      reviewCount: 156,
+      description:
+          'An ultralight foldable that opens into a spacious multitasking canvas without compromising on pocketability.',
+      images: [
+        'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=800&q=80',
+      ],
+      colors: ['Cloud Silver', 'Ink Black', 'Lavender'],
+      storageOptions: ['256 GB', '512 GB'],
+      specs: {
+        'Main Display': '7.6" Adaptive AMOLED 120Hz',
+        'Cover Display': '6.2" AMOLED 120Hz',
+        'Camera': '50MP Main + 12MP Ultra-wide + 10MP Telephoto',
+        'Battery': '4,800 mAh with 67W fast charging',
+      },
+      isFeatured: true,
+      isNewArrival: true,
+      inStock: true,
+      stockCount: 22,
     ),
   ];
 
@@ -189,7 +311,8 @@ class MockData {
       author: 'Marcus Vance',
       rating: 5.0,
       date: 'Aug 24, 2026',
-      comment: 'The display is on a whole different level compared to my previous phone. Battery lasts well into day 2 and the 120W charging is shockingly fast!',
+      comment:
+          'The display is on a whole different level compared to my previous phone. Battery lasts well into day 2 and the 120W charging is shockingly fast!',
       isVerifiedPurchaser: true,
       helpfulCount: 42,
     ),
@@ -199,7 +322,8 @@ class MockData {
       author: 'Elena Rostova',
       rating: 5.0,
       date: 'Aug 21, 2026',
-      comment: 'Camera quality is mind-blowing in low light. The titanium frame feels feather-light yet indestructible in hand.',
+      comment:
+          'Camera quality is mind-blowing in low light. The titanium frame feels feather-light yet indestructible in hand.',
       isVerifiedPurchaser: true,
       helpfulCount: 29,
     ),
@@ -209,7 +333,8 @@ class MockData {
       author: 'David Chen',
       rating: 4.8,
       date: 'Aug 18, 2026',
-      comment: 'Best foldable I have ever held. The crease is completely invisible and the multitasking dock saves me hours daily.',
+      comment:
+          'Best foldable I have ever held. The crease is completely invisible and the multitasking dock saves me hours daily.',
       isVerifiedPurchaser: true,
       helpfulCount: 18,
     ),
@@ -220,7 +345,8 @@ class MockData {
     name: 'Courage Brown',
     email: 'courage@siakaphones.com',
     phone: '+1 (555) 839-2041',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    avatarUrl:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
     membershipTier: 'Diamond Elite VIP',
     rewardPoints: 4850,
   );

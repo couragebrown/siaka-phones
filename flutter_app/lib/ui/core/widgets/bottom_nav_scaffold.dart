@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../app_colors.dart';
 
 class BottomNavScaffold extends StatelessWidget {
   final int currentIndex;
@@ -18,68 +17,87 @@ class BottomNavScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF3F4F6),
       body: body,
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface.withOpacity(0.95),
-          border: const Border(
-            top: BorderSide(color: AppColors.borderLight, width: 1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
+        height: 82,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-                _buildNavItem(1, Icons.phone_android_rounded, Icons.phone_android_outlined, 'Catalog'),
-                _buildCartItem(2),
-                _buildNavItem(3, Icons.build_circle_rounded, Icons.build_circle_outlined, 'Repairs'),
-                _buildNavItem(4, Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
-              ],
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.home_rounded, 'Home',
+                  isSelected: currentIndex == 0),
+              _buildNavItem(1, Icons.search_rounded, 'Search',
+                  isSelected: currentIndex == 1),
+              _buildNavItem(3, Icons.favorite_border_rounded, 'Wishlist',
+                  isSelected: currentIndex == 3),
+              _buildCartItem(cartBadgeCount),
+              _buildNavItem(4, Icons.person_outline_rounded, 'Profile',
+                  isSelected: currentIndex == 4),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
-    final isSelected = currentIndex == index;
+  Widget _buildNavItem(int index, IconData icon, String label,
+      {required bool isSelected}) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => onTabSelected(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.cyan.withOpacity(0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
+      child: SizedBox(
+        width: 68,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              isSelected ? activeIcon : inactiveIcon,
-              color: isSelected ? AppColors.cyan : AppColors.textMuted,
-              size: 24,
+            AnimatedSlide(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              offset: isSelected ? const Offset(0, -0.08) : Offset.zero,
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                scale: isSelected ? 1.08 : 1,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  width: 36,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF1C7BFF).withValues(alpha: 0.12)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isSelected
+                        ? const Color(0xFF1C7BFF)
+                        : const Color(0xFF7A8194),
+                    size: 26,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
               style: TextStyle(
-                color: isSelected ? AppColors.cyan : AppColors.textMuted,
+                color: isSelected
+                    ? const Color(0xFF1C7BFF)
+                    : const Color(0xFF7A8194),
                 fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
               ),
             ),
           ],
@@ -88,58 +106,81 @@ class BottomNavScaffold extends StatelessWidget {
     );
   }
 
-  Widget _buildCartItem(int index) {
-    final isSelected = currentIndex == index;
+  Widget _buildCartItem(int badgeCount) {
+    final isSelected = currentIndex == 2;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => onTabSelected(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.cyan.withOpacity(0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
+      onTap: () => onTabSelected(2),
+      child: SizedBox(
+        width: 68,
         child: Stack(
-          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
           children: [
             Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  isSelected ? Icons.shopping_bag_rounded : Icons.shopping_bag_outlined,
-                  color: isSelected ? AppColors.cyan : AppColors.textMuted,
-                  size: 24,
+                AnimatedSlide(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  offset: isSelected ? const Offset(0, -0.08) : Offset.zero,
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    scale: isSelected ? 1.08 : 1,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      width: 36,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF1C7BFF).withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.shopping_bag_outlined,
+                        color: isSelected
+                            ? const Color(0xFF1C7BFF)
+                            : const Color(0xFF7A8194),
+                        size: 26,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Cart',
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
                   style: TextStyle(
-                    color: isSelected ? AppColors.cyan : AppColors.textMuted,
+                    color: isSelected
+                        ? const Color(0xFF1C7BFF)
+                        : const Color(0xFF7A8194),
                     fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   ),
+                  child: const Text('Cart'),
                 ),
               ],
             ),
-            if (cartBadgeCount > 0)
+            if (badgeCount > 0)
               Positioned(
-                top: -4,
-                right: -4,
+                right: 10,
+                top: 2,
                 child: Container(
-                  padding: const EdgeInsets.all(4),
+                  width: 16,
+                  height: 16,
                   decoration: const BoxDecoration(
-                    color: AppColors.neonPink,
+                    color: Color(0xFF1C7BFF),
                     shape: BoxShape.circle,
                   ),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                  child: Text(
-                    '$cartBadgeCount',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+                  child: Center(
+                    child: Text(
+                      '$badgeCount',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),

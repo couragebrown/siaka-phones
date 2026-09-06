@@ -25,6 +25,8 @@ class ProductDetailViewModel extends ChangeNotifier {
   int _quantity = 1;
   int get quantity => _quantity;
 
+  int get cartItemCount => _cartRepository.itemCount;
+
   bool _isAddedSuccess = false;
   bool get isAddedSuccess => _isAddedSuccess;
 

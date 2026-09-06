@@ -29,7 +29,7 @@ class BadgeChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.cyan.withOpacity(0.15) : AppColors.surfaceElevated,
+            color: isSelected ? AppColors.cyan.withValues(alpha: 0.15) : AppColors.surfaceElevated,
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
               color: isSelected ? AppColors.cyan : AppColors.borderLight,

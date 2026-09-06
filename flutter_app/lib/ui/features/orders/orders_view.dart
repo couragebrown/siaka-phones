@@ -23,7 +23,8 @@ class OrdersView extends StatelessWidget {
           ),
           body: orders.isEmpty
               ? const Center(
-                  child: Text('No orders found', style: TextStyle(color: AppColors.textMuted)),
+                  child: Text('No orders found',
+                      style: TextStyle(color: AppColors.textMuted)),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
@@ -68,18 +69,25 @@ class OrdersView extends StatelessWidget {
             children: [
               Text(
                 '#${order.orderId}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
+                  color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: statusColor),
                 ),
                 child: Text(
                   order.statusDisplay,
-                  style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -90,35 +98,37 @@ class OrdersView extends StatelessWidget {
             style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
           const Divider(color: AppColors.borderLight, height: 20),
-
           ...order.items.map((item) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    item.product.images.first,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                  ),
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        item.product.images.first,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${item.product.name} (x${item.quantity})',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Text(
+                      '₵${item.totalPrice.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${item.product.name} (x${item.quantity})',
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Text(
-                  '\$${item.totalPrice.toStringAsFixed(2)}',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                ),
-              ],
-            ),
-          )),
-
+              )),
           const Divider(color: AppColors.borderLight, height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -128,8 +138,11 @@ class OrdersView extends StatelessWidget {
                 style: const TextStyle(color: AppColors.cyan, fontSize: 11),
               ),
               Text(
-                'Total: \$${order.totalAmount.toStringAsFixed(2)}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15),
+                'Total: ₵${order.totalAmount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15),
               ),
             ],
           ),

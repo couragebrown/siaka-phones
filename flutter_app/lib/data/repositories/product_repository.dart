@@ -2,7 +2,7 @@ import '../mock_data.dart';
 import '../../domain/models/product.dart';
 
 class ProductRepository {
-  List<Product> _products = List.from(MockData.products);
+  final List<Product> _products = List.from(MockData.products);
 
   Future<List<Product>> getProducts({String? category, String? query}) async {
     await Future.delayed(const Duration(milliseconds: 150));

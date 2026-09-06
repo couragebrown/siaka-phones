@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
-  static ThemeData get darkTheme {
+  static ThemeData get lightTheme {
+    final plusJakartaSans = GoogleFonts.plusJakartaSans();
+
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
       primaryColor: AppColors.cyan,
-      colorScheme: const ColorScheme.dark(
+      fontFamily: plusJakartaSans.fontFamily,
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(),
+      colorScheme: const ColorScheme.light(
         primary: AppColors.cyan,
         secondary: AppColors.electricBlue,
         surface: AppColors.surface,
         error: AppColors.neonPink,
-        onPrimary: Colors.black,
+        onPrimary: Colors.white,
         onSurface: AppColors.textPrimary,
       ),
       appBarTheme: const AppBarTheme(
@@ -31,8 +36,8 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.cyan,
-          foregroundColor: Colors.black,
-          elevation: 4,
+          foregroundColor: Colors.white,
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -44,8 +49,8 @@ class AppTheme {
           ),
         ),
       ),
-      cardTheme: CardTheme(
-        color: AppColors.surfaceElevated,
+      cardTheme: CardThemeData(
+        color: AppColors.cardBg,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),

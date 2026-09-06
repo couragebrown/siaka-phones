@@ -19,6 +19,7 @@ import 'ui/core/widgets/bottom_nav_scaffold.dart';
 
 // Feature Views & ViewModels
 import 'ui/features/splash/splash_view.dart';
+import 'ui/features/auth/login_view.dart';
 import 'ui/features/home/home_view_model.dart';
 import 'ui/features/home/home_view.dart';
 import 'ui/features/catalog/catalog_view_model.dart';
@@ -44,6 +45,8 @@ import 'ui/features/locations/locations_view_model.dart';
 import 'ui/features/locations/locations_view.dart';
 import 'ui/features/reviews/reviews_view_model.dart';
 import 'ui/features/reviews/reviews_view.dart';
+import 'ui/features/wishlist/wishlist_view.dart';
+import 'ui/features/track_order/track_order_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,7 +107,7 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
     return MaterialApp(
       title: 'Siaka Phones',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       home: AppRootNavigationHub(
         productRepo: _productRepo,
         cartRepo: _cartRepo,
@@ -161,8 +164,14 @@ class AppRootNavigationHub extends StatefulWidget {
 }
 
 class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
-  bool _hasPassedSplash = false;
+  bool _hasPassedSplash = true;
+  bool _isOnLogin = true;
   int _currentTabIndex = 0;
+
+  void _selectRootTab(int index) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    setState(() => _currentTabIndex = index);
+  }
 
   void _navigateToProductDetail(Product product) {
     final detailVM = ProductDetailViewModel(
@@ -174,10 +183,11 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
       MaterialPageRoute(
         builder: (_) => ProductDetailView(
           viewModel: detailVM,
+          onTabSelected: _selectRootTab,
           onReviewsTap: () => _navigateToReviews(),
           onGoToCart: () {
-            Navigator.of(context).pop();
-            setState(() => _currentTabIndex = 2);
+            detailVM.addToCart();
+            _selectRootTab(2);
           },
         ),
       ),
@@ -202,6 +212,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
       MaterialPageRoute(
         builder: (_) => CheckoutView(
           viewModel: checkoutVM,
+          onTabSelected: _selectRootTab,
           onOrderPlaced: (order) => _navigateToConfirmation(order),
         ),
       ),
@@ -214,11 +225,18 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
         builder: (_) => ConfirmationView(
           order: order,
           onTrackOrder: () {
-            Navigator.of(context).pop();
-            _navigateToOrders();
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => TrackOrderView(
+                  order: order,
+                  onTabSelected: _selectRootTab,
+                ),
+              ),
+            );
           },
           onContinueShopping: () {
-            Navigator.of(context).pop();
+            Navigator.of(context).popUntil((route) => route.isFirst);
             setState(() => _currentTabIndex = 0);
           },
         ),
@@ -264,11 +282,45 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
     );
   }
 
+  void _navigateToRepairs() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RepairsView(viewModel: widget.repairsVM),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isOnLogin) {
+      return LoginView(
+        onBack: () => setState(() => _isOnLogin = false),
+        onSignIn: () => setState(() {
+          _isOnLogin = false;
+          _currentTabIndex = 0;
+        }),
+        onCreateAccount:
+            (name, email, phone, address, country, region, gpsCode) {
+          widget.profileVM.updateProfile(
+            name: name,
+            email: email,
+            phone: phone,
+          );
+          widget.profileVM.addAddress('$address, $region, $country ($gpsCode)');
+          setState(() {
+            _isOnLogin = false;
+            _currentTabIndex = 0;
+          });
+        },
+      );
+    }
+
     if (!_hasPassedSplash) {
       return SplashView(
-        onGetStarted: () => setState(() => _hasPassedSplash = true),
+        onGetStarted: () => setState(() {
+          _hasPassedSplash = true;
+          _isOnLogin = true;
+        }),
       );
     }
 
@@ -281,7 +333,11 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
             onProductTap: _navigateToProductDetail,
             onSeeAllCatalog: () => setState(() => _currentTabIndex = 1),
             onTradeInTap: _navigateToTradeIn,
-            onRepairsTap: () => setState(() => _currentTabIndex = 3),
+            onRepairsTap: _navigateToRepairs,
+            onOrdersTap: _navigateToOrders,
+            onLocationsTap: _navigateToLocations,
+            onSupportTap: _navigateToSupport,
+            onProfileTap: () => setState(() => _currentTabIndex = 4),
           ),
           CatalogView(
             viewModel: widget.catalogVM,
@@ -292,15 +348,18 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
             onCheckout: _navigateToCheckout,
             onBrowseCatalog: () => setState(() => _currentTabIndex = 1),
           ),
-          RepairsView(
-            viewModel: widget.repairsVM,
-          ),
+          const WishlistView(),
           ProfileView(
             viewModel: widget.profileVM,
             onOrdersTap: _navigateToOrders,
             onTradeInTap: _navigateToTradeIn,
             onLocationsTap: _navigateToLocations,
             onSupportTap: _navigateToSupport,
+            onBack: () => setState(() => _currentTabIndex = 0),
+            onSignOut: () => setState(() {
+              _isOnLogin = true;
+              _currentTabIndex = 0;
+            }),
           ),
         ];
 

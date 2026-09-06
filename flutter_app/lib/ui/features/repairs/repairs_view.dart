@@ -29,18 +29,26 @@ class RepairsView extends StatelessWidget {
               // Banner
               GlassContainer(
                 padding: const EdgeInsets.all(16),
-                borderColor: AppColors.neonAmber.withOpacity(0.4),
+                borderColor: AppColors.neonAmber.withValues(alpha: 0.4),
                 child: const Row(
                   children: [
-                    Icon(Icons.verified_outlined, color: AppColors.neonAmber, size: 32),
+                    Icon(Icons.verified_outlined,
+                        color: AppColors.neonAmber, size: 32),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Official Certified Technicians', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text('Official Certified Technicians',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13)),
                           SizedBox(height: 2),
-                          Text('100% genuine OEM titanium parts & waterproof seal restoration.', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                          Text(
+                              '100% genuine OEM titanium parts & waterproof seal restoration.',
+                              style: TextStyle(
+                                  color: AppColors.textMuted, fontSize: 11)),
                         ],
                       ),
                     ),
@@ -51,10 +59,15 @@ class RepairsView extends StatelessWidget {
               const SizedBox(height: 20),
 
               // Device Selector
-              const Text('1. Your Device Model', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              const Text('1. Your Device Model',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14)),
               const SizedBox(height: 8),
               GlassContainer(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: viewModel.deviceModel,
@@ -66,7 +79,10 @@ class RepairsView extends StatelessWidget {
                       'Siaka Apex Fold V3',
                       'Siaka Nova Lite 5G',
                       'Siaka Pulse Cyberwatch Ultra',
-                    ].map((model) => DropdownMenuItem(value: model, child: Text(model))).toList(),
+                    ]
+                        .map((model) =>
+                            DropdownMenuItem(value: model, child: Text(model)))
+                        .toList(),
                     onChanged: (val) {
                       if (val != null) viewModel.setDeviceModel(val);
                     },
@@ -77,7 +93,11 @@ class RepairsView extends StatelessWidget {
               const SizedBox(height: 20),
 
               // Issue Selector
-              const Text('2. Select Issue Type', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              const Text('2. Select Issue Type',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14)),
               const SizedBox(height: 8),
               ...viewModel.issuePricing.entries.map((entry) {
                 final isSelected = viewModel.selectedIssue == entry.key;
@@ -85,7 +105,8 @@ class RepairsView extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassContainer(
                     padding: const EdgeInsets.all(12),
-                    borderColor: isSelected ? AppColors.cyan : AppColors.borderLight,
+                    borderColor:
+                        isSelected ? AppColors.cyan : AppColors.borderLight,
                     onTap: () => viewModel.setSelectedIssue(entry.key),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -95,14 +116,19 @@ class RepairsView extends StatelessWidget {
                             entry.key,
                             style: TextStyle(
                               color: isSelected ? AppColors.cyan : Colors.white,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               fontSize: 13,
                             ),
                           ),
                         ),
                         Text(
-                          '~\$${entry.value.toStringAsFixed(2)}',
-                          style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w900, fontSize: 13),
+                          '~₵${entry.value.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                              color: AppColors.cyan,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13),
                         ),
                       ],
                     ),
@@ -113,10 +139,15 @@ class RepairsView extends StatelessWidget {
               const SizedBox(height: 20),
 
               // Appointment Time Slot
-              const Text('3. Preferred Service Window', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              const Text('3. Preferred Service Window',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14)),
               const SizedBox(height: 8),
               GlassContainer(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: viewModel.timeSlot,
@@ -129,7 +160,10 @@ class RepairsView extends StatelessWidget {
                       '01:00 PM - 03:00 PM',
                       '03:00 PM - 05:00 PM',
                       '05:00 PM - 07:00 PM',
-                    ].map((slot) => DropdownMenuItem(value: slot, child: Text(slot))).toList(),
+                    ]
+                        .map((slot) =>
+                            DropdownMenuItem(value: slot, child: Text(slot)))
+                        .toList(),
                     onChanged: (val) {
                       if (val != null) viewModel.setTimeSlot(val);
                     },
@@ -148,13 +182,22 @@ class RepairsView extends StatelessWidget {
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Estimated Repair Cost', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
-                        Text('Includes Parts & Labor', style: TextStyle(color: AppColors.neonEmerald, fontSize: 10, fontWeight: FontWeight.bold)),
+                        Text('Estimated Repair Cost',
+                            style: TextStyle(
+                                color: AppColors.textMuted, fontSize: 11)),
+                        Text('Includes Parts & Labor',
+                            style: TextStyle(
+                                color: AppColors.neonEmerald,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold)),
                       ],
                     ),
                     Text(
-                      '\$${viewModel.estimatedCost.toStringAsFixed(2)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                      '₵${viewModel.estimatedCost.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
@@ -190,22 +233,29 @@ class RepairsView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.neonEmerald.withOpacity(0.15),
+                  color: AppColors.neonEmerald.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.neonEmerald, width: 2),
                 ),
-                child: const Icon(Icons.check_rounded, color: AppColors.neonEmerald, size: 48),
+                child: const Icon(Icons.check_rounded,
+                    color: AppColors.neonEmerald, size: 48),
               ),
               const SizedBox(height: 20),
               const Text(
                 'Repair Appointment Reserved!',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
               Text(
                 'Booking ID: ${booking.id}',
-                style: const TextStyle(color: AppColors.cyan, fontSize: 14, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: AppColors.cyan,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
               GlassContainer(
@@ -215,7 +265,8 @@ class RepairsView extends StatelessWidget {
                     _buildBookingRow('Device', booking.deviceModel),
                     _buildBookingRow('Issue', booking.issueType),
                     _buildBookingRow('Window', booking.timeSlot),
-                    _buildBookingRow('Est. Cost', '\$${booking.estimatedCost.toStringAsFixed(2)}'),
+                    _buildBookingRow('Est. Cost',
+                        '₵${booking.estimatedCost.toStringAsFixed(2)}'),
                   ],
                 ),
               ),
@@ -237,12 +288,16 @@ class RepairsView extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text(label,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12),
             ),
           ),
         ],

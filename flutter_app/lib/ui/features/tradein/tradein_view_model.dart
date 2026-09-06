@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import '../../../domain/models/trade_in_quote.dart';
 
 class TradeInViewModel extends ChangeNotifier {
   String _brand = 'Apple';

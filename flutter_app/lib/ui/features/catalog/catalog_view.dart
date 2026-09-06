@@ -49,7 +49,8 @@ class _CatalogViewState extends State<CatalogView> {
             children: [
               // Search input
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppColors.surfaceElevated,
@@ -61,11 +62,14 @@ class _CatalogViewState extends State<CatalogView> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Search flagships, foldables, audio...',
-                      hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-                      prefixIcon: const Icon(Icons.search, color: AppColors.cyan, size: 20),
+                      hintStyle: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 14),
+                      prefixIcon: const Icon(Icons.search,
+                          color: AppColors.cyan, size: 20),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, color: AppColors.textMuted, size: 18),
+                              icon: const Icon(Icons.clear,
+                                  color: AppColors.textMuted, size: 18),
                               onPressed: () {
                                 _searchController.clear();
                                 widget.viewModel.setSearchQuery('');
@@ -73,7 +77,8 @@ class _CatalogViewState extends State<CatalogView> {
                             )
                           : null,
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                     ),
                     onChanged: (val) => widget.viewModel.setSearchQuery(val),
                   ),
@@ -105,25 +110,36 @@ class _CatalogViewState extends State<CatalogView> {
               // Products Grid
               Expanded(
                 child: widget.viewModel.isLoading
-                    ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
+                    ? const Center(
+                        child: CircularProgressIndicator(color: AppColors.cyan))
                     : widget.viewModel.products.isEmpty
-                        ? Center(
+                        ? const Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.devices_other, size: 48, color: AppColors.textMuted),
-                                const SizedBox(height: 12),
-                                const Text('No devices found', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Text('Try refining your search or category filter', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                                Icon(Icons.devices_other,
+                                    size: 48, color: AppColors.textMuted),
+                                SizedBox(height: 12),
+                                Text('No devices found',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
+                                SizedBox(height: 4),
+                                Text(
+                                    'Try refining your search or category filter',
+                                    style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13)),
                               ],
                             ),
                           )
                         : GridView.builder(
                             padding: const EdgeInsets.all(16),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.68,
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 220,
+                              childAspectRatio: 0.9,
                               crossAxisSpacing: 14,
                               mainAxisSpacing: 14,
                             ),
@@ -148,7 +164,8 @@ class _CatalogViewState extends State<CatalogView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          SizedBox(
+            height: 96,
             child: Stack(
               children: [
                 ClipRRect(
@@ -157,11 +174,12 @@ class _CatalogViewState extends State<CatalogView> {
                     product.images.first,
                     width: double.infinity,
                     height: double.infinity,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => Container(
                       color: AppColors.surface,
                       child: const Center(
-                        child: Icon(Icons.phone_android, color: AppColors.cyan, size: 36),
+                        child: Icon(Icons.phone_android,
+                            color: AppColors.cyan, size: 36),
                       ),
                     ),
                   ),
@@ -171,14 +189,18 @@ class _CatalogViewState extends State<CatalogView> {
                     top: 6,
                     left: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.neonPink,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         '-${product.discountPercent.toInt()}%',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -188,13 +210,17 @@ class _CatalogViewState extends State<CatalogView> {
           const SizedBox(height: 8),
           Text(
             product.brand.toUpperCase(),
-            style: const TextStyle(color: AppColors.cyan, fontSize: 9, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: AppColors.cyan,
+                fontSize: 9,
+                fontWeight: FontWeight.bold),
           ),
           Text(
             product.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 2),
           RatingStars(rating: product.rating, starSize: 11),
@@ -203,13 +229,18 @@ class _CatalogViewState extends State<CatalogView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '\$${product.price.toStringAsFixed(2)}',
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
+                '₵${product.price.toStringAsFixed(2)}',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900),
               ),
               Container(
                 padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(color: AppColors.cyan, shape: BoxShape.circle),
-                child: const Icon(Icons.arrow_forward, size: 12, color: Colors.black),
+                decoration: const BoxDecoration(
+                    color: AppColors.cyan, shape: BoxShape.circle),
+                child: const Icon(Icons.arrow_forward,
+                    size: 12, color: Colors.black),
               ),
             ],
           ),

@@ -37,7 +37,7 @@ class GlassContainer extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
+            color: Colors.black.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -46,17 +46,22 @@ class GlassContainer extends StatelessWidget {
       child: child,
     );
 
+    final materialContent = Material(
+      color: Colors.transparent,
+      child: content,
+    );
+
     if (onTap != null) {
       return Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(borderRadius),
           onTap: onTap,
-          child: content,
+          child: materialContent,
         ),
       );
     }
 
-    return content;
+    return materialContent;
   }
 }

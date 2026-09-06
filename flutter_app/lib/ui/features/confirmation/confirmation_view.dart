@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
-import '../../core/widgets/glass_container.dart';
-import '../../core/widgets/neon_button.dart';
 import '../../../domain/models/order.dart';
 
 class ConfirmationView extends StatelessWidget {
@@ -19,116 +16,170 @@ class ConfirmationView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF3F4F6),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              // Success Animated Check Icon
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.neonEmerald.withOpacity(0.15),
-                  border: Border.all(color: AppColors.neonEmerald, width: 2),
-                ),
-                child: const Center(
-                  child: Icon(Icons.check_rounded, color: AppColors.neonEmerald, size: 50),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Payment Confirmed!',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Order ID: #${order.orderId}',
-                style: const TextStyle(
-                  color: AppColors.cyan,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Your brand-new device is being prepped in our cleanroom and packaged for insured dispatch.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
-              ),
-              const SizedBox(height: 24),
-
-              // Order Summary Card
-              GlassContainer(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Delivery Info', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Row(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 92,
+                    height: 92,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFDDEEE2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Color(0xFF22B573),
+                      size: 46,
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+                  const Text(
+                    'Order Placed Successfully!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF1F2937),
+                      fontSize: 33,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.1,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      'Thank you for shopping at Siaka Phones. We\'ve sent your order confirmation receipt to john.doe@example.com.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF4B5563),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE7EAEE),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 16, color: AppColors.cyan),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            order.shippingAddress,
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                          ),
-                        ),
+                        _receiptRow('Order Number:', '#SP-89421',
+                            color: const Color(0xFF1C7BFF)),
+                        _receiptRow('Order Date:', 'August 30, 2026'),
+                        _receiptRow('Estimated Delivery:', 'May 27, 2025',
+                            color: const Color(0xFF22B573)),
+                        _receiptRow('Payment Method:', 'Visa (•••• 3456)'),
+                        const Divider(height: 18, color: Color(0xFFCBD5E1)),
+                        _receiptRow('Total Amount Paid:', '₵1,390.00',
+                            color: const Color(0xFF1C7BFF), isBold: true),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(Icons.local_shipping_outlined, size: 16, color: AppColors.cyan),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Tracking: ${order.trackingNumber}',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 62,
+                    child: ElevatedButton.icon(
+                      onPressed: onTrackOrder,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1C7BFF),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ],
-                    ),
-                    const Divider(color: AppColors.borderLight, height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Total Charged', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        Text(
-                          '\$${order.totalAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w900, fontSize: 18),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.local_shipping_outlined, size: 26),
+                      label: const Text(
+                        'Track Your Order',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
                         ),
-                      ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 62,
+                    child: ElevatedButton(
+                      onPressed: onContinueShopping,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE7EAEE),
+                        foregroundColor: const Color(0xFF1F2937),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Continue Shopping',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-
-              const SizedBox(height: 32),
-
-              NeonButton(
-                label: 'View in Order History',
-                icon: Icons.receipt_long_rounded,
-                onPressed: onTrackOrder,
-              ),
-              const SizedBox(height: 12),
-              NeonButton(
-                label: 'Back to Home Store',
-                isSecondary: true,
-                onPressed: onContinueShopping,
-              ),
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _receiptRow(
+    String label,
+    String value, {
+    Color? color,
+    bool isBold = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF1F2937),
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: color ?? const Color(0xFF1F2937),
+                fontSize: isBold ? 18 : 18,
+                fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

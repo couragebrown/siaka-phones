@@ -4,7 +4,7 @@ import '../../domain/models/store_location.dart';
 class LocationRepository {
   Future<List<StoreLocation>> getLocations({String? searchQuery}) async {
     await Future.delayed(const Duration(milliseconds: 100));
-    final list = MockData.locations;
+    const list = MockData.locations;
     if (searchQuery != null && searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
       return list.where((loc) =>

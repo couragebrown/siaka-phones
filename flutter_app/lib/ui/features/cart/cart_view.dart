@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/app_colors.dart';
-import '../../core/widgets/glass_container.dart';
-import '../../core/widgets/neon_button.dart';
 import '../../../domain/models/cart_item.dart';
 import 'cart_view_model.dart';
 
@@ -22,14 +19,6 @@ class CartView extends StatefulWidget {
 }
 
 class _CartViewState extends State<CartView> {
-  final TextEditingController _promoController = TextEditingController();
-
-  @override
-  void dispose() {
-    _promoController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -37,291 +26,264 @@ class _CartViewState extends State<CartView> {
       builder: (context, _) {
         final items = widget.viewModel.items;
 
+        final cartTitle = items.isEmpty
+            ? 'My Cart'
+            : 'My Cart (${items.length} ${items.length == 1 ? 'Item' : 'Items'})';
+
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: const Color(0xFFF3F4F6),
           appBar: AppBar(
-            title: Text('Your Cart (${widget.viewModel.itemCount})'),
-          ),
-          body: items.isEmpty
-              ? _buildEmptyCart()
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          ...items.map((item) => _buildCartItemTile(item)),
-                          const SizedBox(height: 16),
-                          _buildPromoSection(),
-                          const SizedBox(height: 16),
-                          _buildOrderSummary(),
-                        ],
-                      ),
-                    ),
-                    _buildCheckoutBottomBar(),
-                  ],
+            backgroundColor: const Color(0xFFF3F4F6),
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                      color: Color(0xFF1F2937)),
+                  onPressed: widget.onBrowseCatalog,
                 ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      cartTitle,
+                      style: const TextStyle(
+                          color: Color(0xFF1F2937),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+                const Text('Edit',
+                    style: TextStyle(
+                        color: Color(0xFF1C7BFF),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ),
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final content = items.isEmpty
+                  ? SizedBox(
+                      height: constraints.maxHeight - 80,
+                      child: const Center(
+                        child: Text('Cart is empty'),
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          margin: const EdgeInsets.symmetric(horizontal: 18),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE4F5EC),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.local_shipping_outlined,
+                                  color: Color(0xFF1C7BFF)),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'You are ₵13 away from free shipping!',
+                                  style: TextStyle(
+                                      color: Color(0xFF1F2937),
+                                      fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                              Text('₵13 left',
+                                  style: TextStyle(
+                                      color: Color(0xFF1C7BFF),
+                                      fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        ...items.map((item) => _buildCartItemTile(item)),
+                        const SizedBox(height: 12),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 18),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                          ),
+                          child: Column(
+                            children: [
+                              _summaryRow('Subtotal',
+                                  '₵${widget.viewModel.subtotal.toStringAsFixed(3)}'),
+                              const SizedBox(height: 8),
+                              _summaryRow('Shipping', 'FREE',
+                                  valueColor: const Color(0xFF0F9F65)),
+                              const SizedBox(height: 8),
+                              _summaryRow('Estimated Tax',
+                                  '₵${widget.viewModel.tax.toStringAsFixed(3)}'),
+                              const Divider(height: 20),
+                              _summaryRow('Total',
+                                  '₵${widget.viewModel.total.toStringAsFixed(3)}',
+                                  isBold: true,
+                                  valueColor: const Color(0xFF1C7BFF)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: widget.onCheckout,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1C7BFF),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: const Text('Proceed to Checkout',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 18),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: content,
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
 
-  Widget _buildEmptyCart() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: const Icon(Icons.shopping_bag_outlined, size: 64, color: AppColors.cyan),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Your Shopping Bag is Empty',
-              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Explore our new arrivals and flagship titanium devices to fill your bag.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-            const SizedBox(height: 24),
-            NeonButton(
-              label: 'Browse Devices',
-              icon: Icons.explore_rounded,
-              onPressed: widget.onBrowseCatalog,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildCartItemTile(CartItem item) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GlassContainer(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                item.product.images.first,
-                width: 70,
-                height: 70,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 70,
-                  height: 70,
-                  color: AppColors.surface,
-                  child: const Icon(Icons.phone_android, color: AppColors.cyan),
-                ),
-              ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 104,
+            height: 104,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE5E7EB),
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.product.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${item.selectedColor} • ${item.selectedStorage}',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '\$${item.totalPrice.toStringAsFixed(2)}',
-                    style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w900, fontSize: 15),
-                  ),
-                ],
-              ),
-            ),
-            Column(
+            child: item.product.images.isNotEmpty
+                ? Image.network(item.product.images.first, fit: BoxFit.cover)
+                : const Icon(Icons.phone_android,
+                    color: Colors.black54, size: 32),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.neonPink),
-                  onPressed: () => widget.viewModel.removeItem(item.id),
-                ),
+                Text(item.product.name,
+                    style: const TextStyle(
+                        color: Color(0xFF1F2937),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text('${item.selectedStorage}, ${item.selectedColor}',
+                    style: const TextStyle(
+                        color: Color(0xFF667085), fontSize: 13)),
+                const SizedBox(height: 12),
+                Text('₵${item.totalPrice.toStringAsFixed(3)}',
+                    style: const TextStyle(
+                        color: Color(0xFF1F2937),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800)),
+                const SizedBox(height: 12),
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     GestureDetector(
                       onTap: () => widget.viewModel.updateQuantity(item.id, -1),
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(6),
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
                         ),
-                        child: const Icon(Icons.remove, size: 14, color: Colors.white),
+                        child: const Icon(Icons.remove,
+                            size: 18, color: Color(0xFF1F2937)),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        '${item.quantity}',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ),
+                    const SizedBox(width: 14),
+                    Text('${item.quantity}',
+                        style: const TextStyle(
+                            color: Color(0xFF1F2937),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 14),
                     GestureDetector(
                       onTap: () => widget.viewModel.updateQuantity(item.id, 1),
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(6),
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
                         ),
-                        child: const Icon(Icons.add, size: 14, color: Colors.white),
+                        child: const Icon(Icons.add,
+                            size: 18, color: Color(0xFF1F2937)),
                       ),
                     ),
                   ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPromoSection() {
-    final applied = widget.viewModel.appliedPromoCode;
-
-    return GlassContainer(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _promoController,
-              enabled: applied == null,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              decoration: InputDecoration(
-                hintText: applied != null ? 'Code Applied: $applied' : 'Promo Code (e.g. SIAKA10)',
-                hintStyle: TextStyle(
-                  color: applied != null ? AppColors.cyan : AppColors.textMuted,
-                  fontWeight: applied != null ? FontWeight.bold : FontWeight.normal,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-              ),
-            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: applied != null ? AppColors.surfaceElevated : AppColors.cyan,
-              foregroundColor: applied != null ? AppColors.cyan : Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-            onPressed: applied != null
-                ? null
-                : () {
-                    final ok = widget.viewModel.applyPromo(_promoController.text);
-                    if (!ok) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Invalid code. Try "SIAKA10" or "VIP20"')),
-                      );
-                    }
-                  },
-            child: Text(applied != null ? 'Active ✓' : 'Apply'),
+          IconButton(
+            onPressed: () => widget.viewModel.removeItem(item.id),
+            icon: const Icon(Icons.delete_outline_rounded,
+                color: Color(0xFF7A8194)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOrderSummary() {
-    return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Order Summary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-          const SizedBox(height: 12),
-          _buildSummaryRow('Subtotal', '\$${widget.viewModel.subtotal.toStringAsFixed(2)}'),
-          if (widget.viewModel.discountAmount > 0)
-            _buildSummaryRow('Promo Discount', '-\$${widget.viewModel.discountAmount.toStringAsFixed(2)}', color: AppColors.cyan),
-          _buildSummaryRow('Estimated Tax', '\$${widget.viewModel.tax.toStringAsFixed(2)}'),
-          _buildSummaryRow('Express Insured Shipping', widget.viewModel.shipping == 0 ? 'FREE' : '\$${widget.viewModel.shipping.toStringAsFixed(2)}'),
-          const Divider(color: AppColors.borderLight, height: 20),
-          _buildSummaryRow(
-            'Total Amount',
-            '\$${widget.viewModel.total.toStringAsFixed(2)}',
-            isBold: true,
-            fontSize: 16,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(String title, String value, {bool isBold = false, double fontSize = 13, Color? color}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: TextStyle(color: AppColors.textSecondary, fontSize: fontSize)),
-          Text(
-            value,
+  Widget _summaryRow(String label, String value,
+      {bool isBold = false, Color valueColor = const Color(0xFF1F2937)}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
             style: TextStyle(
-              color: color ?? Colors.white,
-              fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
-              fontSize: fontSize,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCheckoutBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Total to Pay', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
-                Text(
-                  '\$${widget.viewModel.total.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: NeonButton(
-                label: 'Proceed to Checkout',
-                icon: Icons.lock_outline,
-                onPressed: widget.onCheckout,
-              ),
-            ),
-          ],
-        ),
-      ),
+                color: const Color(0xFF1F2937),
+                fontSize: isBold ? 18 : 15,
+                fontWeight: isBold ? FontWeight.w800 : FontWeight.w500)),
+        Text(value,
+            style: TextStyle(
+                color: valueColor,
+                fontSize: isBold ? 18 : 15,
+                fontWeight: isBold ? FontWeight.w800 : FontWeight.w700)),
+      ],
     );
   }
 }

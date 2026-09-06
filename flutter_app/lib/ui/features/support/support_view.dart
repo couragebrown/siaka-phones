@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
-import '../../core/widgets/glass_container.dart';
 import 'support_view_model.dart';
 
 class SupportView extends StatefulWidget {
@@ -78,12 +77,12 @@ class _SupportViewState extends State<SupportView> {
               ),
 
               if (widget.viewModel.isTyping)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                   child: Row(
                     children: [
-                      const Text('Siaka AI is replying', style: TextStyle(color: AppColors.cyan, fontSize: 11)),
-                      const SizedBox(width: 8),
+                      Text('Siaka AI is replying', style: TextStyle(color: AppColors.cyan, fontSize: 11)),
+                      SizedBox(width: 8),
                       SizedBox(
                         width: 12,
                         height: 12,
