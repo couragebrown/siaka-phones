@@ -47,6 +47,7 @@ import 'ui/features/reviews/reviews_view_model.dart';
 import 'ui/features/reviews/reviews_view.dart';
 import 'ui/features/wishlist/wishlist_view.dart';
 import 'ui/features/track_order/track_order_view.dart';
+import 'ui/features/brands/brands_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -290,6 +291,20 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
     );
   }
 
+  void _navigateToBrands() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BrandsView(
+          onBrandSelected: (brand) {
+            Navigator.of(context).pop();
+            widget.catalogVM.setSearchQuery(brand);
+            _selectRootTab(1);
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isOnLogin) {
@@ -332,6 +347,11 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
             viewModel: widget.homeVM,
             onProductTap: _navigateToProductDetail,
             onSeeAllCatalog: () => setState(() => _currentTabIndex = 1),
+            onSeeAllBrands: _navigateToBrands,
+            onBrandTap: (brand) {
+              widget.catalogVM.setSearchQuery(brand);
+              _selectRootTab(1);
+            },
             onTradeInTap: _navigateToTradeIn,
             onRepairsTap: _navigateToRepairs,
             onOrdersTap: _navigateToOrders,

@@ -166,7 +166,7 @@
           <!-- Shop by Brand (Matches Image 1) -->
           <div class="section-header-row">
             <h3>Shop by Brand</h3>
-            <button data-navigate="categories">View all</button>
+            <button data-navigate="all-brands">View more</button>
           </div>
           <div class="brand-strip-grid">
             <div class="brand-chip-card" data-navigate="search">
@@ -291,40 +291,247 @@
 
           </div>
 
-          <!-- Value Propositions Banner (Matches Image 1) -->
-          <div style="padding: 0 16px;">
-            <div class="value-props-banner">
-              <div class="value-prop-item">
-                <div class="value-prop-icon">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                </div>
-                <div class="value-prop-title">Free Shipping</div>
-                <div class="value-prop-desc">On orders over $50</div>
-              </div>
-              <div class="value-prop-item">
-                <div class="value-prop-icon">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                </div>
-                <div class="value-prop-title">1 Year Warranty</div>
-                <div class="value-prop-desc">Official warranty</div>
-              </div>
-              <div class="value-prop-item">
-                <div class="value-prop-icon">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                </div>
-                <div class="value-prop-title">14-Day Returns</div>
-                <div class="value-prop-desc">Easy returns</div>
-              </div>
-              <div class="value-prop-item">
-                <div class="value-prop-icon">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </div>
-                <div class="value-prop-title">Secure Payments</div>
-                <div class="value-prop-desc">100% safe & secure</div>
-              </div>
+        </section>
+
+        <!-- =================================================================
+             ALL BRANDS SCREEN
+             ================================================================= -->
+        <section id="page-all-brands" class="screen-page">
+          <header class="app-header">
+            <button class="icon-btn" data-navigate="home" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="header-brand-logo">
+              <div>Shop by <span class="logo-accent">Brand</span></div>
+            </div>
+            <button class="icon-btn" data-navigate="search" aria-label="Search">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+          </header>
+
+          <div style="padding: 12px 16px 6px;">
+            <div class="home-search-bar" style="margin: 0 0 12px 0;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="brand-search-input" placeholder="Search brand (HP, Honor, Dell, Lenovo...)" oninput="(function(el){const q=el.value.toLowerCase();document.querySelectorAll('#all-brands-list .brand-chip-card').forEach(c=>{const b=(c.getAttribute('data-brand')||'').toLowerCase();c.style.display=(!q||b.includes(q))?'flex':'none';});})(this)">
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+              <span style="font-size:13px; font-weight:700; color:var(--text-main);">All Brands (30)</span>
+              <span style="font-size:11px; color:var(--text-muted);">Tap any brand to view products</span>
             </div>
           </div>
 
+          <div class="brand-strip-grid" id="all-brands-list" style="margin-bottom: 24px;">
+            <!-- 1. Apple -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Apple">
+              <div class="brand-chip-icon">
+                <svg viewBox="0 0 170 170" width="22" height="22" fill="currentColor"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.6-7.7-11.7-13.97-6.09-9.35-10.74-20.15-13.96-32.41-3.23-12.26-4.84-23.77-4.84-34.53 0-14.9 3.63-27.18 10.89-36.85 7.26-9.66 16.48-14.65 27.67-14.97 4.79 0 10.22 1.34 16.29 4.01 6.07 2.68 9.99 4.07 11.75 4.19 1.55-.12 5.58-1.57 12.1-4.35 6.52-2.78 12.15-4.01 16.89-3.69 12.63.87 22.75 5.76 30.36 14.66-10.89 6.64-16.22 15.67-15.98 27.09.24 8.92 3.64 16.38 10.2 22.38 6.56 6 14.38 9.4 23.47 10.21-2.07 6.32-4.57 12.63-7.51 18.94zM119.22 31.85c0-7.29 2.59-14.28 7.77-20.97C132.17 4.19 138.83.6 146.97 0c.22 1.09.33 2.07.33 2.94 0 7.39-2.77 14.6-8.31 21.64-5.54 7.03-12.44 10.96-20.7 10.79.11-1.19.93-3.52-.93-3.52z"/></svg>
+              </div>
+              <span class="brand-chip-label">Apple</span>
+            </div>
+            <!-- 2. Samsung -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Samsung">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; letter-spacing:0.5px; color:#1428A0;">SAMSUNG</div>
+              </div>
+              <span class="brand-chip-label">Samsung</span>
+            </div>
+            <!-- 3. Google -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Google">
+              <div class="brand-chip-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+              </div>
+              <span class="brand-chip-label">Google</span>
+            </div>
+            <!-- 4. OnePlus -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="OnePlus">
+              <div class="brand-chip-icon">
+                <div style="background:#EB0029; color:#FFF; font-weight:800; font-size:10px; padding:2px 4px; border-radius:3px;">1+</div>
+              </div>
+              <span class="brand-chip-label">OnePlus</span>
+            </div>
+            <!-- 5. Xiaomi -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Xiaomi">
+              <div class="brand-chip-icon">
+                <div style="background:#FF6900; color:#FFF; font-weight:800; font-size:10px; padding:2px 4px; border-radius:4px;">mi</div>
+              </div>
+              <span class="brand-chip-label">Xiaomi</span>
+            </div>
+            <!-- 6. Honor -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Honor">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; letter-spacing:0.5px; color:#0F172A;">HONOR</div>
+              </div>
+              <span class="brand-chip-label">Honor</span>
+            </div>
+            <!-- 7. HP -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="HP">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:13px; font-style:italic; color:#0096D6;">hp</div>
+              </div>
+              <span class="brand-chip-label">HP</span>
+            </div>
+            <!-- 8. Dell -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Dell">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; letter-spacing:0.5px; color:#0076CE;">DELL</div>
+              </div>
+              <span class="brand-chip-label">Dell</span>
+            </div>
+            <!-- 9. Lenovo -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Lenovo">
+              <div class="brand-chip-icon">
+                <div style="background:#E2231A; color:#FFF; font-weight:800; font-size:9px; padding:2px 3px; border-radius:2px;">LENOVO</div>
+              </div>
+              <span class="brand-chip-label">Lenovo</span>
+            </div>
+            <!-- 10. Asus -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Asus">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; letter-spacing:0.5px; color:#00539B;">ASUS</div>
+              </div>
+              <span class="brand-chip-label">Asus</span>
+            </div>
+            <!-- 11. Sony -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Sony">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; letter-spacing:0.5px; color:#000000;">SONY</div>
+              </div>
+              <span class="brand-chip-label">Sony</span>
+            </div>
+            <!-- 12. Huawei -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Huawei">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:9px; color:#CF0A2C;">HUAWEI</div>
+              </div>
+              <span class="brand-chip-label">Huawei</span>
+            </div>
+            <!-- 13. Oppo -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Oppo">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; color:#00875A;">oppo</div>
+              </div>
+              <span class="brand-chip-label">Oppo</span>
+            </div>
+            <!-- 14. Vivo -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Vivo">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; color:#415FFF;">vivo</div>
+              </div>
+              <span class="brand-chip-label">Vivo</span>
+            </div>
+            <!-- 15. Realme -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Realme">
+              <div class="brand-chip-icon">
+                <div style="background:#FFC915; color:#000; font-weight:800; font-size:9px; padding:2px 3px; border-radius:2px;">realme</div>
+              </div>
+              <span class="brand-chip-label">Realme</span>
+            </div>
+            <!-- 16. Motorola -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Motorola">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:13px; color:#00142E;">M</div>
+              </div>
+              <span class="brand-chip-label">Motorola</span>
+            </div>
+            <!-- 17. Nothing -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Nothing">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; letter-spacing:-0.5px; color:#000000;">( )</div>
+              </div>
+              <span class="brand-chip-label">Nothing</span>
+            </div>
+            <!-- 18. Infinix -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Infinix">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; color:#000000;">Infinix</div>
+              </div>
+              <span class="brand-chip-label">Infinix</span>
+            </div>
+            <!-- 19. Tecno -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Tecno">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; color:#0055A5;">TECNO</div>
+              </div>
+              <span class="brand-chip-label">Tecno</span>
+            </div>
+            <!-- 20. Nokia -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Nokia">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; color:#124191;">NOKIA</div>
+              </div>
+              <span class="brand-chip-label">Nokia</span>
+            </div>
+            <!-- 21. Microsoft -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Microsoft">
+              <div class="brand-chip-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="3" y="3" width="8" height="8" fill="#F25022"/><rect x="13" y="3" width="8" height="8" fill="#7FBA00"/><rect x="3" y="13" width="8" height="8" fill="#00A4EF"/><rect x="13" y="13" width="8" height="8" fill="#FFB900"/></svg>
+              </div>
+              <span class="brand-chip-label">Microsoft</span>
+            </div>
+            <!-- 22. Acer -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Acer">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; color:#83B81A;">acer</div>
+              </div>
+              <span class="brand-chip-label">Acer</span>
+            </div>
+            <!-- 23. Razer -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Razer">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:10px; color:#00FF00; background:#000; padding:2px 3px; border-radius:2px;">RAZER</div>
+              </div>
+              <span class="brand-chip-label">Razer</span>
+            </div>
+            <!-- 24. LG -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="LG">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:12px; color:#A50034;">LG</div>
+              </div>
+              <span class="brand-chip-label">LG</span>
+            </div>
+            <!-- 25. TCL -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="TCL">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; color:#E31B23;">TCL</div>
+              </div>
+              <span class="brand-chip-label">TCL</span>
+            </div>
+            <!-- 26. Poco -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Poco">
+              <div class="brand-chip-icon">
+                <div style="background:#FFDE00; color:#000; font-weight:900; font-size:9px; padding:2px 3px; border-radius:2px;">POCO</div>
+              </div>
+              <span class="brand-chip-label">Poco</span>
+            </div>
+            <!-- 27. ZTE -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="ZTE">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; color:#005BAC;">ZTE</div>
+              </div>
+              <span class="brand-chip-label">ZTE</span>
+            </div>
+            <!-- 28. HTC -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="HTC">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; color:#85B800;">htc</div>
+              </div>
+              <span class="brand-chip-label">HTC</span>
+            </div>
+            <!-- 29. BlackBerry -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="BlackBerry">
+              <div class="brand-chip-icon">
+                <div style="font-weight:900; font-size:11px; color:#000;">BB</div>
+              </div>
+              <span class="brand-chip-label">BlackBerry</span>
+            </div>
+            <!-- 30. Alienware -->
+            <div class="brand-chip-card" data-navigate="search" data-brand="Alienware">
+              <div class="brand-chip-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5 4 10 8 12 4-2 8-7 8-12a8 8 0 0 0-8-8z"/><circle cx="9" cy="9" r="1.5"/><circle cx="15" cy="9" r="1.5"/></svg>
+              </div>
+              <span class="brand-chip-label">Alienware</span>
+            </div>
+          </div>
         </section>
 
         <!-- =================================================================

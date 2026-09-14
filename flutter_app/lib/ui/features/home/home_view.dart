@@ -22,6 +22,8 @@ class HomeView extends StatefulWidget {
   final HomeViewModel viewModel;
   final Function(Product) onProductTap;
   final VoidCallback onSeeAllCatalog;
+  final VoidCallback? onSeeAllBrands;
+  final Function(String brand)? onBrandTap;
   final VoidCallback onTradeInTap;
   final VoidCallback onRepairsTap;
   final VoidCallback onOrdersTap;
@@ -34,6 +36,8 @@ class HomeView extends StatefulWidget {
     required this.viewModel,
     required this.onProductTap,
     required this.onSeeAllCatalog,
+    this.onSeeAllBrands,
+    this.onBrandTap,
     required this.onTradeInTap,
     required this.onRepairsTap,
     required this.onOrdersTap,
@@ -128,44 +132,29 @@ class _HomeViewState extends State<HomeView> {
           backgroundColor: const Color(0xFFF3F4F6),
           appBar: _buildAppBar(),
           drawer: _buildMenuDrawer(),
-          body: Column(
-            children: [
-              Expanded(
-                child: RefreshIndicator(
-                  color: const Color(0xFF1C7BFF),
-                  backgroundColor: Colors.white,
-                  onRefresh: () => widget.viewModel.loadData(),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        _buildSearchBar(),
-                        const SizedBox(height: 18),
-                        _buildHeroBanner(),
-                        const SizedBox(height: 24),
-                        _buildBrandRow(),
-                        const SizedBox(height: 24),
-                        _buildSectionHeader('Featured Phones', 'View all'),
-                        const SizedBox(height: 12),
-                        _buildFeaturedGrid(),
-                      ],
-                    ),
-                  ),
-                ),
+          body: RefreshIndicator(
+            color: const Color(0xFF1C7BFF),
+            backgroundColor: Colors.white,
+            onRefresh: () => widget.viewModel.loadData(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 6),
+                  _buildSearchBar(),
+                  const SizedBox(height: 12),
+                  _buildHeroBanner(),
+                  const SizedBox(height: 18),
+                  _buildBrandRow(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('Featured Phones', 'View all'),
+                  const SizedBox(height: 12),
+                  _buildFeaturedGrid(),
+                ],
               ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF3F4F6),
-                  border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-                ),
-                child: _buildBenefitsRow(),
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -317,38 +306,38 @@ class _HomeViewState extends State<HomeView> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
-        height: 52,
+        height: 44,
         decoration: BoxDecoration(
           color: const Color(0xFFF6F7F9),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFE1E5EA)),
         ),
         child: Row(
           children: [
-            const SizedBox(width: 14),
-            const Icon(Icons.search, color: Color(0xFF8A93A6), size: 24),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
+            const Icon(Icons.search, color: Color(0xFF8A93A6), size: 20),
+            const SizedBox(width: 8),
             const Expanded(
               child: Text(
                 'Search for phones, accessories...',
                 style: TextStyle(
                   color: Color(0xFF8A93A6),
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
             Container(
-              margin: const EdgeInsets.only(right: 8),
-              width: 34,
-              height: 34,
+              margin: const EdgeInsets.only(right: 6),
+              width: 30,
+              height: 30,
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(9),
                 border: Border.all(color: const Color(0xFFE6E8ED)),
               ),
               child: const Icon(Icons.tune_rounded,
-                  size: 18, color: Color(0xFF1F2937)),
+                  size: 16, color: Color(0xFF1F2937)),
             )
           ],
         ),
@@ -361,7 +350,7 @@ class _HomeViewState extends State<HomeView> {
     return Column(
       children: [
         SizedBox(
-          height: 282,
+          height: 168,
           child: PageView.builder(
             controller: _heroPageController,
             itemCount: _heroPromotions.length,
@@ -373,21 +362,21 @@ class _HomeViewState extends State<HomeView> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             _heroPromotions.length,
             (index) => AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: _activeHeroIndex == index ? 18 : 7,
-              height: 7,
+              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+              width: _activeHeroIndex == index ? 14 : 5,
+              height: 5,
               decoration: BoxDecoration(
                 color: _activeHeroIndex == index
                     ? const Color(0xFF1C7BFF)
                     : const Color(0xFFB8C0CC),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
@@ -408,34 +397,45 @@ class _HomeViewState extends State<HomeView> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
       decoration: BoxDecoration(
         color: promotion.backgroundColor,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           Expanded(
+            flex: 11,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(promotion.title,
-                    style: const TextStyle(
-                        color: Color(0xFF1B1F2A),
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                        height: 1.06,
-                        letterSpacing: -1.0)),
-                const SizedBox(height: 14),
-                Text(promotion.description,
-                    style: const TextStyle(
-                        color: Color(0xFF485569),
-                        fontSize: 15,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500)),
+                Text(
+                  promotion.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF1B1F2A),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  promotion.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF485569),
+                    fontSize: 12,
+                    height: 1.3,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const Spacer(),
                 SizedBox(
-                  height: 48,
+                  height: 34,
                   child: ElevatedButton(
                     onPressed: primaryProduct == null
                         ? null
@@ -443,15 +443,16 @@ class _HomeViewState extends State<HomeView> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1C7BFF),
                       foregroundColor: Colors.white,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                     ),
                     child: Text(
                       promotion.primaryAction,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -462,22 +463,31 @@ class _HomeViewState extends State<HomeView> {
           ),
           const SizedBox(width: 8),
           Expanded(
+            flex: 9,
             child: Stack(
-              alignment: Alignment.center,
+              alignment: Alignment.centerRight,
               children: [
                 if (secondaryProduct != null)
                   Positioned(
-                    left: 10,
-                    bottom: 0,
+                    left: 4,
+                    bottom: 4,
                     child: _buildHeroProductImage(
                       secondaryProduct,
-                      110,
-                      150,
-                      18,
+                      70,
+                      96,
+                      10,
                     ),
                   ),
                 if (primaryProduct != null)
-                  _buildHeroProductImage(primaryProduct, 160, 210, 26),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 2),
+                    child: _buildHeroProductImage(
+                      primaryProduct,
+                      96,
+                      126,
+                      14,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -499,9 +509,9 @@ class _HomeViewState extends State<HomeView> {
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 22,
-            offset: const Offset(0, 16),
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -558,12 +568,12 @@ class _HomeViewState extends State<HomeView> {
 
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Shop by Brand',
                 style: TextStyle(
                   color: Color(0xFF1E2432),
@@ -571,14 +581,21 @@ class _HomeViewState extends State<HomeView> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              Text(
-                'View all',
-                style: TextStyle(
-                  color: Color(0xFF1C7BFF),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              InkWell(
+                onTap: widget.onSeeAllBrands,
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    'View more',
+                    style: TextStyle(
+                      color: Color(0xFF1C7BFF),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -598,40 +615,47 @@ class _HomeViewState extends State<HomeView> {
             itemBuilder: (context, index) {
               final brand = brands[index];
               final isIcon = brand['isIcon'] as bool;
-              return Container(
-                decoration: BoxDecoration(
-                  color: brand['bg'] as Color,
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => widget.onBrandTap?.call(brand['name'] as String),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (isIcon)
-                      Icon(
-                        brand['icon'] as IconData,
-                        size: 26,
-                        color: brand['textColor'] as Color,
-                      )
-                    else
-                      Text(
-                        brand['icon'] as String,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: brand['textColor'] as Color,
-                        ),
-                      ),
-                    const SizedBox(height: 6),
-                    Text(
-                      brand['name'] as String,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
-                      ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: brand['bg'] as Color,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
-                  ],
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isIcon)
+                          Icon(
+                            brand['icon'] as IconData,
+                            size: 26,
+                            color: brand['textColor'] as Color,
+                          )
+                        else
+                          Text(
+                            brand['icon'] as String,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: brand['textColor'] as Color,
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                        Text(
+                          brand['name'] as String,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
@@ -796,72 +820,6 @@ class _HomeViewState extends State<HomeView> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildBenefitsRow() {
-    final benefits = [
-      {
-        'icon': Icons.local_shipping_outlined,
-        'title': 'Free Shipping',
-        'sub': 'On orders over ₵50'
-      },
-      {
-        'icon': Icons.verified_outlined,
-        'title': '1 Year Warranty',
-        'sub': 'Official warranty'
-      },
-      {
-        'icon': Icons.assignment_return_outlined,
-        'title': '14-Day Returns',
-        'sub': 'Easy returns'
-      },
-      {
-        'icon': Icons.shield_outlined,
-        'title': 'Secure Payments',
-        'sub': '100% safe & secure'
-      },
-    ];
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        children: benefits.map((item) {
-          final icon = item['icon'] as IconData;
-          final title = item['title'] as String;
-          final sub = item['sub'] as String;
-
-          return Expanded(
-            child: Row(
-              children: [
-                Icon(icon, size: 22, color: const Color(0xFF1C7BFF)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1F2937))),
-                      Text(sub,
-                          style: const TextStyle(
-                              fontSize: 11, color: Color(0xFF7A8194))),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
     );
   }
 }

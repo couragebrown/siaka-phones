@@ -10,6 +10,7 @@ class SiakaApp {
       'onboarding',
       'login',
       'home',
+      'all-brands',
       'search',
       'categories',
       'product-details',
@@ -25,6 +26,7 @@ class SiakaApp {
 
     this.navTabMap = {
       'home': 'nav-home',
+      'all-brands': 'nav-home',
       'search': 'nav-search',
       'categories': 'nav-search',
       'wishlist': 'nav-wishlist',
