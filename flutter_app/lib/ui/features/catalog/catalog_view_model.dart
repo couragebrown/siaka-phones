@@ -14,6 +14,9 @@ class CatalogViewModel extends ChangeNotifier {
   List<Product> _products = [];
   List<Product> get products => _products;
 
+  List<Product> _featuredProducts = [];
+  List<Product> get featuredProducts => _featuredProducts;
+
   List<String> _categories = [];
   List<String> get categories => _categories;
 
@@ -29,6 +32,7 @@ class CatalogViewModel extends ChangeNotifier {
 
     try {
       _categories = await _productRepository.getCategories();
+      _featuredProducts = await _productRepository.getFeaturedProducts();
       _products = await _productRepository.getProducts(
         category: _selectedCategory,
         query: _searchQuery,

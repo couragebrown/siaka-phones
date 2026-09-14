@@ -21,6 +21,13 @@ class ProfileView extends StatelessWidget {
     required this.onBack,
   });
 
+  String _getInitials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts[0].isEmpty) return 'SP';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -36,171 +43,244 @@ class ProfileView extends StatelessWidget {
             automaticallyImplyLeading: false,
             titleSpacing: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Color(0xFF1F2937), size: 28),
+              iconSize: 20,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Color(0xFF1F2937),
+              ),
               onPressed: onBack,
             ),
             title: const Text(
               'My Account',
               style: TextStyle(
                 color: Color(0xFF1F2937),
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.8,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
               ),
             ),
             centerTitle: true,
           ),
-          body: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE9EDF2),
-                            borderRadius: BorderRadius.circular(18),
+                // Profile header card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF1C7BFF), Color(0xFF0D5BD8)],
                           ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 76,
-                                height: 76,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1C7BFF),
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    'JD',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 30,
-                                      fontWeight: FontWeight.w800,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _getInitials(profile.name),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profile.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF1F2937),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              profile.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFBFDBFE)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.workspace_premium_rounded,
+                                    color: Color(0xFF1C7BFF),
+                                    size: 13,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    profile.membershipTier,
+                                    style: const TextStyle(
+                                      color: Color(0xFF1D4ED8),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      profile.name,
-                                      style: const TextStyle(
-                                        color: Color(0xFF1F2937),
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.8,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      profile.email,
-                                      style: const TextStyle(
-                                        color: Color(0xFF697586),
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE7F0FF),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.workspace_premium_rounded,
-                                              color: Color(0xFF1C7BFF),
-                                              size: 18),
-                                          SizedBox(width: 6),
-                                          Text(
-                                            'VIP Gold Member',
-                                            style: TextStyle(
-                                              color: Color(0xFF1F2937),
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE9EDF2),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Row(
-                            children: [
-                              _summaryStat('3', 'Orders'),
-                              _summaryStat('4', 'Wishlist'),
-                              _summaryStat('2', 'Addresses'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: const Color(0xFFE5E7EB)),
-                          ),
-                          child: Column(
-                            children: [
-                              _menuRow(Icons.local_shipping_outlined,
-                                  'My Orders & Tracking', onOrdersTap),
-                              _menuRow(Icons.location_on_outlined,
-                                  'Saved Delivery Addresses', onLocationsTap),
-                              _menuRow(Icons.credit_card_rounded,
-                                  'Saved Payment Methods', () {}),
-                              _menuRow(Icons.favorite_border_rounded,
-                                  'My Wishlist', () {}),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 58,
-                          child: OutlinedButton(
-                            onPressed: onSignOut,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFFEE5D5D),
-                              side: const BorderSide(color: Color(0xFFFF8A8A)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              backgroundColor: const Color(0xFFFDF2F2),
-                            ),
-                            child: const Text(
-                              'Sign Out',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.6,
+                                ],
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Quick stats summary
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Row(
+                    children: [
+                      _summaryStat('3', 'Orders'),
+                      _verticalDivider(),
+                      _summaryStat('4', 'Wishlist'),
+                      _verticalDivider(),
+                      _summaryStat(
+                        profile.savedAddresses.length.toString(),
+                        'Addresses',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Section title
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Account Services',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Action menu list
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Column(
+                    children: [
+                      _menuRow(
+                        icon: Icons.receipt_long_outlined,
+                        label: 'My Orders & Tracking',
+                        onTap: onOrdersTap,
+                      ),
+                      _rowDivider(),
+                      _menuRow(
+                        icon: Icons.swap_horiz_rounded,
+                        label: 'Swap My Device',
+                        onTap: onTradeInTap,
+                      ),
+                      _rowDivider(),
+                      _menuRow(
+                        icon: Icons.location_on_outlined,
+                        label: 'Saved Delivery Addresses',
+                        onTap: onLocationsTap,
+                      ),
+                      _rowDivider(),
+                      _menuRow(
+                        icon: Icons.help_outline_rounded,
+                        label: 'Customer Support & FAQ',
+                        onTap: onSupportTap,
+                      ),
+                      _rowDivider(),
+                      _menuRow(
+                        icon: Icons.credit_card_rounded,
+                        label: 'Saved Payment Methods',
+                        onTap: () {},
+                      ),
+                      _rowDivider(),
+                      _menuRow(
+                        icon: Icons.favorite_border_rounded,
+                        label: 'My Wishlist',
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Sign out button
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: OutlinedButton(
+                    onPressed: onSignOut,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFDC2626),
+                      side: const BorderSide(color: Color(0xFFFECACA)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      backgroundColor: const Color(0xFFFEF2F2),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.logout_rounded, size: 18, color: Color(0xFFDC2626)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Sign Out',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
                           ),
                         ),
                       ],
@@ -215,26 +295,43 @@ class ProfileView extends StatelessWidget {
     );
   }
 
+  Widget _verticalDivider() {
+    return Container(
+      width: 1,
+      height: 28,
+      color: const Color(0xFFF3F4F6),
+    );
+  }
+
+  Widget _rowDivider() {
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      indent: 52,
+      color: Color(0xFFF3F4F6),
+    );
+  }
+
   Widget _summaryStat(String value, String label) {
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 18),
+        padding: const EdgeInsets.symmetric(vertical: 6),
         child: Column(
           children: [
             Text(
               value,
               style: const TextStyle(
                 color: Color(0xFF1C7BFF),
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
               style: const TextStyle(
-                color: Color(0xFF1F2937),
-                fontSize: 14,
+                color: Color(0xFF6B7280),
+                fontSize: 11.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -244,35 +341,44 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _menuRow(IconData icon, String label, VoidCallback onTap) {
+  Widget _menuRow({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFF1C7BFF).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, size: 22, color: const Color(0xFF1F2937)),
+              child: Icon(icon, size: 17, color: const Color(0xFF1C7BFF)),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
                 style: const TextStyle(
                   color: Color(0xFF1F2937),
-                  fontSize: 18,
+                  fontSize: 13.5,
                   fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
-                color: Color(0xFF1F2937), size: 28),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF9CA3AF),
+              size: 18,
+            ),
           ],
         ),
       ),

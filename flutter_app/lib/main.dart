@@ -358,6 +358,10 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
             onLocationsTap: _navigateToLocations,
             onSupportTap: _navigateToSupport,
             onProfileTap: () => setState(() => _currentTabIndex = 4),
+            onSignOut: () => setState(() {
+              _isOnLogin = true;
+              _currentTabIndex = 0;
+            }),
           ),
           CatalogView(
             viewModel: widget.catalogVM,
