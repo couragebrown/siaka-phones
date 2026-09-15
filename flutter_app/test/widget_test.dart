@@ -12,16 +12,23 @@ import 'package:siaka_phones_flutter/ui/features/catalog/catalog_view.dart';
 import 'package:siaka_phones_flutter/ui/features/catalog/catalog_view_model.dart';
 import 'package:siaka_phones_flutter/ui/features/home/home_view.dart';
 import 'package:siaka_phones_flutter/ui/features/home/home_view_model.dart';
+import 'package:siaka_phones_flutter/ui/core/widgets/bottom_nav_scaffold.dart';
+import 'package:siaka_phones_flutter/ui/features/product_detail/product_detail_view.dart';
 import 'package:siaka_phones_flutter/ui/features/product_detail/product_detail_view_model.dart';
 import 'package:siaka_phones_flutter/ui/features/profile/profile_view.dart';
 import 'package:siaka_phones_flutter/ui/features/profile/profile_view_model.dart';
 
-void main() {
-  testWidgets('app launches', (WidgetTester tester) async {
-    await tester.pumpWidget(const SiakaPhonesApp());
 
-    expect(find.byType(LoginView), findsOneWidget);
+void main() {
+  testWidgets('app launches directly to HomeView without splash',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp());
+    await tester.pumpAndSettle();
+
+    // Directly displays HomeView
+    expect(find.byType(HomeView), findsOneWidget);
   });
+
 
   test('adding a product updates the cart item count', () {
     final viewModel = ProductDetailViewModel(
@@ -293,7 +300,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify search results view
-    expect(find.text('Results for "Samsung" (1)'), findsOneWidget);
+    expect(find.text('Results for "Samsung" (4)'), findsOneWidget);
     expect(find.text('Galaxy S24 Ultra'), findsOneWidget);
 
     // 4. Clear search query
@@ -306,4 +313,140 @@ void main() {
     expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
     expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
   });
+
+  testWidgets('homepage bottom navigation design is uniformly used across views', (WidgetTester tester) async {
+    final detailVM = ProductDetailViewModel(
+      product: MockData.products.first,
+      cartRepository: CartRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProductDetailView(
+          viewModel: detailVM,
+          onTabSelected: (_) {},
+          onReviewsTap: () {},
+          onGoToCart: () {},
+        ),
+      ),
+    );
+
+    expect(find.byType(AppBottomNavBar), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Search'), findsOneWidget);
+    expect(find.text('Wishlist'), findsOneWidget);
+    expect(find.text('Cart'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+  });
+
+  testWidgets('redesigned LoginView renders Sign In with mock aesthetic and toggles to Sign Up',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    bool signedIn = false;
+    bool backPressed = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LoginView(
+          onBack: () => backPressed = true,
+          onSignIn: () => signedIn = true,
+          onCreateAccount: (_, __, ___, ____, _____, ______, _______) {},
+        ),
+      ),
+    );
+
+
+    await tester.pumpAndSettle();
+
+    // 1. Verify Sign In View Header, Typography, and Greeting Avatar
+    expect(find.text('Welcome to SiakaPhones'), findsOneWidget);
+    expect(find.text('Explore a modern experience built for speed and simplicity.'), findsOneWidget);
+    expect(find.text('Email or Phone'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
+    expect(find.text('Remember me'), findsOneWidget);
+    expect(find.text('Forgot Password?'), findsOneWidget);
+    expect(find.text('Sign In'), findsWidgets); // button and tab
+    expect(find.text('Or'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Continue with Apple'), findsOneWidget);
+    expect(find.text('Continue with Facebook'), findsOneWidget);
+
+    // Verify back button works
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(backPressed, isTrue);
+
+    // Verify Sign In action
+    await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Sign In'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Sign In'));
+    await tester.pumpAndSettle();
+    expect(signedIn, isTrue);
+
+
+    // 2. Switch to Create Account via tab or bottom switch
+    await tester.ensureVisible(find.text('Create Account').first);
+    await tester.tap(find.text('Create Account').first);
+    await tester.pumpAndSettle();
+
+    // Verify Create Account View Header and Fields
+    expect(find.text('Create Account'), findsWidgets);
+    expect(find.text('Sign up to get started with your account and orders.'), findsOneWidget);
+    expect(find.text('Full Name'), findsOneWidget);
+    expect(find.text('Username'), findsOneWidget);
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Phone Number'), findsOneWidget);
+    expect(find.text('Detailed Address'), findsOneWidget);
+    expect(find.text('Region'), findsOneWidget);
+    expect(find.text('Ghana GPS Code'), findsOneWidget);
+    expect(find.text('Confirm Password'), findsOneWidget);
+    expect(find.text('I agree to the Terms and Privacy Policy'), findsOneWidget);
+    expect(find.text('Already have an account? '), findsOneWidget);
+
+    // 3. Switch back to Sign In
+    await tester.ensureVisible(find.text('Sign In').first);
+    await tester.tap(find.text('Sign In').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to SiakaPhones'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
+  });
+
+  testWidgets('LoginView renders on narrow 320px screen with no overflow',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LoginView(
+          onBack: () {},
+          onSignIn: () {},
+          onCreateAccount: (_, __, ___, ____, _____, ______, _______) {},
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+
+
+
+    // Switch to Create Account on 320px screen
+    await tester.ensureVisible(find.text('Create Account').first);
+    await tester.tap(find.text('Create Account').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create Account'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
 }
+
+
+

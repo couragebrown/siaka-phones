@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/bottom_nav_scaffold.dart';
 import '../../../domain/models/order.dart';
 
 class TrackOrderView extends StatelessWidget {
@@ -346,88 +347,11 @@ class TrackOrderView extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            height: 82,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-            ),
-            child: SafeArea(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _navItem(0, Icons.home_outlined, 'Home', isSelected: true),
-                  _navItem(1, Icons.search_rounded, 'Search'),
-                  _navItem(3, Icons.favorite_border_rounded, 'Wishlist'),
-                  _navItem(2, Icons.shopping_bag_rounded, 'Cart'),
-                  _navItem(4, Icons.person_outline_rounded, 'Profile'),
-                ],
-              ),
-            ),
+          AppBottomNavBar(
+            currentIndex: 0,
+            onTabSelected: onTabSelected,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _navItem(int index, IconData icon, String label,
-      {bool isSelected = false, int badge = 0}) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onTabSelected(index),
-      child: SizedBox(
-        width: 72,
-        child: Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  color: isSelected
-                      ? const Color(0xFF1C7BFF)
-                      : const Color(0xFF7A8194),
-                  size: 26,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected
-                        ? const Color(0xFF1C7BFF)
-                        : const Color(0xFF7A8194),
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            if (badge > 0)
-              Positioned(
-                right: 12,
-                top: 0,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1C7BFF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }

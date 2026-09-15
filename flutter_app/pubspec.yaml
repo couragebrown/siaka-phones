@@ -19,6 +19,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
+
 
 dependency_overrides:
   path_provider_android: 2.2.17

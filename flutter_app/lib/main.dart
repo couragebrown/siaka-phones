@@ -18,7 +18,6 @@ import 'ui/core/app_theme.dart';
 import 'ui/core/widgets/bottom_nav_scaffold.dart';
 
 // Feature Views & ViewModels
-import 'ui/features/splash/splash_view.dart';
 import 'ui/features/auth/login_view.dart';
 import 'ui/features/home/home_view_model.dart';
 import 'ui/features/home/home_view.dart';
@@ -165,8 +164,8 @@ class AppRootNavigationHub extends StatefulWidget {
 }
 
 class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
-  bool _hasPassedSplash = true;
-  bool _isOnLogin = true;
+  bool _isOnLogin = false;
+
   int _currentTabIndex = 0;
 
   void _selectRootTab(int index) {
@@ -184,6 +183,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
       MaterialPageRoute(
         builder: (_) => ProductDetailView(
           viewModel: detailVM,
+          currentTabIndex: _currentTabIndex,
           onTabSelected: _selectRootTab,
           onReviewsTap: () => _navigateToReviews(),
           onGoToCart: () {
@@ -330,14 +330,6 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
       );
     }
 
-    if (!_hasPassedSplash) {
-      return SplashView(
-        onGetStarted: () => setState(() {
-          _hasPassedSplash = true;
-          _isOnLogin = true;
-        }),
-      );
-    }
 
     return ListenableBuilder(
       listenable: widget.cartRepo,

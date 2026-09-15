@@ -1,31 +1,27 @@
 import 'package:flutter/material.dart';
 
-class BottomNavScaffold extends StatelessWidget {
+class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
-  final Widget body;
   final int cartBadgeCount;
 
-  const BottomNavScaffold({
+  const AppBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTabSelected,
-    required this.body,
     this.cartBadgeCount = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      body: body,
-      bottomNavigationBar: Container(
-        height: 82,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-        ),
-        child: SafeArea(
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          height: 56,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -54,11 +50,12 @@ class BottomNavScaffold extends StatelessWidget {
         width: 68,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedSlide(
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOut,
-              offset: isSelected ? const Offset(0, -0.08) : Offset.zero,
+              offset: isSelected ? const Offset(0, -0.04) : Offset.zero,
               child: AnimatedScale(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
@@ -67,7 +64,7 @@ class BottomNavScaffold extends StatelessWidget {
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOut,
                   width: 36,
-                  height: 30,
+                  height: 28,
                   decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFF1C7BFF).withValues(alpha: 0.12)
@@ -79,12 +76,12 @@ class BottomNavScaffold extends StatelessWidget {
                     color: isSelected
                         ? const Color(0xFF1C7BFF)
                         : const Color(0xFF7A8194),
-                    size: 26,
+                    size: 22,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOut,
@@ -92,7 +89,7 @@ class BottomNavScaffold extends StatelessWidget {
                 color: isSelected
                     ? const Color(0xFF1C7BFF)
                     : const Color(0xFF7A8194),
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
               child: Text(
@@ -118,11 +115,12 @@ class BottomNavScaffold extends StatelessWidget {
           children: [
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 AnimatedSlide(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOut,
-                  offset: isSelected ? const Offset(0, -0.08) : Offset.zero,
+                  offset: isSelected ? const Offset(0, -0.04) : Offset.zero,
                   child: AnimatedScale(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOut,
@@ -131,7 +129,7 @@ class BottomNavScaffold extends StatelessWidget {
                       duration: const Duration(milliseconds: 180),
                       curve: Curves.easeOut,
                       width: 36,
-                      height: 30,
+                      height: 28,
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFF1C7BFF).withValues(alpha: 0.12)
@@ -143,12 +141,12 @@ class BottomNavScaffold extends StatelessWidget {
                         color: isSelected
                             ? const Color(0xFF1C7BFF)
                             : const Color(0xFF7A8194),
-                        size: 26,
+                        size: 22,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOut,
@@ -156,7 +154,7 @@ class BottomNavScaffold extends StatelessWidget {
                     color: isSelected
                         ? const Color(0xFF1C7BFF)
                         : const Color(0xFF7A8194),
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   ),
                   child: const Text('Cart'),
@@ -187,6 +185,34 @@ class BottomNavScaffold extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class BottomNavScaffold extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTabSelected;
+  final Widget body;
+  final int cartBadgeCount;
+
+  const BottomNavScaffold({
+    super.key,
+    required this.currentIndex,
+    required this.onTabSelected,
+    required this.body,
+    this.cartBadgeCount = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3F4F6),
+      body: body,
+      bottomNavigationBar: AppBottomNavBar(
+        currentIndex: currentIndex,
+        onTabSelected: onTabSelected,
+        cartBadgeCount: cartBadgeCount,
       ),
     );
   }

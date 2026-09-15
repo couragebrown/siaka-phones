@@ -162,9 +162,7 @@ class _HomeViewState extends State<HomeView> {
                   const SizedBox(height: 18),
                   _buildBrandRow(),
                   const SizedBox(height: 24),
-                  _buildSectionHeader('Featured Phones', 'View all'),
-                  const SizedBox(height: 12),
-                  _buildFeaturedGrid(),
+                  _buildFeaturedByBrand(),
                 ],
               ),
             ),
@@ -668,7 +666,7 @@ class _HomeViewState extends State<HomeView> {
     return Column(
       children: [
         SizedBox(
-          height: 180,
+          height: 160,
           child: PageView.builder(
             controller: _heroPageController,
             itemCount: _heroPromotions.length,
@@ -715,10 +713,10 @@ class _HomeViewState extends State<HomeView> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
       decoration: BoxDecoration(
         color: promotion.backgroundColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
@@ -852,41 +850,11 @@ class _HomeViewState extends State<HomeView> {
 
   Widget _buildBrandRow() {
     final brands = [
-      {
-        'name': 'Apple',
-        'icon': Icons.apple,
-        'isIcon': true,
-        'bg': const Color(0xFFF2F4F7),
-        'textColor': const Color(0xFF111827),
-      },
-      {
-        'name': 'Samsung',
-        'icon': 'S',
-        'isIcon': false,
-        'bg': const Color(0xFFF2F4F7),
-        'textColor': const Color(0xFF111827),
-      },
-      {
-        'name': 'Google',
-        'icon': 'G',
-        'isIcon': false,
-        'bg': const Color(0xFFF2F4F7),
-        'textColor': const Color(0xFF111827),
-      },
-      {
-        'name': 'OnePlus',
-        'icon': '1+',
-        'isIcon': false,
-        'bg': const Color(0xFFF2F4F7),
-        'textColor': const Color(0xFF111827),
-      },
-      {
-        'name': 'Xiaomi',
-        'icon': 'MI',
-        'isIcon': false,
-        'bg': const Color(0xFFF2F4F7),
-        'textColor': const Color(0xFF111827),
-      },
+      'Apple',
+      'Samsung',
+      'Google',
+      'OnePlus',
+      'Xiaomi',
     ];
 
     return Column(
@@ -940,46 +908,43 @@ class _HomeViewState extends State<HomeView> {
             ),
             itemCount: brands.length,
             itemBuilder: (context, index) {
-              final brand = brands[index];
-              final isIcon = brand['isIcon'] as bool;
+              final brandName = brands[index];
               return Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () => widget.onBrandTap?.call(brand['name'] as String),
-                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => widget.onBrandTap?.call(brandName),
+                  borderRadius: BorderRadius.circular(12),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: brand['bg'] as Color,
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: const Color(0xFFE5E7EB)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          if (isIcon)
-                            Icon(
-                              brand['icon'] as IconData,
-                              size: 22,
-                              color: brand['textColor'] as Color,
-                            )
-                          else
-                            Text(
-                              brand['icon'] as String,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: brand['textColor'] as Color,
-                              ),
+                          SizedBox(
+                            height: 26,
+                            child: Center(
+                              child: _buildBrandLogo(brandName),
                             ),
-                          const SizedBox(height: 4),
+                          ),
+                          const SizedBox(height: 5),
                           Text(
-                            brand['name'] as String,
+                            brandName,
                             style: const TextStyle(
                               fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               color: Color(0xFF111827),
                             ),
                           ),
@@ -994,6 +959,91 @@ class _HomeViewState extends State<HomeView> {
         ),
       ],
     );
+  }
+
+  Widget _buildBrandLogo(String name) {
+    switch (name.toLowerCase()) {
+      case 'apple':
+        return const Icon(
+          Icons.apple,
+          size: 24,
+          color: Color(0xFF111827),
+        );
+      case 'samsung':
+        return const Text(
+          'SAMSUNG',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0C4DA2),
+            letterSpacing: 0.3,
+          ),
+        );
+      case 'google':
+        return ShaderMask(
+          shaderCallback: (bounds) => const SweepGradient(
+            colors: [
+              Color(0xFF4285F4),
+              Color(0xFFEA4335),
+              Color(0xFFFBBC05),
+              Color(0xFF34A853),
+              Color(0xFF4285F4),
+            ],
+          ).createShader(bounds),
+          child: const Text(
+            'G',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+        );
+      case 'oneplus':
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFEB0028), width: 1.8),
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: const Text(
+            '1+',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFEB0028),
+              letterSpacing: -0.5,
+            ),
+          ),
+        );
+      case 'xiaomi':
+        return Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF6900),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          alignment: Alignment.center,
+          child: const Text(
+            'mi',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+        );
+      default:
+        return Text(
+          name.isNotEmpty ? name[0] : '',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF111827),
+          ),
+        );
+    }
   }
 
   Widget _buildSectionHeader(String title, String actionLabel) {
@@ -1034,214 +1084,268 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildFeaturedGrid() {
+  /// Groups featured products by brand and renders each group as a
+  /// horizontally-scrollable row with 3 cards visible at a time,
+  /// with the brand name shown as a label above each row.
+  Widget _buildFeaturedByBrand() {
     final items = widget.viewModel.featuredProducts;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final int crossAxisCount = width > 700 ? 3 : 2;
-        final double mainAxisExtent = width > 700 ? 340 : 332;
+    // Group products by brand, preserving insertion order.
+    final Map<String, List<Product>> byBrand = {};
+    for (final p in items) {
+      byBrand.putIfAbsent(p.brand, () => []).add(p);
+    }
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 14,
-            mainAxisExtent: mainAxisExtent,
-          ),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final product = items[index];
-            return _buildFeaturedCard(product);
-          },
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header with "Featured Phones" title + View all link
+        _buildSectionHeader('Featured Phones', 'View all'),
+        const SizedBox(height: 14),
+        // One horizontal-scroll row per brand
+        ...byBrand.entries.map((entry) {
+          final brand = entry.key;
+          final products = entry.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Brand label
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, bottom: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1C7BFF),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Text(
+                        brand,
+                        style: const TextStyle(
+                          color: Color(0xFF1E2432),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${products.length} phones',
+                        style: const TextStyle(
+                          color: Color(0xFF9CA3AF),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Horizontal scroll list — 3 cards visible at a time
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Card width = screen width / 3 minus padding/spacing
+                    final cardWidth =
+                        (constraints.maxWidth - 32 - 20) / 3;
+                    return SizedBox(
+                      height: 240,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: products.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(width: 10),
+                        itemBuilder: (context, i) {
+                          return SizedBox(
+                            width: cardWidth,
+                            child: _buildCompactFeaturedCard(
+                                products[i]),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 
-  Widget _buildFeaturedCard(Product product) {
+  /// Compact card for the 3-per-row horizontal brand sections.
+  Widget _buildCompactFeaturedCard(Product product) {
     final isWishlisted = _wishlistProductIds.contains(product.id);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: "New" badge (left) & Wishlist heart icon (right)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1C7BFF),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'New',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
+    return GestureDetector(
+      onTap: () => widget.onProductTap(product),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Badge + wishlist row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C7BFF),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'New',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              InkWell(
-                onTap: () {
-                  setState(() {
+                InkWell(
+                  onTap: () => setState(() {
                     if (isWishlisted) {
                       _wishlistProductIds.remove(product.id);
                     } else {
                       _wishlistProductIds.add(product.id);
                     }
-                  });
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(2.0),
+                  }),
+                  borderRadius: BorderRadius.circular(12),
                   child: Icon(
                     isWishlisted
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
                     color: isWishlisted
                         ? const Color(0xFFEF4444)
-                        : const Color(0xFF4B5563),
-                    size: 21,
+                        : const Color(0xFFCBD5E1),
+                    size: 16,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-
-          // Center: Phone Mockup Visual (Expanded to prevent any RenderFlex overflow)
-          Expanded(
-            child: GestureDetector(
-              onTap: () => widget.onProductTap(product),
+              ],
+            ),
+            // Phone graphic — takes remaining space
+            Expanded(
               child: Center(
                 child: _buildProductPhoneGraphic(product),
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-
-          // Product Title
-          GestureDetector(
-            onTap: () => widget.onProductTap(product),
-            child: Text(
+            const SizedBox(height: 4),
+            // Name
+            Text(
               product.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF111827),
-                fontSize: 14.5,
+                fontSize: 11,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
+                letterSpacing: -0.1,
               ),
             ),
-          ),
-          const SizedBox(height: 3),
-
-          // Price ("From $1,099")
-          Text(
-            _formatFeaturedPrice(product.price),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF6B7280),
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // Rating Row: Star 4.8 (245)
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.star_rounded,
-                  size: 17,
-                  color: Color(0xFFFFA000),
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  product.rating.toStringAsFixed(1),
-                  style: const TextStyle(
-                    color: Color(0xFF111827),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  '(${product.reviewCount})',
-                  style: const TextStyle(
-                    color: Color(0xFF6B7280),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Action button: Full-width blue "Buy Now" button with cart icon
-          SizedBox(
-            width: double.infinity,
-            height: 38,
-            child: ElevatedButton(
-              onPressed: () => widget.onProductTap(product),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1C7BFF),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+            const SizedBox(height: 2),
+            // Price
+            Text(
+              _formatFeaturedPrice(product.price),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF6B7280),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
               ),
-              child: const FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.shopping_cart_outlined, size: 16, color: Colors.white),
-                    SizedBox(width: 6),
-                    Text(
-                      'Buy Now',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+            ),
+            const SizedBox(height: 3),
+            // Rating: Star 4.8 (245)
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  const Icon(Icons.star_rounded,
+                      size: 12, color: Color(0xFFFFA000)),
+                  const SizedBox(width: 2),
+                  Text(
+                    product.rating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    '(${product.reviewCount})',
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Buy Now button with cart icon
+            SizedBox(
+              width: double.infinity,
+              height: 30,
+              child: ElevatedButton(
+                onPressed: () => widget.onProductTap(product),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1C7BFF),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.shopping_cart_outlined,
+                        size: 13,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Buy Now',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1249,8 +1353,14 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildProductPhoneGraphic(Product product) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableHeight = constraints.maxHeight.clamp(70.0, 140.0);
-        final availableWidth = constraints.maxWidth.clamp(90.0, 160.0);
+        final maxH = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 100.0;
+        final maxW = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 100.0;
+        final availableHeight = maxH.clamp(40.0, 140.0);
+        final availableWidth = maxW.clamp(40.0, 160.0);
         return SizedBox(
           width: availableWidth,
           height: availableHeight,

@@ -63,110 +63,158 @@ class _CartViewState extends State<CartView> {
               ],
             ),
           ),
-          body: LayoutBuilder(
-            builder: (context, constraints) {
-              final content = items.isEmpty
-                  ? SizedBox(
-                      height: constraints.maxHeight - 80,
-                      child: const Center(
-                        child: Text('Cart is empty'),
-                      ),
-                    )
-                  : Column(
+          body: items.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          margin: const EdgeInsets.symmetric(horizontal: 18),
+                          width: 80,
+                          height: 80,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE4F5EC),
-                            borderRadius: BorderRadius.circular(14),
+                            color:
+                                const Color(0xFF1C7BFF).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
                           ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.local_shipping_outlined,
-                                  color: Color(0xFF1C7BFF)),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'You are ₵13 away from free shipping!',
-                                  style: TextStyle(
-                                      color: Color(0xFF1F2937),
-                                      fontWeight: FontWeight.w700),
-                                ),
-                              ),
-                              Text('₵13 left',
-                                  style: TextStyle(
-                                      color: Color(0xFF1C7BFF),
-                                      fontWeight: FontWeight.w700)),
-                            ],
+                          child: const Icon(
+                            Icons.shopping_cart_outlined,
+                            size: 40,
+                            color: Color(0xFF1C7BFF),
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        ...items.map((item) => _buildCartItemTile(item)),
-                        const SizedBox(height: 12),
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 18),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: const Color(0xFFE5E7EB)),
-                          ),
-                          child: Column(
-                            children: [
-                              _summaryRow('Subtotal',
-                                  '₵${widget.viewModel.subtotal.toStringAsFixed(3)}'),
-                              const SizedBox(height: 8),
-                              _summaryRow('Shipping', 'FREE',
-                                  valueColor: const Color(0xFF0F9F65)),
-                              const SizedBox(height: 8),
-                              _summaryRow('Estimated Tax',
-                                  '₵${widget.viewModel.tax.toStringAsFixed(3)}'),
-                              const Divider(height: 20),
-                              _summaryRow('Total',
-                                  '₵${widget.viewModel.total.toStringAsFixed(3)}',
-                                  isBold: true,
-                                  valueColor: const Color(0xFF1C7BFF)),
-                            ],
+                        const SizedBox(height: 18),
+                        const Text(
+                          'Your cart is empty',
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1F2937),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: ElevatedButton(
-                              onPressed: widget.onCheckout,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1C7BFF),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14)),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Looks like you haven\'t added any phones yet.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        SizedBox(
+                          height: 44,
+                          child: ElevatedButton(
+                            onPressed: widget.onBrowseCatalog,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1C7BFF),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Text('Proceed to Checkout',
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700)),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Explore Phones',
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
                       ],
-                    );
-
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 18),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: content,
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        margin: const EdgeInsets.symmetric(horizontal: 18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE4F5EC),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.local_shipping_outlined,
+                                color: Color(0xFF1C7BFF)),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'You are ₵13 away from free shipping!',
+                                style: TextStyle(
+                                    color: Color(0xFF1F2937),
+                                    fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            Text('₵13 left',
+                                style: TextStyle(
+                                    color: Color(0xFF1C7BFF),
+                                    fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      ...items.map((item) => _buildCartItemTile(item)),
+                      const SizedBox(height: 12),
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 18),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: Column(
+                          children: [
+                            _summaryRow('Subtotal',
+                                '₵${widget.viewModel.subtotal.toStringAsFixed(3)}'),
+                            const SizedBox(height: 8),
+                            _summaryRow('Shipping', 'FREE',
+                                valueColor: const Color(0xFF0F9F65)),
+                            const SizedBox(height: 8),
+                            _summaryRow('Estimated Tax',
+                                '₵${widget.viewModel.tax.toStringAsFixed(3)}'),
+                            const Divider(height: 20),
+                            _summaryRow('Total',
+                                '₵${widget.viewModel.total.toStringAsFixed(3)}',
+                                isBold: true,
+                                valueColor: const Color(0xFF1C7BFF)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: widget.onCheckout,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1C7BFF),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text('Proceed to Checkout',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-              );
-            },
-          ),
         );
       },
     );

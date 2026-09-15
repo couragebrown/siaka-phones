@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:bottom="24dp">
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/siaka_logo" />
+    </item>
+    <item android:top="110dp" android:gravity="center">
+        <shape android:shape="rectangle">
+            <solid android:color="#EFF2F6" />
+            <corners android:radius="3dp" />
+            <size android:width="160dp" android:height="6dp" />
+        </shape>
+    </item>
+</layer-list>
