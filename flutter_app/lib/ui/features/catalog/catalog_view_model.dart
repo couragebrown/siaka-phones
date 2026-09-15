@@ -47,25 +47,19 @@ class CatalogViewModel extends ChangeNotifier {
 
   void setCategory(String category) {
     _selectedCategory = category;
-    _filterProducts();
+    _products = _productRepository.filterProducts(
+      category: _selectedCategory,
+      query: _searchQuery,
+    );
+    notifyListeners();
   }
 
   void setSearchQuery(String query) {
     _searchQuery = query;
-    _filterProducts();
-  }
-
-  Future<void> _filterProducts() async {
-    final currentRequestId = ++_searchRequestId;
-    final results = await _productRepository.getProducts(
+    _products = _productRepository.filterProducts(
       category: _selectedCategory,
       query: _searchQuery,
     );
-
-    // Only commit results if this is still the most recent query request
-    if (currentRequestId == _searchRequestId) {
-      _products = results;
-      notifyListeners();
-    }
+    notifyListeners();
   }
 }

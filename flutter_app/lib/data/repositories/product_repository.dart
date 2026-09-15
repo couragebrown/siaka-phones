@@ -4,56 +4,106 @@ import '../../domain/models/product.dart';
 class ProductRepository {
   final List<Product> _products = List.from(MockData.products);
 
-  Future<List<Product>> getProducts({String? category, String? query}) async {
+  List<Product> filterProducts({String? category, String? query}) {
     final trimmedQuery = query?.trim().toLowerCase() ?? '';
     final hasQuery = trimmedQuery.isNotEmpty;
 
     if (!hasQuery) {
-      await Future.delayed(const Duration(milliseconds: 50));
+      if (category != null && category != 'All') {
+        return _products
+            .where((p) => p.category.toLowerCase() == category.toLowerCase())
+            .toList();
+      }
+      return List.from(_products);
     }
 
-    final tokens = hasQuery
-        ? trimmedQuery
-            .split(RegExp(r'\s+'))
-            .where((t) => t.isNotEmpty)
-            .toList()
-        : <String>[];
+    final tokens = trimmedQuery
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
 
-    bool matchesProduct(Product p) {
-      if (!hasQuery) return true;
-
-      final name = p.name.toLowerCase();
-      final brand = p.brand.toLowerCase();
-      final cat = p.category.toLowerCase();
-      final desc = p.description.toLowerCase();
-      final colors = p.colors.map((c) => c.toLowerCase()).join(' ');
-      final storage = p.storageOptions.map((s) => s.toLowerCase()).join(' ');
-      final specs = p.specs.values.map((v) => v.toLowerCase()).join(' ');
-      final isPhone = cat.contains('smartphone') || cat.contains('foldable');
-      final synonyms = isPhone ? 'phone phones mobile device flagship' : 'device gadget accessory';
-
-      final fullSearchText =
-          '$name $brand $cat $desc $colors $storage $specs $synonyms';
-
-      return tokens.every((token) => fullSearchText.contains(token));
+    List<String> getWords(String text) {
+      return text
+          .toLowerCase()
+          .split(RegExp(r'[^a-z0-9]+'))
+          .where((w) => w.isNotEmpty)
+          .toList();
     }
 
-    final categoryFiltered = _products.where((p) {
+    bool matchesToken(Product p, String token) {
+      final nameWords = getWords(p.name);
+      final brandWords = getWords(p.brand);
+
+      // 1. Device name or Brand words start with the token (e.g. 'i' -> 'iPhone', 's' -> 'Samsung'/'Siaka', 'g' -> 'Google'/'Galaxy')
+      if (brandWords.any((w) => w.startsWith(token)) ||
+          nameWords.any((w) => w.startsWith(token))) {
+        return true;
+      }
+
+      // 2. Direct substring in name or brand (e.g. '15', '24', 'pro', 'max', 'ultra', 'fold')
+      if (p.name.toLowerCase().contains(token) ||
+          p.brand.toLowerCase().contains(token)) {
+        return true;
+      }
+
+      // 3. Category matching (requires at least 3 chars so 's' does not match all 'Smartphones')
+      if (token.length >= 3 && p.category.toLowerCase().contains(token)) {
+        return true;
+      }
+
+      // 4. Common device category synonyms
+      final isPhone = p.category.toLowerCase().contains('smartphone') ||
+          p.category.toLowerCase().contains('foldable');
+      if (isPhone && (token == 'phone' || token == 'phones' || token == 'mobile')) {
+        return true;
+      }
+      if (p.category.toLowerCase().contains('wearable') && (token == 'watch' || token == 'watches')) {
+        return true;
+      }
+      if (p.category.toLowerCase().contains('accessories') &&
+          (token == 'buds' || token == 'airpods' || token == 'charger' || token == 'audio')) {
+        return true;
+      }
+
+      // 5. For tokens of 3 or more characters, also check specs/colors/description
+      if (token.length >= 3) {
+        final colors = p.colors.map((c) => c.toLowerCase()).join(' ');
+        final storage = p.storageOptions.map((s) => s.toLowerCase()).join(' ');
+        final specs = p.specs.values.map((v) => v.toLowerCase()).join(' ');
+        final desc = p.description.toLowerCase();
+        final secondaryText = '$colors $storage $specs $desc';
+        if (secondaryText.contains(token)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    bool matchesAllTokens(Product p) {
+      return tokens.every((t) => matchesToken(p, t));
+    }
+
+    // Try within the active category pill first
+    final inCategory = _products.where((p) {
       if (category != null &&
           category != 'All' &&
           p.category.toLowerCase() != category.toLowerCase()) {
         return false;
       }
-      return matchesProduct(p);
+      return matchesAllTokens(p);
     }).toList();
 
-    // If matches found in the selected category, or no category was specified, return them
-    if (categoryFiltered.isNotEmpty || !hasQuery || category == null || category == 'All') {
-      return categoryFiltered;
+    if (inCategory.isNotEmpty || category == null || category == 'All') {
+      return inCategory;
     }
 
-    // Fallback: if query didn't match within the active category pill, search across all categories
-    return _products.where(matchesProduct).toList();
+    // Fallback across all products if no matches in active category
+    return _products.where(matchesAllTokens).toList();
+  }
+
+  Future<List<Product>> getProducts({String? category, String? query}) async {
+    return filterProducts(category: category, query: query);
   }
 
   Future<List<Product>> getFeaturedProducts() async {

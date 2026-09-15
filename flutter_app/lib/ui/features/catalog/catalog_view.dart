@@ -87,6 +87,7 @@ class _CatalogViewState extends State<CatalogView> {
   }
 
   void _onSearchChanged() {
+    widget.viewModel.setSearchQuery(_searchController.text);
     setState(() {});
   }
 
