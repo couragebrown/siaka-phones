@@ -67,14 +67,17 @@ class FeaturedPhoneCard extends StatelessWidget {
                 InkWell(
                   onTap: onWishlistTap,
                   borderRadius: BorderRadius.circular(12),
-                  child: Icon(
-                    isWishlisted
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    color: isWishlisted
-                        ? const Color(0xFFEF4444)
-                        : const Color(0xFFCBD5E1),
-                    size: 16,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      isWishlisted
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: isWishlisted
+                          ? const Color(0xFFEF4444)
+                          : const Color(0xFFCBD5E1),
+                      size: 16,
+                    ),
                   ),
                 ),
               ],

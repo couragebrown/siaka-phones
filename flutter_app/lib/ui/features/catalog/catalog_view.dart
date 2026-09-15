@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
 import '../../core/widgets/featured_phone_card.dart';
 import '../../../domain/models/product.dart';
+import '../../../data/repositories/wishlist_repository.dart';
 import 'catalog_view_model.dart';
 
 class _CatalogHeroPromotion {
@@ -22,12 +23,16 @@ class _CatalogHeroPromotion {
 
 class CatalogView extends StatefulWidget {
   final CatalogViewModel viewModel;
-  final Function(Product) onProductTap;
+  final Function(Product)? onProductTap;
+  final VoidCallback? onBack;
+  final WishlistRepository? wishlistRepo;
 
   const CatalogView({
     super.key,
     required this.viewModel,
-    required this.onProductTap,
+    this.onProductTap,
+    this.onBack,
+    this.wishlistRepo,
   });
 
   @override
@@ -103,7 +108,10 @@ class _CatalogViewState extends State<CatalogView> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.viewModel,
+      listenable: Listenable.merge([
+        widget.viewModel,
+        if (widget.wishlistRepo != null) widget.wishlistRepo!,
+      ]),
       builder: (context, _) {
         final bool isSearching = _searchController.text.trim().isNotEmpty;
         final featuredProducts = widget.viewModel.featuredProducts.isNotEmpty
@@ -342,19 +350,24 @@ class _CatalogViewState extends State<CatalogView> {
                 itemBuilder: (context, index) {
                   final product = featuredProducts[index];
                   final isWishlisted =
-                      _wishlistProductIds.contains(product.id);
+                      widget.wishlistRepo?.isWishlisted(product.id) ??
+                          _wishlistProductIds.contains(product.id);
                   return FeaturedPhoneCard(
                     product: product,
                     isWishlisted: isWishlisted,
-                    onTap: () => widget.onProductTap(product),
+                    onTap: () => widget.onProductTap?.call(product),
                     onWishlistTap: () {
-                      setState(() {
-                        if (isWishlisted) {
-                          _wishlistProductIds.remove(product.id);
-                        } else {
-                          _wishlistProductIds.add(product.id);
-                        }
-                      });
+                      if (widget.wishlistRepo != null) {
+                        widget.wishlistRepo!.toggleWishlist(product);
+                      } else {
+                        setState(() {
+                          if (isWishlisted) {
+                            _wishlistProductIds.remove(product.id);
+                          } else {
+                            _wishlistProductIds.add(product.id);
+                          }
+                        });
+                      }
                     },
                   );
                 },
@@ -493,19 +506,24 @@ class _CatalogViewState extends State<CatalogView> {
                 itemBuilder: (context, index) {
                   final product = products[index];
                   final isWishlisted =
-                      _wishlistProductIds.contains(product.id);
+                      widget.wishlistRepo?.isWishlisted(product.id) ??
+                          _wishlistProductIds.contains(product.id);
                   return FeaturedPhoneCard(
                     product: product,
                     isWishlisted: isWishlisted,
-                    onTap: () => widget.onProductTap(product),
+                    onTap: () => widget.onProductTap?.call(product),
                     onWishlistTap: () {
-                      setState(() {
-                        if (isWishlisted) {
-                          _wishlistProductIds.remove(product.id);
-                        } else {
-                          _wishlistProductIds.add(product.id);
-                        }
-                      });
+                      if (widget.wishlistRepo != null) {
+                        widget.wishlistRepo!.toggleWishlist(product);
+                      } else {
+                        setState(() {
+                          if (isWishlisted) {
+                            _wishlistProductIds.remove(product.id);
+                          } else {
+                            _wishlistProductIds.add(product.id);
+                          }
+                        });
+                      }
                     },
                   );
                 },
@@ -609,9 +627,9 @@ class _CatalogViewState extends State<CatalogView> {
                     child: SizedBox(
                       height: 34,
                       child: ElevatedButton(
-                        onPressed: primaryProduct == null
+                        onPressed: (primaryProduct == null || widget.onProductTap == null)
                             ? null
-                            : () => widget.onProductTap(primaryProduct),
+                            : () => widget.onProductTap!(primaryProduct),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1A73E8),
                           foregroundColor: Colors.white,

@@ -8,6 +8,8 @@ import 'data/repositories/order_repository.dart';
 import 'data/repositories/repair_repository.dart';
 import 'data/repositories/location_repository.dart';
 import 'data/repositories/user_repository.dart';
+import 'data/repositories/wishlist_repository.dart';
+import 'data/mock_data.dart';
 
 // Models
 import 'domain/models/product.dart';
@@ -74,6 +76,9 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
   final RepairRepository _repairRepo = RepairRepository();
   final LocationRepository _locationRepo = LocationRepository();
   final UserRepository _userRepo = UserRepository();
+  final WishlistRepository _wishlistRepo = WishlistRepository(
+    initialProducts: [MockData.products.first],
+  );
 
   // Persistent Feature ViewModels
   late final HomeViewModel _homeVM;
@@ -112,6 +117,7 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
         productRepo: _productRepo,
         cartRepo: _cartRepo,
         orderRepo: _orderRepo,
+        wishlistRepo: _wishlistRepo,
         homeVM: _homeVM,
         catalogVM: _catalogVM,
         cartVM: _cartVM,
@@ -131,6 +137,7 @@ class AppRootNavigationHub extends StatefulWidget {
   final ProductRepository productRepo;
   final CartRepository cartRepo;
   final OrderRepository orderRepo;
+  final WishlistRepository wishlistRepo;
   final HomeViewModel homeVM;
   final CatalogViewModel catalogVM;
   final CartViewModel cartVM;
@@ -147,6 +154,7 @@ class AppRootNavigationHub extends StatefulWidget {
     required this.productRepo,
     required this.cartRepo,
     required this.orderRepo,
+    required this.wishlistRepo,
     required this.homeVM,
     required this.catalogVM,
     required this.cartVM,
@@ -183,6 +191,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
       MaterialPageRoute(
         builder: (_) => ProductDetailView(
           viewModel: detailVM,
+          wishlistRepo: widget.wishlistRepo,
           currentTabIndex: _currentTabIndex,
           onTabSelected: _selectRootTab,
           onReviewsTap: () => _navigateToReviews(),
@@ -337,6 +346,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
         final List<Widget> pages = [
           HomeView(
             viewModel: widget.homeVM,
+            wishlistRepo: widget.wishlistRepo,
             onProductTap: _navigateToProductDetail,
             onSeeAllCatalog: () => setState(() => _currentTabIndex = 1),
             onSeeAllBrands: _navigateToBrands,
@@ -357,20 +367,29 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
           ),
           CatalogView(
             viewModel: widget.catalogVM,
+            wishlistRepo: widget.wishlistRepo,
             onProductTap: _navigateToProductDetail,
           ),
           CartView(
             viewModel: widget.cartVM,
             onCheckout: _navigateToCheckout,
             onBrowseCatalog: () => setState(() => _currentTabIndex = 1),
+            onProductTap: _navigateToProductDetail,
           ),
-          const WishlistView(),
+          WishlistView(
+            wishlistRepo: widget.wishlistRepo,
+            cartRepo: widget.cartRepo,
+            onProductTap: _navigateToProductDetail,
+            onBrowseCatalog: () => setState(() => _currentTabIndex = 1),
+            onGoToCart: () => setState(() => _currentTabIndex = 2),
+          ),
           ProfileView(
             viewModel: widget.profileVM,
             onOrdersTap: _navigateToOrders,
             onTradeInTap: _navigateToTradeIn,
             onLocationsTap: _navigateToLocations,
             onSupportTap: _navigateToSupport,
+            onWishlistTap: () => setState(() => _currentTabIndex = 3),
             onBack: () => setState(() => _currentTabIndex = 0),
             onSignOut: () => setState(() {
               _isOnLogin = true;

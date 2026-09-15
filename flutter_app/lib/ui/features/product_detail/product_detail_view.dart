@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/widgets/bottom_nav_scaffold.dart';
 import '../../core/widgets/featured_phone_card.dart';
+import '../../../data/repositories/wishlist_repository.dart';
 import 'product_detail_view_model.dart';
 
 class ProductDetailView extends StatelessWidget {
@@ -9,6 +10,7 @@ class ProductDetailView extends StatelessWidget {
   final VoidCallback onReviewsTap;
   final VoidCallback onGoToCart;
   final int currentTabIndex;
+  final WishlistRepository? wishlistRepo;
 
   const ProductDetailView({
     super.key,
@@ -17,6 +19,7 @@ class ProductDetailView extends StatelessWidget {
     required this.onReviewsTap,
     required this.onGoToCart,
     this.currentTabIndex = 0,
+    this.wishlistRepo,
   });
 
   String _formatPrice(double price) {
@@ -85,14 +88,37 @@ class ProductDetailView extends StatelessWidget {
             ),
             centerTitle: true,
             actions: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(
-                  Icons.favorite_border_rounded,
-                  color: Color(0xFF111827),
-                  size: 21,
+              if (wishlistRepo != null)
+                ListenableBuilder(
+                  listenable: wishlistRepo!,
+                  builder: (context, _) {
+                    final isWishlisted =
+                        wishlistRepo!.isWishlisted(viewModel.product.id);
+                    return IconButton(
+                      onPressed: () {
+                        wishlistRepo!.toggleWishlist(viewModel.product);
+                      },
+                      icon: Icon(
+                        isWishlisted
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: isWishlisted
+                            ? const Color(0xFFEF4444)
+                            : const Color(0xFF111827),
+                        size: 21,
+                      ),
+                    );
+                  },
+                )
+              else
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.favorite_border_rounded,
+                    color: Color(0xFF111827),
+                    size: 21,
+                  ),
                 ),
-              ),
               Stack(
                 alignment: Alignment.center,
                 children: [

@@ -26,8 +26,6 @@ class CatalogViewModel extends ChangeNotifier {
   String _searchQuery = '';
   String get searchQuery => _searchQuery;
 
-  int _searchRequestId = 0;
-
   Future<void> loadCatalog() async {
     _isLoading = true;
     notifyListeners();

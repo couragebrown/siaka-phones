@@ -17,6 +17,17 @@ import 'package:siaka_phones_flutter/ui/features/product_detail/product_detail_v
 import 'package:siaka_phones_flutter/ui/features/product_detail/product_detail_view_model.dart';
 import 'package:siaka_phones_flutter/ui/features/profile/profile_view.dart';
 import 'package:siaka_phones_flutter/ui/features/profile/profile_view_model.dart';
+import 'package:siaka_phones_flutter/data/repositories/wishlist_repository.dart';
+import 'package:siaka_phones_flutter/ui/features/wishlist/wishlist_view.dart';
+import 'package:siaka_phones_flutter/ui/features/cart/cart_view.dart';
+import 'package:siaka_phones_flutter/ui/features/cart/cart_view_model.dart';
+import 'package:siaka_phones_flutter/data/repositories/order_repository.dart';
+import 'package:siaka_phones_flutter/domain/models/order.dart';
+import 'package:siaka_phones_flutter/ui/features/checkout/checkout_view.dart';
+import 'package:siaka_phones_flutter/ui/features/checkout/checkout_view_model.dart';
+import 'package:siaka_phones_flutter/ui/features/confirmation/confirmation_view.dart';
+import 'package:siaka_phones_flutter/ui/features/track_order/track_order_view.dart';
+import 'package:siaka_phones_flutter/domain/models/cart_item.dart';
 
 
 void main() {
@@ -531,6 +542,561 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Create Account'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('WishlistRepository toggles, adds, and removes products correctly', () {
+    final product1 = MockData.products[0];
+    final product2 = MockData.products[1];
+    final repo = WishlistRepository(initialProducts: [product1]);
+
+    expect(repo.itemCount, 1);
+    expect(repo.isWishlisted(product1.id), isTrue);
+    expect(repo.isWishlisted(product2.id), isFalse);
+
+    // Toggle product2 -> should be added
+    final added = repo.toggleWishlist(product2);
+    expect(added, isTrue);
+    expect(repo.itemCount, 2);
+    expect(repo.isWishlisted(product2.id), isTrue);
+
+    // Toggle product1 -> should be removed
+    final removed = repo.toggleWishlist(product1);
+    expect(removed, isFalse);
+    expect(repo.itemCount, 1);
+    expect(repo.isWishlisted(product1.id), isFalse);
+
+    // Remove product2
+    repo.removeFromWishlist(product2.id);
+    expect(repo.itemCount, 0);
+    expect(repo.isEmpty, isTrue);
+  });
+
+  testWidgets('WishlistView displays appropriate compact banner and product items',
+      (WidgetTester tester) async {
+    final product = MockData.products.first;
+    final wishlistRepo = WishlistRepository(initialProducts: [product]);
+    final cartRepo = CartRepository();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WishlistView(
+          wishlistRepo: wishlistRepo,
+          cartRepo: cartRepo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify app bar title
+    expect(find.text('My Wishlist (1)'), findsOneWidget);
+
+    // Verify compact promotional banner is rendered
+    expect(find.text('Your Saved Devices\nTrack Prices & Drops'), findsOneWidget);
+
+    // Verify product name and price rendered correctly
+    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    expect(find.text('\$1,099'), findsOneWidget);
+    expect(find.text('Move to Cart'), findsOneWidget);
+
+    // Move to Cart
+    await tester.tap(find.text('Move to Cart'));
+    await tester.pumpAndSettle();
+
+    // Verify item was added to cart
+    expect(cartRepo.itemCount, 1);
+    expect(wishlistRepo.itemCount, 1);
+
+    // Tap Clear in AppBar to empty wishlist
+    await tester.tap(find.text('Clear'));
+    await tester.pumpAndSettle();
+
+    // Wishlist should now be empty
+    expect(wishlistRepo.isEmpty, isTrue);
+    expect(find.text('Your Wishlist is Empty'), findsOneWidget);
+    expect(find.text('Browse Devices'), findsOneWidget);
+  });
+
+  testWidgets('CartView displays appropriate compact banner, item cards, and order summary',
+      (WidgetTester tester) async {
+    final cartRepo = CartRepository();
+    final product = MockData.products.first;
+    cartRepo.addToCart(product);
+
+    final cartVM = CartViewModel(cartRepository: cartRepo);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CartView(
+            viewModel: cartVM,
+            onCheckout: () {},
+            onBrowseCatalog: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify AppBar
+    expect(find.text('My Cart (1)'), findsOneWidget);
+
+    // Verify appropriate compact promotional banner is rendered
+    expect(find.text('Free Express Shipping'), findsOneWidget);
+
+    // Verify Free Shipping alert banner
+    expect(find.text("You've unlocked FREE Express Shipping!"), findsOneWidget);
+
+    // Verify product card and proper price formatting
+    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    expect(find.text('\$1,099'), findsWidgets);
+    expect(find.text('1'), findsWidgets);
+
+    // Verify Order Summary and checkout button
+    expect(find.text('Order Summary'), findsOneWidget);
+    expect(find.text('Proceed to Checkout'), findsOneWidget);
+
+    // Clear cart via Clear button in dialog
+    await tester.tap(find.text('Clear'));
+    await tester.pumpAndSettle();
+
+    // Tap Clear All in confirmation dialog
+    expect(find.text('Clear Cart'), findsOneWidget);
+    await tester.tap(find.text('Clear All'));
+    await tester.pumpAndSettle();
+
+    // Verify empty state
+    expect(find.text('Your Cart is Empty'), findsOneWidget);
+    expect(find.text('Explore Phones'), findsOneWidget);
+    expect(cartRepo.items.isEmpty, isTrue);
+  });
+
+  testWidgets('CartView renders on narrow 320px screen without overflow',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final cartRepo = CartRepository();
+    cartRepo.addToCart(MockData.products[0]);
+    final cartVM = CartViewModel(cartRepository: cartRepo);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CartView(
+            viewModel: cartVM,
+            onCheckout: () {},
+            onBrowseCatalog: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('My Cart (1)'), findsOneWidget);
+    expect(find.text('Proceed to Checkout'), findsOneWidget);
+  });
+
+  testWidgets('CheckoutView begins on Shipping (Step 0) with authentic addresses and delivery speeds',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final cartRepo = CartRepository();
+    cartRepo.addToCart(MockData.products[0]);
+    final orderRepo = OrderRepository();
+    final checkoutVM = CheckoutViewModel(
+      cartRepository: cartRepo,
+      orderRepository: orderRepo,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CheckoutView(
+            viewModel: checkoutVM,
+            onTabSelected: (_) {},
+            onOrderPlaced: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify stepper shows Shipping, Review, Payment
+    expect(find.text('Checkout'), findsOneWidget);
+    expect(find.text('Shipping'), findsOneWidget);
+    expect(find.text('Review'), findsOneWidget);
+    expect(find.text('Payment'), findsOneWidget);
+
+    // Verify Step 0 sections
+    expect(find.text('Delivery Address'), findsOneWidget);
+    expect(find.text('+ Add New'), findsOneWidget);
+    expect(find.text('Delivery Speed'), findsOneWidget);
+    expect(find.text('Standard Express (2–4 days)'), findsOneWidget);
+
+    // Verify Action button
+    expect(find.text('Continue to Review'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('CheckoutView completes Shipping -> Review -> Payment -> Place Order flow seamlessly',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final cartRepo = CartRepository();
+    cartRepo.addToCart(MockData.products[0]);
+    final orderRepo = OrderRepository();
+    final checkoutVM = CheckoutViewModel(
+      cartRepository: cartRepo,
+      orderRepository: orderRepo,
+    );
+
+    OrderModel? placedOrder;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CheckoutView(
+            viewModel: checkoutVM,
+            onTabSelected: (_) {},
+            onOrderPlaced: (order) {
+              placedOrder = order;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Advance Step 0 -> Step 1 (Shipping to Review)
+    final reviewBtn = find.text('Continue to Review');
+    expect(reviewBtn, findsOneWidget);
+    await tester.ensureVisible(reviewBtn);
+    await tester.tap(reviewBtn);
+    await tester.pumpAndSettle();
+
+    // Verify Step 1 content
+    expect(find.text('Shipping Destination'), findsOneWidget);
+    expect(find.text('Items in Order (1)'), findsOneWidget);
+    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+
+    // Advance Step 1 -> Step 2 (Review to Payment)
+    final paymentBtn = find.text('Continue to Payment');
+    expect(paymentBtn, findsOneWidget);
+    await tester.ensureVisible(paymentBtn);
+    await tester.tap(paymentBtn);
+    await tester.pumpAndSettle();
+
+    // Verify Step 2 content
+    expect(find.text('Select Payment Method'), findsOneWidget);
+    expect(find.textContaining('Mobile Money'), findsWidgets);
+    expect(find.text('Credit / Debit Card'), findsOneWidget);
+    expect(find.text('Total Payable'), findsOneWidget);
+
+    // Tap Place Order
+    final placeOrderBtn = find.textContaining('Place Order');
+    expect(placeOrderBtn, findsOneWidget);
+    await tester.ensureVisible(placeOrderBtn);
+    await tester.tap(placeOrderBtn);
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+
+    // Verify order placed callback and cart cleared
+    expect(placedOrder, isNotNull);
+    expect(cartRepo.items.isEmpty, isTrue);
+  });
+
+  testWidgets('CheckoutView on narrow screen (320px) renders without overflow on all steps',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final cartRepo = CartRepository();
+    cartRepo.addToCart(MockData.products[0]);
+    final orderRepo = OrderRepository();
+    final checkoutVM = CheckoutViewModel(
+      cartRepository: cartRepo,
+      orderRepository: orderRepo,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CheckoutView(
+            viewModel: checkoutVM,
+            onTabSelected: (_) {},
+            onOrderPlaced: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // Step 0 -> Step 1 on 320px
+    final reviewBtn = find.text('Continue to Review');
+    await tester.ensureVisible(reviewBtn);
+    await tester.tap(reviewBtn);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // Step 1 -> Step 2 on 320px
+    final paymentBtn = find.text('Continue to Payment');
+    await tester.ensureVisible(paymentBtn);
+    await tester.tap(paymentBtn);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ConfirmationView displays uniform compact sizing, authentic order receipt, and 48dp action buttons',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final order = OrderModel(
+      orderId: 'SP-99201',
+      date: DateTime(2026, 9, 15, 14, 30),
+      items: [
+        CartItem(
+          id: 'test-cart-item-1',
+          product: MockData.products[0],
+          selectedColor: 'Natural Titanium',
+          selectedStorage: '256 GB',
+          quantity: 1,
+        ),
+      ],
+      subtotal: 1099.0,
+      tax: 90.67,
+      shippingFee: 0.0,
+      totalAmount: 1189.67,
+      shippingAddress: 'House No. 14, Airport Residential Area, Accra',
+      paymentMethod: 'MTN Mobile Money',
+      status: OrderStatus.placed,
+      trackingNumber: 'TRK-GH-99201-SP',
+    );
+
+    bool trackOrderTapped = false;
+    bool continueShoppingTapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ConfirmationView(
+          order: order,
+          onTrackOrder: () => trackOrderTapped = true,
+          onContinueShopping: () => continueShoppingTapped = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify Title & Subtitle
+    expect(find.text('Order Placed Successfully!'), findsOneWidget);
+    expect(find.textContaining('Thank you for your order!'), findsOneWidget);
+
+    // Verify Order ID & Status Badge
+    expect(find.text('#SP-99201'), findsOneWidget);
+    expect(find.text('CONFIRMED'), findsOneWidget);
+
+    // Verify item preview
+    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    expect(find.textContaining('256 GB • Natural Titanium'), findsOneWidget);
+
+    // Verify receipt rows
+    expect(find.text('September 15, 2026'), findsOneWidget);
+    expect(find.text('House No. 14, Airport Residential Area, Accra'), findsOneWidget);
+    expect(find.text('MTN Mobile Money'), findsOneWidget);
+    expect(find.text('TRK-GH-99201-SP'), findsOneWidget);
+    expect(find.text('\$1189.67'), findsOneWidget);
+
+    // Verify 48dp Buttons
+    final trackBtn = find.text('Track Your Order');
+    expect(trackBtn, findsOneWidget);
+    await tester.ensureVisible(trackBtn);
+    await tester.tap(trackBtn);
+    expect(trackOrderTapped, isTrue);
+
+    final continueBtn = find.text('Continue Shopping');
+    expect(continueBtn, findsOneWidget);
+    await tester.ensureVisible(continueBtn);
+    await tester.tap(continueBtn);
+    expect(continueShoppingTapped, isTrue);
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ConfirmationView renders on narrow 320px screen without any overflow',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final order = OrderModel(
+      orderId: 'SP-99201',
+      date: DateTime(2026, 9, 15, 14, 30),
+      items: [
+        CartItem(
+          id: 'test-cart-item-1',
+          product: MockData.products[0],
+          selectedColor: 'Natural Titanium',
+          selectedStorage: '256 GB',
+          quantity: 1,
+        ),
+      ],
+      subtotal: 1099.0,
+      tax: 90.67,
+      shippingFee: 0.0,
+      totalAmount: 1189.67,
+      shippingAddress: 'House No. 14, Airport Residential Area, Accra',
+      paymentMethod: 'MTN Mobile Money',
+      status: OrderStatus.placed,
+      trackingNumber: 'TRK-GH-99201-SP',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ConfirmationView(
+          order: order,
+          onTrackOrder: () {},
+          onContinueShopping: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Order Placed Successfully!'), findsOneWidget);
+    expect(find.text('#SP-99201'), findsOneWidget);
+    expect(find.text('Track Your Order'), findsOneWidget);
+    expect(find.text('Continue Shopping'), findsOneWidget);
+  });
+
+  testWidgets(
+      'TrackOrderView displays simple and nice layout, authentic order details, and 48dp action button',
+      (WidgetTester tester) async {
+    final order = OrderModel(
+      orderId: 'SP-99201',
+      date: DateTime(2026, 9, 15, 14, 30),
+      items: [
+        CartItem(
+          id: 'test-cart-item-1',
+          product: MockData.products[0],
+          selectedColor: 'Natural Titanium',
+          selectedStorage: '256 GB',
+          quantity: 1,
+        ),
+      ],
+      subtotal: 1099.0,
+      tax: 90.67,
+      shippingFee: 0.0,
+      totalAmount: 1189.67,
+      shippingAddress: 'House No. 14, Airport Residential Area, Accra',
+      paymentMethod: 'MTN Mobile Money',
+      status: OrderStatus.shipped,
+      trackingNumber: 'TRK-GH-99201-SP',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TrackOrderView(
+          order: order,
+          onTabSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Track Order'), findsOneWidget);
+    expect(find.text('#SP-99201'), findsOneWidget);
+    expect(find.text('Package is on the way'), findsOneWidget);
+    expect(find.text('TRK-GH-99201-SP'), findsOneWidget);
+    expect(find.text('Shipment Progress'), findsOneWidget);
+    expect(find.text('Back to Home'), findsOneWidget);
+
+    // Verify 48dp button
+    final backBtn = tester.widget<SizedBox>(
+      find.ancestor(
+        of: find.widgetWithText(ElevatedButton, 'Back to Home'),
+        matching: find.byType(SizedBox),
+      ).first,
+    );
+    expect(backBtn.height, 48);
+  });
+
+  testWidgets(
+      'TrackOrderView renders on narrow 320px screen without any overflow',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final order = OrderModel(
+      orderId: 'SP-99201',
+      date: DateTime(2026, 9, 15, 14, 30),
+      items: [
+        CartItem(
+          id: 'test-cart-item-1',
+          product: MockData.products[0],
+          selectedColor: 'Natural Titanium',
+          selectedStorage: '256 GB',
+          quantity: 1,
+        ),
+      ],
+      subtotal: 1099.0,
+      tax: 90.67,
+      shippingFee: 0.0,
+      totalAmount: 1189.67,
+      shippingAddress: 'House No. 14, Airport Residential Area, Accra',
+      paymentMethod: 'MTN Mobile Money',
+      status: OrderStatus.shipped,
+      trackingNumber: 'TRK-GH-99201-SP',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TrackOrderView(
+          order: order,
+          onTabSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Track Order'), findsOneWidget);
+    expect(find.text('#SP-99201'), findsOneWidget);
+    expect(find.text('Back to Home'), findsOneWidget);
+  });
+
+  testWidgets(
+      'AppBottomNavBar Cart item is properly aligned alongside other nav items',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          bottomNavigationBar: AppBottomNavBar(
+            currentIndex: 0,
+            onTabSelected: (_) {},
+            cartBadgeCount: 2,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Search'), findsOneWidget);
+    expect(find.text('Wishlist'), findsOneWidget);
+    expect(find.text('Cart'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget); // cart badge
     expect(tester.takeException(), isNull);
   });
 }

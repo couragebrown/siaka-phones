@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../../../domain/models/product.dart';
+import '../../../data/repositories/wishlist_repository.dart';
 import '../../core/widgets/brand_logo.dart';
 import 'home_view_model.dart';
 
@@ -49,7 +50,10 @@ class HomeView extends StatefulWidget {
     required this.onProfileTap,
     this.onBuyNowPayLaterTap,
     this.onSignOut,
+    this.wishlistRepo,
   });
+
+  final WishlistRepository? wishlistRepo;
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -130,7 +134,10 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.viewModel,
+      listenable: Listenable.merge([
+        widget.viewModel,
+        if (widget.wishlistRepo != null) widget.wishlistRepo!,
+      ]),
       builder: (context, _) {
         if (widget.viewModel.isLoading) {
           return const Scaffold(
@@ -1097,7 +1104,8 @@ class _HomeViewState extends State<HomeView> {
 
   /// Compact card for the 3-per-row horizontal brand sections.
   Widget _buildCompactFeaturedCard(Product product) {
-    final isWishlisted = _wishlistProductIds.contains(product.id);
+    final isWishlisted = widget.wishlistRepo?.isWishlisted(product.id) ??
+        _wishlistProductIds.contains(product.id);
 
     return GestureDetector(
       onTap: () => widget.onProductTap(product),
@@ -1139,22 +1147,31 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 ),
                 InkWell(
-                  onTap: () => setState(() {
-                    if (isWishlisted) {
-                      _wishlistProductIds.remove(product.id);
+                  onTap: () {
+                    if (widget.wishlistRepo != null) {
+                      widget.wishlistRepo!.toggleWishlist(product);
                     } else {
-                      _wishlistProductIds.add(product.id);
+                      setState(() {
+                        if (isWishlisted) {
+                          _wishlistProductIds.remove(product.id);
+                        } else {
+                          _wishlistProductIds.add(product.id);
+                        }
+                      });
                     }
-                  }),
+                  },
                   borderRadius: BorderRadius.circular(12),
-                  child: Icon(
-                    isWishlisted
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    color: isWishlisted
-                        ? const Color(0xFFEF4444)
-                        : const Color(0xFFCBD5E1),
-                    size: 16,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      isWishlisted
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: isWishlisted
+                          ? const Color(0xFFEF4444)
+                          : const Color(0xFFCBD5E1),
+                      size: 16,
+                    ),
                   ),
                 ),
               ],

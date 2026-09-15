@@ -43,61 +43,63 @@ class AppBottomNavBar extends StatelessWidget {
 
   Widget _buildNavItem(int index, IconData icon, String label,
       {required bool isSelected}) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onTabSelected(index),
-      child: SizedBox(
-        width: 68,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedSlide(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              offset: isSelected ? const Offset(0, -0.04) : Offset.zero,
-              child: AnimatedScale(
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onTabSelected(index),
+        child: SizedBox(
+          height: 56,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSlide(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
-                scale: isSelected ? 1.08 : 1,
-                child: AnimatedContainer(
+                offset: isSelected ? const Offset(0, -0.04) : Offset.zero,
+                child: AnimatedScale(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOut,
-                  width: 36,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF1C7BFF).withValues(alpha: 0.12)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: isSelected
-                        ? const Color(0xFF1C7BFF)
-                        : const Color(0xFF7A8194),
-                    size: 22,
+                  scale: isSelected ? 1.08 : 1,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    width: 36,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF1C7BFF).withValues(alpha: 0.12)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: isSelected
+                          ? const Color(0xFF1C7BFF)
+                          : const Color(0xFF7A8194),
+                      size: 22,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 2),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              style: TextStyle(
-                color: isSelected
-                    ? const Color(0xFF1C7BFF)
-                    : const Color(0xFF7A8194),
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                style: TextStyle(
+                  color: isSelected
+                      ? const Color(0xFF1C7BFF)
+                      : const Color(0xFF7A8194),
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                ),
               ),
-              child: Text(
-                label,
-                maxLines: 1,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -105,85 +107,90 @@ class AppBottomNavBar extends StatelessWidget {
 
   Widget _buildCartItem(int badgeCount) {
     final isSelected = currentIndex == 2;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onTabSelected(2),
-      child: SizedBox(
-        width: 68,
-        child: Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedSlide(
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onTabSelected(2),
+        child: SizedBox(
+          height: 56,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSlide(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                offset: isSelected ? const Offset(0, -0.04) : Offset.zero,
+                child: AnimatedScale(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOut,
-                  offset: isSelected ? const Offset(0, -0.04) : Offset.zero,
-                  child: AnimatedScale(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOut,
-                    scale: isSelected ? 1.08 : 1,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      width: 36,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF1C7BFF).withValues(alpha: 0.12)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
+                  scale: isSelected ? 1.08 : 1,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        width: 36,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF1C7BFF).withValues(alpha: 0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.shopping_bag_outlined,
+                          color: isSelected
+                              ? const Color(0xFF1C7BFF)
+                              : const Color(0xFF7A8194),
+                          size: 22,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.shopping_bag_outlined,
-                        color: isSelected
-                            ? const Color(0xFF1C7BFF)
-                            : const Color(0xFF7A8194),
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  style: TextStyle(
-                    color: isSelected
-                        ? const Color(0xFF1C7BFF)
-                        : const Color(0xFF7A8194),
-                    fontSize: 10,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                  child: const Text('Cart'),
-                ),
-              ],
-            ),
-            if (badgeCount > 0)
-              Positioned(
-                right: 10,
-                top: 2,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1C7BFF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$badgeCount',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700),
-                    ),
+                      if (badgeCount > 0)
+                        Positioned(
+                          right: -3,
+                          top: -3,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            height: 15,
+                            constraints: const BoxConstraints(minWidth: 15),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1C7BFF),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: Center(
+                              child: Text(
+                                badgeCount > 99 ? '99+' : '$badgeCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
-          ],
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                style: TextStyle(
+                  color: isSelected
+                      ? const Color(0xFF1C7BFF)
+                      : const Color(0xFF7A8194),
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+                child: const Text('Cart'),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -9,6 +9,7 @@ class ProfileView extends StatelessWidget {
   final VoidCallback onSupportTap;
   final VoidCallback onSignOut;
   final VoidCallback onBack;
+  final VoidCallback? onWishlistTap;
 
   const ProfileView({
     super.key,
@@ -19,6 +20,7 @@ class ProfileView extends StatelessWidget {
     required this.onSupportTap,
     required this.onSignOut,
     required this.onBack,
+    this.onWishlistTap,
   });
 
   String _getInitials(String name) {
@@ -248,7 +250,7 @@ class ProfileView extends StatelessWidget {
                       _menuRow(
                         icon: Icons.favorite_border_rounded,
                         label: 'My Wishlist',
-                        onTap: () {},
+                        onTap: onWishlistTap ?? () {},
                       ),
                     ],
                   ),
