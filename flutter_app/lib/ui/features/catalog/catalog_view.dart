@@ -280,13 +280,17 @@ class _CatalogViewState extends State<CatalogView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Featured Phones',
-                  style: TextStyle(
-                    color: Color(0xFF1E2432),
-                    fontSize: 17.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
+                const Expanded(
+                  child: Text(
+                    'Featured Phones',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFF1E2432),
+                      fontSize: 17.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ),
                 Container(
@@ -315,8 +319,8 @@ class _CatalogViewState extends State<CatalogView> {
           LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
-              final int crossAxisCount = width > 700 ? 3 : 2;
-              final double mainAxisExtent = width > 700 ? 340 : 332;
+              final int crossAxisCount = width > 700 ? 4 : 3;
+              const double mainAxisExtent = 240;
 
               return GridView.builder(
                 shrinkWrap: true,
@@ -324,8 +328,8 @@ class _CatalogViewState extends State<CatalogView> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 14,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
                   mainAxisExtent: mainAxisExtent,
                 ),
                 itemCount: featuredProducts.length,
@@ -444,15 +448,15 @@ class _CatalogViewState extends State<CatalogView> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
-              final int crossAxisCount = width > 700 ? 3 : 2;
-              final double mainAxisExtent = width > 700 ? 340 : 332;
+              final int crossAxisCount = width > 700 ? 4 : 3;
+              const double mainAxisExtent = 240;
 
               return GridView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 14,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
                   mainAxisExtent: mainAxisExtent,
                 ),
                 itemCount: products.length,
@@ -603,13 +607,16 @@ class _CatalogViewState extends State<CatalogView> {
           ),
           const SizedBox(width: 8),
           if (primaryProduct != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 2),
-              child: _buildHeroProductImage(
-                primaryProduct,
-                96,
-                126,
-                14,
+            Flexible(
+              flex: 6,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: _buildHeroProductImage(
+                  primaryProduct,
+                  96,
+                  126,
+                  14,
+                ),
               ),
             ),
         ],
@@ -623,28 +630,34 @@ class _CatalogViewState extends State<CatalogView> {
     double height,
     double radius,
   ) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.10),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth.isFinite ? constraints.maxWidth : width;
+        final actualWidth = maxW < width ? maxW : width;
+        return Container(
+          width: actualWidth,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.10),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Image.network(
-          product.images.first,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              Container(color: const Color(0xFFE2E8F0)),
-        ),
-      ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius),
+            child: Image.network(
+              product.images.first,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  Container(color: const Color(0xFFE2E8F0)),
+            ),
+          ),
+        );
+      },
     );
   }
 }

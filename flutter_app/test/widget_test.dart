@@ -311,7 +311,51 @@ void main() {
     // Verify returns to initial featured phones banners
     expect(find.text('Featured Phones'), findsOneWidget);
     expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
-    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    // 5. Verify 3-column grid structure and card height 240
+    final gridFinder = find.byType(GridView);
+    expect(gridFinder, findsOneWidget);
+    final grid = tester.widget<GridView>(gridFinder);
+    final delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, anyOf(equals(3), equals(4)));
+    expect(delegate.mainAxisExtent, equals(240));
+    expect(delegate.crossAxisSpacing, equals(10));
+    expect(delegate.mainAxisSpacing, equals(10));
+
+    // Verify Buy Now button exists on the cards
+    expect(find.text('Buy Now'), findsWidgets);
+    expect(find.byIcon(Icons.shopping_cart_outlined), findsWidgets);
+
+    // Verify no brand title headers exist like "| Apple 4 phones"
+    expect(find.text('4 phones'), findsNothing);
+  });
+
+  testWidgets(
+      'search page 3-column featured layout renders on narrow 320px screen without overflow',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final productRepo = ProductRepository();
+    final catalogVM = CatalogViewModel(productRepository: productRepo);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CatalogView(
+          viewModel: catalogVM,
+          onProductTap: (_) {},
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Featured Phones'), findsOneWidget);
+    expect(find.text('Buy Now'), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('homepage bottom navigation design is uniformly used across views', (WidgetTester tester) async {

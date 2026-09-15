@@ -25,176 +25,167 @@ class FeaturedPhoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: "New" badge (left) & Wishlist heart icon (right)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1C7BFF),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'New',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: "New" badge (left) & Wishlist heart icon (right)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C7BFF),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'New',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              InkWell(
-                onTap: onWishlistTap,
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(2.0),
+                InkWell(
+                  onTap: onWishlistTap,
+                  borderRadius: BorderRadius.circular(12),
                   child: Icon(
                     isWishlisted
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
                     color: isWishlisted
                         ? const Color(0xFFEF4444)
-                        : const Color(0xFF4B5563),
-                    size: 21,
+                        : const Color(0xFFCBD5E1),
+                    size: 16,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-
-          // Center: Phone Mockup Visual (Expanded to prevent any RenderFlex overflow)
-          Expanded(
-            child: GestureDetector(
-              onTap: onTap,
+              ],
+            ),
+            // Center: Phone Mockup Visual
+            Expanded(
               child: Center(
                 child: ProductPhoneGraphic(product: product),
               ),
             ),
-          ),
-          const SizedBox(height: 6),
+            const SizedBox(height: 4),
 
-          // Product Title
-          GestureDetector(
-            onTap: onTap,
-            child: Text(
+            // Product Title
+            Text(
               product.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF111827),
-                fontSize: 14.5,
+                fontSize: 11,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
+                letterSpacing: -0.1,
               ),
             ),
-          ),
-          const SizedBox(height: 3),
+            const SizedBox(height: 2),
 
-          // Price ("From $1,099")
-          Text(
-            _formatFeaturedPrice(product.price),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF6B7280),
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // Rating Row: Star 4.8 (245)
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.star_rounded,
-                  size: 17,
-                  color: Color(0xFFFFA000),
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  product.rating.toStringAsFixed(1),
-                  style: const TextStyle(
-                    color: Color(0xFF111827),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  '(${product.reviewCount})',
-                  style: const TextStyle(
-                    color: Color(0xFF6B7280),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Action button: Full-width blue "Buy Now" button with cart icon
-          SizedBox(
-            width: double.infinity,
-            height: 38,
-            child: ElevatedButton(
-              onPressed: onTap,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1C7BFF),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+            // Price ("From $1,099")
+            Text(
+              _formatFeaturedPrice(product.price),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF6B7280),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
               ),
-              child: const FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.shopping_cart_outlined,
-                        size: 16, color: Colors.white),
-                    SizedBox(width: 6),
-                    Text(
-                      'Buy Now',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+            ),
+            const SizedBox(height: 3),
+
+            // Rating Row: Star 4.8 (245)
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  const Icon(Icons.star_rounded,
+                      size: 12, color: Color(0xFFFFA000)),
+                  const SizedBox(width: 2),
+                  Text(
+                    product.rating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    '(${product.reviewCount})',
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // Action button: Full-width blue "Buy Now" button with cart icon
+            SizedBox(
+              width: double.infinity,
+              height: 30,
+              child: ElevatedButton(
+                onPressed: onTap,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1C7BFF),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.shopping_cart_outlined,
+                        size: 13,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Buy Now',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -209,8 +200,14 @@ class ProductPhoneGraphic extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableHeight = constraints.maxHeight.clamp(70.0, 140.0);
-        final availableWidth = constraints.maxWidth.clamp(90.0, 160.0);
+        final maxH = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 100.0;
+        final maxW = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 100.0;
+        final availableHeight = maxH.clamp(40.0, 140.0);
+        final availableWidth = maxW.clamp(40.0, 160.0);
         return SizedBox(
           width: availableWidth,
           height: availableHeight,
