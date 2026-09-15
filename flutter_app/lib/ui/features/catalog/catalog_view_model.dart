@@ -26,6 +26,8 @@ class CatalogViewModel extends ChangeNotifier {
   String _searchQuery = '';
   String get searchQuery => _searchQuery;
 
+  int _searchRequestId = 0;
+
   Future<void> loadCatalog() async {
     _isLoading = true;
     notifyListeners();
@@ -45,11 +47,25 @@ class CatalogViewModel extends ChangeNotifier {
 
   void setCategory(String category) {
     _selectedCategory = category;
-    loadCatalog();
+    _filterProducts();
   }
 
   void setSearchQuery(String query) {
     _searchQuery = query;
-    loadCatalog();
+    _filterProducts();
+  }
+
+  Future<void> _filterProducts() async {
+    final currentRequestId = ++_searchRequestId;
+    final results = await _productRepository.getProducts(
+      category: _selectedCategory,
+      query: _searchQuery,
+    );
+
+    // Only commit results if this is still the most recent query request
+    if (currentRequestId == _searchRequestId) {
+      _products = results;
+      notifyListeners();
+    }
   }
 }

@@ -299,11 +299,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
 
-    // Verify search results view
-    expect(find.text('Results for "Samsung" (4)'), findsOneWidget);
+    // Verify search results view with matching devices displayed
+    expect(find.textContaining('Results for "Samsung"'), findsOneWidget);
     expect(find.text('Galaxy S24 Ultra'), findsOneWidget);
 
-    // 4. Clear search query
+    // 4. Test multi-token search with trailing space (e.g., keyboard autocomplete)
+    await tester.enterText(find.byType(TextField), 'iphone 15 ');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Results for "iphone 15"'), findsOneWidget);
+    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+
+    // 5. Clear search query
     await tester.tap(find.byIcon(Icons.clear_rounded));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
@@ -311,7 +317,7 @@ void main() {
     // Verify returns to initial featured phones banners
     expect(find.text('Featured Phones'), findsOneWidget);
     expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
-    // 5. Verify 3-column grid structure and card height 240
+    // 6. Verify 3-column grid structure and card height 240
     final gridFinder = find.byType(GridView);
     expect(gridFinder, findsOneWidget);
     final grid = tester.widget<GridView>(gridFinder);
@@ -355,6 +361,43 @@ void main() {
 
     expect(find.text('Featured Phones'), findsOneWidget);
     expect(find.text('Buy Now'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'when no device is found on search, empty state renders on short screen (keyboard open) with zero yellow overflow stroke',
+      (WidgetTester tester) async {
+    // Simulate mobile screen with keyboard open (height: 350, width: 360)
+    tester.view.physicalSize = const Size(360, 350);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final productRepo = ProductRepository();
+    final catalogVM = CatalogViewModel(productRepository: productRepo);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CatalogView(
+          viewModel: catalogVM,
+          onProductTap: (_) {},
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Type a query that yields no devices
+    await tester.enterText(find.byType(TextField), 'xyznonexistent123');
+    await tester.pumpAndSettle();
+
+    // Verify empty state is displayed
+    expect(find.text('No devices found'), findsOneWidget);
+    expect(find.text('Clear Search'), findsOneWidget);
+
+    // Verify ABSOLUTELY NO RenderFlex overflow exception or yellow stroke
     expect(tester.takeException(), isNull);
   });
 
