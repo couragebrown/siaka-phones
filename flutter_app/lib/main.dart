@@ -10,6 +10,7 @@ import 'data/repositories/location_repository.dart';
 import 'data/repositories/user_repository.dart';
 import 'data/repositories/wishlist_repository.dart';
 import 'data/mock_data.dart';
+import 'data/services/session_manager.dart';
 
 // Models
 import 'domain/models/product.dart';
@@ -50,7 +51,7 @@ import 'ui/features/wishlist/wishlist_view.dart';
 import 'ui/features/track_order/track_order_view.dart';
 import 'ui/features/brands/brands_view.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -58,11 +59,16 @@ void main() {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const SiakaPhonesApp());
+
+  // Check whether the user has a valid (non-expired) session
+  final hasSession = await SessionManager.hasValidSession();
+
+  runApp(SiakaPhonesApp(startAuthenticated: hasSession));
 }
 
 class SiakaPhonesApp extends StatefulWidget {
-  const SiakaPhonesApp({super.key});
+  final bool startAuthenticated;
+  const SiakaPhonesApp({super.key, required this.startAuthenticated});
 
   @override
   State<SiakaPhonesApp> createState() => _SiakaPhonesAppState();
@@ -114,6 +120,7 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: AppRootNavigationHub(
+        startAuthenticated: widget.startAuthenticated,
         productRepo: _productRepo,
         cartRepo: _cartRepo,
         orderRepo: _orderRepo,
@@ -134,6 +141,7 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
 }
 
 class AppRootNavigationHub extends StatefulWidget {
+  final bool startAuthenticated;
   final ProductRepository productRepo;
   final CartRepository cartRepo;
   final OrderRepository orderRepo;
@@ -151,6 +159,7 @@ class AppRootNavigationHub extends StatefulWidget {
 
   const AppRootNavigationHub({
     super.key,
+    required this.startAuthenticated,
     required this.productRepo,
     required this.cartRepo,
     required this.orderRepo,
@@ -171,10 +180,33 @@ class AppRootNavigationHub extends StatefulWidget {
   State<AppRootNavigationHub> createState() => _AppRootNavigationHubState();
 }
 
-class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
-  bool _isOnLogin = false;
-
+class _AppRootNavigationHubState extends State<AppRootNavigationHub>
+    with WidgetsBindingObserver {
+  late bool _isAuthenticated;
   int _currentTabIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _isAuthenticated = widget.startAuthenticated;
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Called whenever app lifecycle changes.
+  /// When resumed, refresh the session timestamp so the 1-hour
+  /// timer resets while the app is actively being used.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _isAuthenticated) {
+      SessionManager.refreshSession();
+    }
+  }
 
   void _selectRootTab(int index) {
     Navigator.of(context).popUntil((route) => route.isFirst);
@@ -316,23 +348,27 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isOnLogin) {
+    if (!_isAuthenticated) {
       return LoginView(
-        onBack: () => setState(() => _isOnLogin = false),
-        onSignIn: () => setState(() {
-          _isOnLogin = false;
-          _currentTabIndex = 0;
-        }),
+        onBack: () {}, // no-op: sign-in is the entry gate
+        onSignIn: () async {
+          await SessionManager.saveSession();
+          setState(() {
+            _isAuthenticated = true;
+            _currentTabIndex = 0;
+          });
+        },
         onCreateAccount:
-            (name, email, phone, address, country, region, gpsCode) {
+            (name, email, phone, address, country, region, gpsCode) async {
           widget.profileVM.updateProfile(
             name: name,
             email: email,
             phone: phone,
           );
           widget.profileVM.addAddress('$address, $region, $country ($gpsCode)');
+          await SessionManager.saveSession();
           setState(() {
-            _isOnLogin = false;
+            _isAuthenticated = true;
             _currentTabIndex = 0;
           });
         },
@@ -360,10 +396,13 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
             onLocationsTap: _navigateToLocations,
             onSupportTap: _navigateToSupport,
             onProfileTap: () => setState(() => _currentTabIndex = 4),
-            onSignOut: () => setState(() {
-              _isOnLogin = true;
-              _currentTabIndex = 0;
-            }),
+            onSignOut: () async {
+              await SessionManager.clearSession();
+              setState(() {
+                _isAuthenticated = false;
+                _currentTabIndex = 0;
+              });
+            },
           ),
           CatalogView(
             viewModel: widget.catalogVM,
@@ -391,10 +430,13 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub> {
             onSupportTap: _navigateToSupport,
             onWishlistTap: () => setState(() => _currentTabIndex = 3),
             onBack: () => setState(() => _currentTabIndex = 0),
-            onSignOut: () => setState(() {
-              _isOnLogin = true;
-              _currentTabIndex = 0;
-            }),
+            onSignOut: () async {
+              await SessionManager.clearSession();
+              setState(() {
+                _isAuthenticated = false;
+                _currentTabIndex = 0;
+              });
+            },
           ),
         ];
 

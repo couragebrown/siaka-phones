@@ -175,24 +175,7 @@ class _SignInViewState extends State<SignInView> {
   Widget _buildTopBar() {
     return Row(
       children: [
-        SizedBox(
-          width: 38,
-          height: 38,
-          child: IconButton(
-            onPressed: widget.onBack,
-            tooltip: 'Back',
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1E293B),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFFE2E8F0)),
-              ),
-            ),
-          ),
-        ),
+        const SizedBox(width: 38), // spacer to balance the right side
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -229,10 +212,11 @@ class _SignInViewState extends State<SignInView> {
             ],
           ),
         ),
-        const SizedBox(width: 38), // Balance for back button
+        const SizedBox(width: 38), // Balance spacer
       ],
     );
   }
+
 
   Widget _buildSignInForm() {
     return Column(

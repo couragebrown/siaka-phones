@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/models/product.dart';
 import '../../../data/repositories/wishlist_repository.dart';
 import '../../core/widgets/brand_logo.dart';
+import '../notifications/notifications_view.dart';
 import 'home_view_model.dart';
 
 class _HeroPromotion {
@@ -224,31 +225,38 @@ class _HomeViewState extends State<HomeView> {
               ),
             ),
             const SizedBox(width: 8),
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.notifications_none_rounded,
-                    color: Color(0xFF1F2937), size: 28),
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF1C7BFF),
-                      shape: BoxShape.circle,
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsView(),
+                ),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.notifications_none_rounded,
+                      color: Color(0xFF1F2937), size: 28),
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1C7BFF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Text('2',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold)),
+                      ),
                     ),
-                    child: const Center(
-                      child: Text('2',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                )
-              ],
+                  )
+                ],
+              ),
             )
           ],
         ),
