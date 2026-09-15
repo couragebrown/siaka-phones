@@ -109,6 +109,26 @@ class _WishlistViewState extends State<WishlistView> {
     return '\$$formatted';
   }
 
+  void _showAutoDismissSnackBar({
+    required String message,
+    Duration duration = const Duration(milliseconds: 1500),
+  }) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: duration,
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -150,12 +170,7 @@ class _WishlistViewState extends State<WishlistView> {
                 TextButton(
                   onPressed: () {
                     widget.wishlistRepo.clearWishlist();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Wishlist cleared'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                    _showAutoDismissSnackBar(message: 'Wishlist cleared');
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF1C7BFF),
@@ -444,15 +459,8 @@ class _WishlistViewState extends State<WishlistView> {
                     for (final item in items) {
                       widget.cartRepo!.addToCart(item);
                     }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Moved all ${items.length} items to cart!'),
-                        duration: const Duration(seconds: 2),
-                        action: SnackBarAction(
-                          label: 'View Cart',
-                          onPressed: () => widget.onGoToCart?.call(),
-                        ),
-                      ),
+                    _showAutoDismissSnackBar(
+                      message: 'Moved all ${items.length} items to cart!',
                     );
                   },
                   icon: const Icon(Icons.shopping_cart_outlined,
@@ -615,16 +623,8 @@ class _WishlistViewState extends State<WishlistView> {
                         child: ElevatedButton.icon(
                           onPressed: () {
                             widget.cartRepo?.addToCart(product);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content:
-                                    Text('${product.name} added to cart!'),
-                                duration: const Duration(seconds: 2),
-                                action: SnackBarAction(
-                                  label: 'View Cart',
-                                  onPressed: () => widget.onGoToCart?.call(),
-                                ),
-                              ),
+                            _showAutoDismissSnackBar(
+                              message: '${product.name} added to cart!',
                             );
                           },
                           icon: const Icon(Icons.shopping_cart_outlined,
@@ -652,12 +652,8 @@ class _WishlistViewState extends State<WishlistView> {
                       InkWell(
                         onTap: () {
                           widget.wishlistRepo.removeFromWishlist(product.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  '${product.name} removed from wishlist'),
-                              duration: const Duration(seconds: 1),
-                            ),
+                          _showAutoDismissSnackBar(
+                            message: '${product.name} removed from wishlist',
                           );
                         },
                         borderRadius: BorderRadius.circular(8),
