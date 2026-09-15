@@ -47,6 +47,7 @@ class _WishlistViewState extends State<WishlistView> {
   late final PageController _heroPageController;
   Timer? _heroTimer;
   int _activeHeroIndex = 0;
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
   static const _heroPromotions = [
     _WishlistHeroPromotion(
@@ -111,20 +112,29 @@ class _WishlistViewState extends State<WishlistView> {
 
   void _showAutoDismissSnackBar({
     required String message,
-    Duration duration = const Duration(milliseconds: 1500),
+    Duration duration = const Duration(milliseconds: 2000),
   }) {
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = _messengerKey.currentState;
+    if (messenger == null) return;
     messenger.clearSnackBars();
     messenger.showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         duration: duration,
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       ),
     );
   }
@@ -136,7 +146,9 @@ class _WishlistViewState extends State<WishlistView> {
       builder: (context, _) {
         final items = widget.wishlistRepo.items;
 
-        return Scaffold(
+        return ScaffoldMessenger(
+          key: _messengerKey,
+          child: Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),
           appBar: AppBar(
             backgroundColor: const Color(0xFFF3F4F6),
@@ -202,6 +214,7 @@ class _WishlistViewState extends State<WishlistView> {
                   _buildWishlistItemsList(items),
               ],
             ),
+          ),
           ),
         );
       },
