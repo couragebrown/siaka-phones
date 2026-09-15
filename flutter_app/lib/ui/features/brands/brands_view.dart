@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/brand_logo.dart';
 
 class BrandItem {
   final String name;
@@ -362,9 +363,9 @@ class _BrandsViewState extends State<BrandsView> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 5,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.0,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 0.85,
                       ),
                       itemCount: filteredBrands.length,
                       itemBuilder: (context, index) {
@@ -379,48 +380,47 @@ class _BrandsViewState extends State<BrandsView> {
                                 Navigator.of(context).pop();
                               }
                             },
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: brand.bg,
-                                borderRadius: BorderRadius.circular(16),
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                     color: const Color(0xFFE5E7EB)),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (brand.isIcon)
-                                    Icon(
-                                      brand.icon as IconData,
-                                      size: 26,
-                                      color: brand.textColor,
-                                    )
-                                  else
-                                    Text(
-                                      brand.icon as String,
-                                      style: TextStyle(
-                                        fontSize: (brand.icon as String).length > 3
-                                            ? 13
-                                            : ((brand.icon as String).length > 2
-                                                ? 15
-                                                : 22),
-                                        fontWeight: FontWeight.w700,
-                                        color: brand.textColor,
-                                      ),
-                                    ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    brand.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF111827),
-                                    ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.02),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
                                   ),
                                 ],
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      height: 26,
+                                      child: Center(
+                                        child: BrandLogo(brand: brand.name),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      brand.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF111827),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

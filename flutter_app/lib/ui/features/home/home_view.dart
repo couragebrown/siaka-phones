@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../../../domain/models/product.dart';
+import '../../core/widgets/brand_logo.dart';
 import 'home_view_model.dart';
 
 class _HeroPromotion {
@@ -936,7 +937,7 @@ class _HomeViewState extends State<HomeView> {
                           SizedBox(
                             height: 26,
                             child: Center(
-                              child: _buildBrandLogo(brandName),
+                              child: BrandLogo(brand: brandName),
                             ),
                           ),
                           const SizedBox(height: 5),
@@ -959,91 +960,6 @@ class _HomeViewState extends State<HomeView> {
         ),
       ],
     );
-  }
-
-  Widget _buildBrandLogo(String name) {
-    switch (name.toLowerCase()) {
-      case 'apple':
-        return const Icon(
-          Icons.apple,
-          size: 24,
-          color: Color(0xFF111827),
-        );
-      case 'samsung':
-        return const Text(
-          'SAMSUNG',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF0C4DA2),
-            letterSpacing: 0.3,
-          ),
-        );
-      case 'google':
-        return ShaderMask(
-          shaderCallback: (bounds) => const SweepGradient(
-            colors: [
-              Color(0xFF4285F4),
-              Color(0xFFEA4335),
-              Color(0xFFFBBC05),
-              Color(0xFF34A853),
-              Color(0xFF4285F4),
-            ],
-          ).createShader(bounds),
-          child: const Text(
-            'G',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
-          ),
-        );
-      case 'oneplus':
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFEB0028), width: 1.8),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: const Text(
-            '1+',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFFEB0028),
-              letterSpacing: -0.5,
-            ),
-          ),
-        );
-      case 'xiaomi':
-        return Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF6900),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          alignment: Alignment.center,
-          child: const Text(
-            'mi',
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-          ),
-        );
-      default:
-        return Text(
-          name.isNotEmpty ? name[0] : '',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
-          ),
-        );
-    }
   }
 
   Widget _buildSectionHeader(String title, String actionLabel) {
