@@ -491,9 +491,9 @@ void main() {
     expect(find.text('Forgot Password?'), findsOneWidget);
     expect(find.text('Sign In'), findsWidgets); // button and tab
     expect(find.text('Or'), findsOneWidget);
-    expect(find.text('Google'), findsOneWidget);
-    expect(find.text('Apple'), findsOneWidget);
-    expect(find.text('Facebook'), findsOneWidget);
+    expect(find.byTooltip('Google'), findsOneWidget);
+    expect(find.byIcon(Icons.apple), findsOneWidget);
+    expect(find.byIcon(Icons.facebook), findsOneWidget);
 
     // Note: Back button was removed on Sign In page per user design request
 
@@ -529,7 +529,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome to SiakaPhones'), findsOneWidget);
-    expect(find.text('Google'), findsOneWidget);
+    expect(find.byTooltip('Google'), findsOneWidget);
   });
 
   testWidgets('LoginView renders on narrow 320px screen with no overflow',

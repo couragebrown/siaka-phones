@@ -463,86 +463,66 @@ class _SignInViewState extends State<SignInView> {
 
   Widget _buildSocialList() {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Expanded(
-          child: _buildIconSocialButton(
-            icon: _googleIconWidget(),
-            providerName: 'Google',
-            label: 'Google',
-          ),
+        _buildCircularSocialButton(
+          icon: _googleIconWidget(),
+          providerName: 'Google',
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildIconSocialButton(
-            icon: const Icon(Icons.apple, color: Colors.black, size: 22),
-            providerName: 'Apple',
-            label: 'Apple',
-          ),
+        const SizedBox(width: 18),
+        _buildCircularSocialButton(
+          icon: const Icon(Icons.apple, color: Colors.black, size: 22),
+          providerName: 'Apple',
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildIconSocialButton(
-            icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
-            providerName: 'Facebook',
-            label: 'Facebook',
-          ),
+        const SizedBox(width: 18),
+        _buildCircularSocialButton(
+          icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
+          providerName: 'Facebook',
         ),
       ],
     );
   }
 
-  Widget _buildIconSocialButton({
+  Widget _buildCircularSocialButton({
     required Widget icon,
     required String providerName,
-    required String label,
   }) {
     final isSelected = _selectedProvider == providerName;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedProvider = providerName);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Signing in with $providerName...'),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF1C7BFF)
-                : const Color(0xFFE2E8F0),
-            width: isSelected ? 1.5 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+    return Tooltip(
+      message: providerName,
+      child: GestureDetector(
+        onTap: () {
+          setState(() => _selectedProvider = providerName);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Signing in with $providerName...'),
+              duration: const Duration(seconds: 1),
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            icon,
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
+          );
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF1C7BFF)
+                  : const Color(0xFFE2E8F0),
+              width: isSelected ? 1.5 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Center(child: icon),
         ),
       ),
     );
