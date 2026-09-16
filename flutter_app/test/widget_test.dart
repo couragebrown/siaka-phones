@@ -31,6 +31,10 @@ import 'package:siaka_phones_flutter/domain/models/cart_item.dart';
 import 'package:siaka_phones_flutter/data/repositories/location_repository.dart';
 import 'package:siaka_phones_flutter/ui/features/locations/locations_view.dart';
 import 'package:siaka_phones_flutter/ui/features/locations/locations_view_model.dart';
+import 'package:siaka_phones_flutter/data/repositories/repair_repository.dart';
+import 'package:siaka_phones_flutter/ui/features/repairs/repairs_view.dart';
+import 'package:siaka_phones_flutter/ui/features/repairs/repairs_view_model.dart';
+
 
 
 void main() {
@@ -1161,7 +1165,74 @@ void main() {
     expect(find.text('Siaka Phones Circle'), findsNothing);
     expect(find.text('Siaka Phones Madina'), findsNothing);
   });
+
+  testWidgets(
+      'RepairsView allows selecting problem, attaching photo, entering detailed description in large text box, and submitting request',
+      (WidgetTester tester) async {
+    final repairRepo = RepairRepository();
+    final viewModel = RepairsViewModel(repairRepository: repairRepo);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RepairsView(viewModel: viewModel),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. Verify header and initial problem selection
+    expect(find.text('Express Repair Service'), findsOneWidget);
+    expect(find.text('Select Problem to be Fixed'), findsOneWidget);
+    expect(find.text('Send a Picture of the Device'), findsOneWidget);
+    expect(find.text('What is Actually Wrong?'), findsOneWidget);
+    expect(find.text('Submit Repair Request'), findsOneWidget);
+
+    // 2. Select a different problem, e.g. Battery Degradation
+    expect(find.text('Battery Degradation / Fast Drain'), findsOneWidget);
+    await tester.tap(find.text('Battery Degradation / Fast Drain'));
+    await tester.pumpAndSettle();
+    expect(viewModel.selectedIssue, 'Battery Degradation / Fast Drain');
+
+    // 3. Attach a photo
+    viewModel.setPhotoPath('/sdcard/test_damage.jpg');
+    await tester.pumpAndSettle();
+    expect(find.text('Photo Attached'), findsOneWidget);
+
+    // 4. Input detailed description into large text box
+    final descField = find.byType(TextField);
+    await tester.enterText(
+        descField, 'Phone battery drops from 60% to 0% in 10 minutes when using camera.');
+    await tester.pumpAndSettle();
+    expect(viewModel.description,
+        'Phone battery drops from 60% to 0% in 10 minutes when using camera.');
+
+    // 5. Submit Repair Request
+    await tester.ensureVisible(find.text('Submit Repair Request'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Submit Repair Request'));
+    await tester.pumpAndSettle();
+
+    // 6. Verify confirmation screen
+    expect(find.text('Repair Request Submitted!'), findsOneWidget);
+    expect(find.text('Ticket ID: ${viewModel.lastBooking!.id}'), findsOneWidget);
+    expect(find.text('Battery Degradation / Fast Drain'), findsOneWidget);
+    expect(find.text('Reported Fault Details'), findsOneWidget);
+    expect(
+        find.text(
+            'Phone battery drops from 60% to 0% in 10 minutes when using camera.'),
+        findsOneWidget);
+    expect(find.text('Attached Damage Photo'), findsOneWidget);
+    expect(find.text('Done / Back to Repairs'), findsOneWidget);
+
+    // 7. Tapping Done resets back to repair form
+    await tester.ensureVisible(find.text('Done / Back to Repairs'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done / Back to Repairs'));
+    await tester.pumpAndSettle();
+    expect(find.text('Express Repair Service'), findsOneWidget);
+  });
 }
+
+
 
 
 
