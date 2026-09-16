@@ -156,13 +156,13 @@ class _SignInViewState extends State<SignInView> {
                     label: 'Sign In',
                     onPressed: _handleSignIn,
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 8),
                   _buildOrDivider(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
                   _buildSocialList(),
-                  const SizedBox(height: 26),
+                  const SizedBox(height: 10),
                   _buildFooterSwitch(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
                 ],
               ),
             ),
@@ -442,19 +442,21 @@ class _SignInViewState extends State<SignInView> {
   Widget _buildOrDivider() {
     return const Row(
       children: [
-        Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1)),
+        Expanded(
+            child: Divider(color: Color(0xFFE2E8F0), thickness: 1, height: 1)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14),
+          padding: EdgeInsets.symmetric(horizontal: 10),
           child: Text(
             'Or',
             style: TextStyle(
               color: Color(0xFF94A3B8),
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1)),
+        Expanded(
+            child: Divider(color: Color(0xFFE2E8F0), thickness: 1, height: 1)),
       ],
     );
   }
