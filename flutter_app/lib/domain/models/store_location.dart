@@ -8,6 +8,7 @@ class StoreLocation {
   final double distanceKm;
   final bool hasRepairCenter;
   final bool isOpenNow;
+  final String? gpsCode;
 
   const StoreLocation({
     required this.id,
@@ -19,5 +20,6 @@ class StoreLocation {
     required this.distanceKm,
     this.hasRepairCenter = true,
     this.isOpenNow = true,
+    this.gpsCode,
   });
 }

@@ -10,7 +10,8 @@ class LocationRepository {
       return list.where((loc) =>
           loc.name.toLowerCase().contains(q) ||
           loc.city.toLowerCase().contains(q) ||
-          loc.address.toLowerCase().contains(q)).toList();
+          loc.address.toLowerCase().contains(q) ||
+          (loc.gpsCode?.toLowerCase().contains(q) ?? false)).toList();
     }
     return list;
   }

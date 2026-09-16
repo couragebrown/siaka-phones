@@ -28,6 +28,9 @@ import 'package:siaka_phones_flutter/ui/features/checkout/checkout_view_model.da
 import 'package:siaka_phones_flutter/ui/features/confirmation/confirmation_view.dart';
 import 'package:siaka_phones_flutter/ui/features/track_order/track_order_view.dart';
 import 'package:siaka_phones_flutter/domain/models/cart_item.dart';
+import 'package:siaka_phones_flutter/data/repositories/location_repository.dart';
+import 'package:siaka_phones_flutter/ui/features/locations/locations_view.dart';
+import 'package:siaka_phones_flutter/ui/features/locations/locations_view_model.dart';
 
 
 void main() {
@@ -1117,6 +1120,46 @@ void main() {
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('2'), findsOneWidget); // cart badge
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'LocationsView displays Siaka Phones Circle, Madina, and Kasoa with search support',
+      (WidgetTester tester) async {
+    final locationRepo = LocationRepository();
+    final viewModel = LocationsViewModel(locationRepository: locationRepo);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LocationsView(viewModel: viewModel),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. Verify all 3 stores display
+    expect(find.text('Store Locations'), findsOneWidget);
+    expect(find.text('Siaka Phones Circle'), findsOneWidget);
+    expect(find.text('Siaka Phones Madina'), findsOneWidget);
+    expect(find.text('Siaka Phones Kasoa'), findsOneWidget);
+    expect(find.text('3 branches'), findsOneWidget);
+    expect(find.text('GhanaPost GPS: GA-078-4321'), findsOneWidget);
+    expect(find.text('GhanaPost GPS: GM-023-8890'), findsOneWidget);
+    expect(find.text('GhanaPost GPS: CG-012-5544'), findsOneWidget);
+
+    // 2. Search for Circle
+    await tester.enterText(find.byType(TextField), 'Circle');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Siaka Phones Circle'), findsOneWidget);
+    expect(find.text('Siaka Phones Madina'), findsNothing);
+    expect(find.text('Siaka Phones Kasoa'), findsNothing);
+
+    // 3. Search for Kasoa
+    await tester.enterText(find.byType(TextField), 'kasoa');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Siaka Phones Kasoa'), findsOneWidget);
+    expect(find.text('Siaka Phones Circle'), findsNothing);
+    expect(find.text('Siaka Phones Madina'), findsNothing);
   });
 }
 
