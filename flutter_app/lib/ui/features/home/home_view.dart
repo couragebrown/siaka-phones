@@ -633,8 +633,8 @@ class _HomeViewState extends State<HomeView> {
                       onTap: widget.onLocationsTap,
                     ),
                     _menuItem(
-                      icon: Icons.help_outline_rounded,
-                      label: 'Support',
+                      icon: Icons.support_agent_rounded,
+                      label: 'Support Team',
                       onTap: widget.onSupportTap,
                     ),
                   ],

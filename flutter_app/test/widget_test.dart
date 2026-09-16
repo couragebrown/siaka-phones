@@ -34,6 +34,7 @@ import 'package:siaka_phones_flutter/ui/features/locations/locations_view_model.
 import 'package:siaka_phones_flutter/data/repositories/repair_repository.dart';
 import 'package:siaka_phones_flutter/ui/features/repairs/repairs_view.dart';
 import 'package:siaka_phones_flutter/ui/features/repairs/repairs_view_model.dart';
+import 'package:siaka_phones_flutter/ui/features/support/support_view.dart';
 
 
 
@@ -171,7 +172,7 @@ void main() {
     expect(find.text('Buy Now Pay Later'), findsOneWidget);
     expect(find.text('Repairs'), findsOneWidget);
     expect(find.text('Store Locations'), findsOneWidget);
-    expect(find.text('Support'), findsOneWidget);
+    expect(find.text('Support Team'), findsOneWidget);
     expect(find.text('Sign Out'), findsOneWidget);
 
     // Verify tapping Sign Out invokes callback
@@ -1463,7 +1464,37 @@ void main() {
     expect(find.text('No devices found'), findsNothing);
     expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
   });
+
+  testWidgets(
+      'tapping Support Team in drawer opens SupportView with Customer Service Line and quick topics',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // 1. Open menu
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+
+    // 2. Tap 'Support Team'
+    expect(find.text('Support Team'), findsOneWidget);
+    await tester.tap(find.text('Support Team'));
+    await tester.pumpAndSettle();
+
+    // 3. Verify SupportView is displayed
+    expect(find.byType(SupportView), findsOneWidget);
+    expect(find.text('CUSTOMER SERVICE LINE'), findsOneWidget);
+    expect(find.text('+233 (024) 555-0192'), findsWidgets);
+    expect(find.text('Call'), findsOneWidget);
+    expect(find.text('Customer service line'), findsOneWidget);
+    expect(find.text('Track my order'), findsOneWidget);
+
+    // 4. Tap 'Call' button
+    await tester.tap(find.text('Call'));
+    await tester.pump();
+    expect(find.byType(SnackBar), findsOneWidget);
+  });
 }
+
 
 
 
