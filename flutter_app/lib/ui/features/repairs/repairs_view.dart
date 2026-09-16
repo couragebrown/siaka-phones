@@ -5,8 +5,13 @@ import 'repairs_view_model.dart';
 
 class RepairsView extends StatefulWidget {
   final RepairsViewModel viewModel;
+  final VoidCallback? onReturnHome;
 
-  const RepairsView({super.key, required this.viewModel});
+  const RepairsView({
+    super.key,
+    required this.viewModel,
+    this.onReturnHome,
+  });
 
   @override
   State<RepairsView> createState() => _RepairsViewState();
@@ -14,18 +19,69 @@ class RepairsView extends StatefulWidget {
 
 class _RepairsViewState extends State<RepairsView> {
   late final TextEditingController _descriptionController;
+  late final TextEditingController _deviceModelController;
 
   @override
   void initState() {
     super.initState();
     _descriptionController =
         TextEditingController(text: widget.viewModel.description);
+    _deviceModelController =
+        TextEditingController(text: widget.viewModel.deviceModel);
   }
 
   @override
   void dispose() {
     _descriptionController.dispose();
+    _deviceModelController.dispose();
     super.dispose();
+  }
+
+  String _formatFullDate(DateTime date) {
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final dayName = days[date.weekday - 1];
+    final monthName = months[date.month - 1];
+    return '$dayName, ${date.day} $monthName ${date.year}';
+  }
+
+  String _formatShortMonth(DateTime date) {
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC'
+    ];
+    return months[date.month - 1];
   }
 
   IconData _getIssueIcon(String issue) {
@@ -219,6 +275,19 @@ class _RepairsViewState extends State<RepairsView> {
   }
 
   void _handleSubmit() {
+    final deviceModel = _deviceModelController.text.trim();
+    if (deviceModel.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Please type your device model (e.g. iPhone 15 Pro, Samsung S24).'),
+          backgroundColor: Color(0xFFE11D48),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final text = _descriptionController.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -230,6 +299,7 @@ class _RepairsViewState extends State<RepairsView> {
       );
       return;
     }
+    widget.viewModel.setDeviceModel(deviceModel);
     widget.viewModel.setDescription(text);
     widget.viewModel.bookAppointment();
   }
@@ -307,19 +377,26 @@ class _RepairsViewState extends State<RepairsView> {
 
               const SizedBox(height: 24),
 
-              // Step 4: Device Model & Drop-off Location
+              // Step 4: Device Model, Store Branch & Available Day
               _buildSectionTitle(
                 number: '4',
-                title: 'Device Model & Drop-off Branch',
+                title: 'Device Model, Store & Available Day',
                 subtitle:
-                    'Choose your device and your preferred Siaka Phones store.',
+                    'Type your device model, select store branch, and choose your available day on the calendar.',
               ),
               const SizedBox(height: 10),
               _buildDeviceAndBranchCard(),
 
               const SizedBox(height: 24),
 
-              // Step 5: Cost Estimate & Submit Button
+              // Step 5: Manager Estimate & Submit Request
+              _buildSectionTitle(
+                number: '5',
+                title: 'Manager Estimate & Submit',
+                subtitle:
+                    'Free diagnostic. Your repair cost estimate will be sent directly by the Store Manager.',
+              ),
+              const SizedBox(height: 10),
               _buildEstimateAndSubmitCard(),
 
               const SizedBox(height: 28),
@@ -520,7 +597,7 @@ class _RepairsViewState extends State<RepairsView> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Estimated from ₵${entry.value.toStringAsFixed(2)}',
+                          'Free Inspection • Estimate Sent by Manager',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -855,6 +932,22 @@ class _RepairsViewState extends State<RepairsView> {
   }
 
   Widget _buildDeviceAndBranchCard() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final inTwoDays = today.add(const Duration(days: 2));
+
+    final selected = widget.viewModel.selectedDate;
+    final isToday = selected.year == today.year &&
+        selected.month == today.month &&
+        selected.day == today.day;
+    final isTomorrow = selected.year == tomorrow.year &&
+        selected.month == tomorrow.month &&
+        selected.day == tomorrow.day;
+    final isInTwoDays = selected.year == inTwoDays.year &&
+        selected.month == inTwoDays.month &&
+        selected.day == inTwoDays.day;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -872,47 +965,101 @@ class _RepairsViewState extends State<RepairsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Device Model',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
-            ),
+          // 1. Device Model (Typed Input)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Type Device Model',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Any Brand or Model',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0066FF),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: widget.viewModel.deviceModel,
-                isExpanded: true,
-                style:
-                    const TextStyle(color: Color(0xFF0F172A), fontSize: 13.5),
-                items: [
-                  'Siaka Quantum Titan 16 Pro',
-                  'Siaka Apex Fold V3',
-                  'Siaka Nova Lite 5G',
-                  'Siaka Pulse Cyberwatch Ultra',
-                  'Apple iPhone (All Models)',
-                  'Samsung Galaxy (All Models)',
-                  'Google Pixel / Android Other',
-                ]
-                    .map((model) =>
-                        DropdownMenuItem(value: model, child: Text(model)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) widget.viewModel.setDeviceModel(val);
-                },
+            child: TextField(
+              controller: _deviceModelController,
+              onChanged: (val) {
+                widget.viewModel.setDeviceModel(val);
+                setState(() {});
+              },
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: InputDecoration(
+                hintText:
+                    'Type phone model (e.g. iPhone 15 Pro, Samsung S24, Pixel 8)...',
+                hintStyle: const TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
+                prefixIcon: const Icon(
+                  Icons.phone_iphone_rounded,
+                  color: Color(0xFF0066FF),
+                  size: 20,
+                ),
+                suffixIcon: _deviceModelController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded,
+                            size: 16, color: Color(0xFF94A3B8)),
+                        onPressed: () {
+                          _deviceModelController.clear();
+                          widget.viewModel.setDeviceModel('');
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: InputBorder.none,
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          // Quick suggestions chips
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _buildModelChip('iPhone 15 Pro'),
+              _buildModelChip('iPhone 14'),
+              _buildModelChip('Samsung S24 Ultra'),
+              _buildModelChip('Google Pixel 8'),
+              _buildModelChip('Infinix / Tecno'),
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          // 2. Select Drop-off Store Branch
           const Text(
             'Select Drop-off Store Branch',
             style: TextStyle(
@@ -960,48 +1107,307 @@ class _RepairsViewState extends State<RepairsView> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Preferred Time Window',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
-            ),
+
+          const SizedBox(height: 18),
+
+          // 3. Preferred Available Day (Calendar)
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Available Day (Calendar)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              Text(
+                'Select day you will visit',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: widget.viewModel.timeSlot,
-                isExpanded: true,
-                style:
-                    const TextStyle(color: Color(0xFF0F172A), fontSize: 13.5),
-                items: [
-                  '09:00 AM - 11:00 AM',
-                  '10:00 AM - 12:00 PM',
-                  '01:00 PM - 03:00 PM',
-                  '03:00 PM - 05:00 PM',
-                  '05:00 PM - 07:00 PM',
-                ]
-                    .map((slot) =>
-                        DropdownMenuItem(value: slot, child: Text(slot)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) widget.viewModel.setTimeSlot(val);
-                },
+          const SizedBox(height: 8),
+
+          // Calendar interactive selector card
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => _pickAppointmentDate(context),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                ),
+                child: Row(
+                  children: [
+                    // Calendar icon badge
+                    Container(
+                      width: 48,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF0066FF),
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(9)),
+                            ),
+                            child: Text(
+                              _formatShortMonth(selected),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                '${selected.day}',
+                                style: const TextStyle(
+                                  color: Color(0xFF0F172A),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatFullDate(selected),
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isToday
+                                ? 'Today • Store open 8:30 AM - 7:00 PM'
+                                : isTomorrow
+                                    ? 'Tomorrow • Available for drop-off'
+                                    : 'Selected Day • Available for drop-off',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.calendar_month_rounded,
+                              size: 15, color: Color(0xFF0066FF)),
+                          SizedBox(width: 4),
+                          Text(
+                            'Calendar',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0066FF),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+          ),
+          const SizedBox(height: 10),
+
+          // Quick Calendar Shortcuts
+          Row(
+            children: [
+              _buildDateQuickChip(
+                label: 'Today',
+                isSelected: isToday,
+                onTap: () {
+                  widget.viewModel.setAppointmentDate(today);
+                  setState(() {});
+                },
+              ),
+              const SizedBox(width: 6),
+              _buildDateQuickChip(
+                label: 'Tomorrow',
+                isSelected: isTomorrow,
+                onTap: () {
+                  widget.viewModel.setAppointmentDate(tomorrow);
+                  setState(() {});
+                },
+              ),
+              const SizedBox(width: 6),
+              _buildDateQuickChip(
+                label: '+2 Days',
+                isSelected: isInTwoDays,
+                onTap: () {
+                  widget.viewModel.setAppointmentDate(inTwoDays);
+                  setState(() {});
+                },
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0066FF),
+                    side: const BorderSide(color: Color(0xFFBFDBFE)),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.date_range_rounded, size: 14),
+                  label: const Text(
+                    'Pick Day',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () => _pickAppointmentDate(context),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildModelChip(String model) {
+    final isSelected = _deviceModelController.text.trim().toLowerCase() ==
+        model.trim().toLowerCase();
+    return ActionChip(
+      label: Text(
+        model,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          color: isSelected ? Colors.white : const Color(0xFF334155),
+        ),
+      ),
+      backgroundColor:
+          isSelected ? const Color(0xFF0066FF) : const Color(0xFFF1F5F9),
+      side: BorderSide(
+          color:
+              isSelected ? const Color(0xFF0066FF) : const Color(0xFFE2E8F0)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+      visualDensity: VisualDensity.compact,
+      onPressed: () {
+        _deviceModelController.text = model;
+        widget.viewModel.setDeviceModel(model);
+        setState(() {});
+      },
+    );
+  }
+
+  Widget _buildDateQuickChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            decoration: BoxDecoration(
+              color:
+                  isSelected ? const Color(0xFF0066FF) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFF0066FF)
+                    : const Color(0xFFE2E8F0),
+              ),
+            ),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? Colors.white : const Color(0xFF334155),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAppointmentDate(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: widget.viewModel.selectedDate.isBefore(now)
+          ? now
+          : widget.viewModel.selectedDate,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 90)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF0066FF),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF0F172A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      widget.viewModel.setAppointmentDate(picked);
+      setState(() {});
+    }
   }
 
   Widget _buildEstimateAndSubmitCard() {
@@ -1020,48 +1426,72 @@ class _RepairsViewState extends State<RepairsView> {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Estimated Starting Cost',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 2),
-                  Row(
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.verified_rounded,
+                    color: Color(0xFF16A34A), size: 24),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.check_circle_rounded,
-                          size: 13, color: Color(0xFF16A34A)),
-                      SizedBox(width: 4),
                       Text(
-                        'Includes OEM Parts & Diagnostic',
+                        'Free Diagnostic & Quotation',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF16A34A),
-                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF15803D),
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'No upfront payment required. Your exact repair estimate will be sent to you by the Store Manager.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF166534),
+                          height: 1.35,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-              Text(
-                '₵${widget.viewModel.estimatedCost.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F172A),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.support_agent_rounded,
+                    color: Color(0xFF0066FF), size: 22),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'The branch manager will review your photo and description, verify OEM parts, and contact you with your estimate before repair begins.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFF1E40AF),
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
           SizedBox(
@@ -1116,6 +1546,19 @@ class _RepairsViewState extends State<RepairsView> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded, color: Color(0xFF0F172A)),
+          onPressed: () {
+            _descriptionController.clear();
+            _deviceModelController.clear();
+            widget.viewModel.resetBookingState();
+            if (widget.onReturnHome != null) {
+              widget.onReturnHome!();
+            } else if (Navigator.of(context).canPop()) {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            }
+          },
+        ),
         title: const Text(
           'Repair Request Confirmation',
           style: TextStyle(
@@ -1195,10 +1638,53 @@ class _RepairsViewState extends State<RepairsView> {
                   _buildSummaryRow(
                       'Drop-off Store', booking.dropOffBranch ?? 'Siaka Phones Circle'),
                   const Divider(height: 16, color: Color(0xFFF1F5F9)),
-                  _buildSummaryRow('Time Window', booking.timeSlot),
+                  _buildSummaryRow(
+                      'Available Day', _formatFullDate(booking.appointmentDate)),
                   const Divider(height: 16, color: Color(0xFFF1F5F9)),
-                  _buildSummaryRow('Starting Estimate',
-                      '₵${booking.estimatedCost.toStringAsFixed(2)}'),
+                  _buildSummaryRow('Estimated Cost', 'Sent by Store Manager'),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Store Manager Estimate Notice Card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.support_agent_rounded,
+                      color: Color(0xFF0066FF), size: 26),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Store Manager Estimate Pending',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: Color(0xFF1E3A8A),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'The Store Manager at ${booking.dropOffBranch ?? "Siaka Phones"} will review your submitted fault details and contact you with your official estimate before any work starts.',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF1E40AF),
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1329,8 +1815,9 @@ class _RepairsViewState extends State<RepairsView> {
 
             SizedBox(
               width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
+              height: 52,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.home_rounded, size: 20),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0066FF),
                   foregroundColor: Colors.white,
@@ -1339,9 +1826,18 @@ class _RepairsViewState extends State<RepairsView> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () => widget.viewModel.resetBookingState(),
-                child: const Text(
-                  'Done / Back to Repairs',
+                onPressed: () {
+                  _descriptionController.clear();
+                  _deviceModelController.clear();
+                  widget.viewModel.resetBookingState();
+                  if (widget.onReturnHome != null) {
+                    widget.onReturnHome!();
+                  } else if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
+                },
+                label: const Text(
+                  'Back to Home',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -1353,6 +1849,7 @@ class _RepairsViewState extends State<RepairsView> {
   }
 
   Widget _buildSummaryRow(String label, String value) {
+    final isManager = value == 'Sent by Store Manager';
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1367,8 +1864,10 @@ class _RepairsViewState extends State<RepairsView> {
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: Color(0xFF0F172A),
+            style: TextStyle(
+              color: isManager
+                  ? const Color(0xFF0066FF)
+                  : const Color(0xFF0F172A),
               fontWeight: FontWeight.w700,
               fontSize: 12.5,
             ),

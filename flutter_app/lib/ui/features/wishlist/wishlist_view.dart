@@ -107,7 +107,7 @@ class _WishlistViewState extends State<WishlistView> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
-    return '\$$formatted';
+    return '₵$formatted';
   }
 
   void _showAutoDismissSnackBar({

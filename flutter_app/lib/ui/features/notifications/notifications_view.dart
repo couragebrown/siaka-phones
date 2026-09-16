@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class _AppNotification {
   final String id;
@@ -57,7 +57,7 @@ class _NotificationsViewState extends State<NotificationsView> {
     _AppNotification(
       id: 'n3',
       title: 'Payment Confirmed ✅',
-      body: 'Your payment of \$1,299 for iPhone 16 Pro was successfully processed.',
+      body: 'Your payment of ₵1,299 for iPhone 16 Pro was successfully processed.',
       timeLabel: 'Yesterday, 3:45 PM',
       icon: Icons.check_circle_rounded,
       iconColor: Color(0xFF059669),
@@ -78,7 +78,7 @@ class _NotificationsViewState extends State<NotificationsView> {
     _AppNotification(
       id: 'n5',
       title: 'Wishlist Price Drop 💰',
-      body: 'Samsung Galaxy Z Fold 6 on your wishlist dropped by \$150!',
+      body: 'Samsung Galaxy Z Fold 6 on your wishlist dropped by ₵150!',
       timeLabel: '3 days ago',
       icon: Icons.trending_down_rounded,
       iconColor: Color(0xFFD97706),
@@ -96,7 +96,7 @@ class _NotificationsViewState extends State<NotificationsView> {
     _AppNotification(
       id: 'n7',
       title: 'Trade-In Offer Ready',
-      body: 'We have a new trade-in offer for your old device. Get up to \$400 credit.',
+      body: 'We have a new trade-in offer for your old device. Get up to ₵400 credit.',
       timeLabel: '1 week ago',
       icon: Icons.swap_horiz_rounded,
       iconColor: Color(0xFF1C7BFF),

@@ -48,7 +48,7 @@ class _CartViewState extends State<CartView> {
   static const _heroPromotions = [
     _CartHeroPromotion(
       title: 'Free Express Shipping',
-      description: 'On all orders over \$500 nationwide',
+      description: 'On all orders over ₵500 nationwide',
       primaryAction: 'View Terms',
       backgroundColor: Color(0xFFDDF5E8),
       icon: Icons.local_shipping_rounded,
@@ -119,7 +119,7 @@ class _CartViewState extends State<CartView> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
-    return '\$$formatted';
+    return '₵$formatted';
   }
 
   void _handleApplyPromo() {
@@ -468,7 +468,7 @@ class _CartViewState extends State<CartView> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Add \$${remaining.toStringAsFixed(0)} more for FREE Express Shipping',
+                          'Add ₵${remaining.toStringAsFixed(0)} more for FREE Express Shipping',
                           style: const TextStyle(
                             color: Color(0xFF1F2937),
                             fontSize: 11.5,
@@ -477,7 +477,7 @@ class _CartViewState extends State<CartView> {
                         ),
                       ),
                       Text(
-                        '\$${remaining.toStringAsFixed(0)} left',
+                        '₵${remaining.toStringAsFixed(0)} left',
                         style: const TextStyle(
                           color: Color(0xFF1C7BFF),
                           fontSize: 11.5,
@@ -896,7 +896,7 @@ class _CartViewState extends State<CartView> {
             const SizedBox(height: 6),
             _buildSummaryRow(
               'Estimated Tax (8.25%)',
-              '\$${tax.toStringAsFixed(2)}',
+              '₵${tax.toStringAsFixed(2)}',
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
@@ -904,7 +904,7 @@ class _CartViewState extends State<CartView> {
             ),
             _buildSummaryRow(
               'Total',
-              '\$${total.toStringAsFixed(2)}',
+              '₵${total.toStringAsFixed(2)}',
               isBold: true,
               valueColor: const Color(0xFF1C7BFF),
             ),

@@ -91,7 +91,7 @@ void main() {
 
     expect(find.text('Featured Phones'), findsOneWidget);
     expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
-    expect(find.text('From \$1,099'), findsOneWidget);
+    expect(find.text('From ₵1,099'), findsOneWidget);
     expect(find.text('New'), findsWidgets);
     expect(find.text('Buy Now'), findsWidgets);
 
@@ -286,7 +286,7 @@ void main() {
 
     expect(find.text('Customer Support & FAQ'), findsOneWidget);
     expect(find.text('Saved Payment Methods'), findsOneWidget);
-    expect(find.text('My Wishlist'), findsOneWidget);
+    expect(find.text('My Wishlist'), findsNothing);
 
     // Tap Orders
     await tester.tap(find.text('My Orders & Tracking'));
@@ -622,7 +622,7 @@ void main() {
 
     // Verify product name and price rendered correctly
     expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
-    expect(find.text('\$1,099'), findsOneWidget);
+    expect(find.text('₵1,099'), findsOneWidget);
     expect(find.text('Move to Cart'), findsOneWidget);
 
     // Move to Cart
@@ -675,7 +675,7 @@ void main() {
 
     // Verify product card and proper price formatting
     expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
-    expect(find.text('\$1,099'), findsWidgets);
+    expect(find.text('₵1,099'), findsWidgets);
     expect(find.text('1'), findsWidgets);
 
     // Verify Order Summary and checkout button
@@ -939,7 +939,7 @@ void main() {
     expect(find.text('House No. 14, Airport Residential Area, Accra'), findsOneWidget);
     expect(find.text('MTN Mobile Money'), findsOneWidget);
     expect(find.text('TRK-GH-99201-SP'), findsOneWidget);
-    expect(find.text('\$1189.67'), findsOneWidget);
+    expect(find.text('₵1189.67'), findsOneWidget);
 
     // Verify 48dp Buttons
     final trackBtn = find.text('Track Your Order');
@@ -1167,68 +1167,275 @@ void main() {
   });
 
   testWidgets(
-      'RepairsView allows selecting problem, attaching photo, entering detailed description in large text box, and submitting request',
+      'RepairsView allows selecting problem, typing device model, choosing calendar date, entering description, and submitting without prices',
       (WidgetTester tester) async {
     final repairRepo = RepairRepository();
     final viewModel = RepairsViewModel(repairRepository: repairRepo);
+    bool returnedHome = false;
 
     await tester.pumpWidget(
       MaterialApp(
-        home: RepairsView(viewModel: viewModel),
+        home: RepairsView(
+          viewModel: viewModel,
+          onReturnHome: () => returnedHome = true,
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
-    // 1. Verify header and initial problem selection
+    // 1. Verify header and sections
     expect(find.text('Express Repair Service'), findsOneWidget);
     expect(find.text('Select Problem to be Fixed'), findsOneWidget);
     expect(find.text('Send a Picture of the Device'), findsOneWidget);
     expect(find.text('What is Actually Wrong?'), findsOneWidget);
-    expect(find.text('Submit Repair Request'), findsOneWidget);
 
-    // 2. Select a different problem, e.g. Battery Degradation
+    // 2. Verify NO prices (₵) are displayed on the repair page
+    expect(find.textContaining('₵'), findsNothing);
+    expect(find.text('Free Inspection • Estimate Sent by Manager'), findsWidgets);
+
+    // 3. Select problem: Battery Degradation
     expect(find.text('Battery Degradation / Fast Drain'), findsOneWidget);
     await tester.tap(find.text('Battery Degradation / Fast Drain'));
     await tester.pumpAndSettle();
     expect(viewModel.selectedIssue, 'Battery Degradation / Fast Drain');
 
-    // 3. Attach a photo
+    // 4. Attach a photo
     viewModel.setPhotoPath('/sdcard/test_damage.jpg');
     await tester.pumpAndSettle();
     expect(find.text('Photo Attached'), findsOneWidget);
 
-    // 4. Input detailed description into large text box
-    final descField = find.byType(TextField);
+    // 5. Type Device Model in the typed input field
+    final modelField = find.byWidgetPredicate(
+      (w) => w is TextField && (w.decoration?.hintText?.contains('phone model') ?? false),
+    );
+    expect(modelField, findsOneWidget);
+    await tester.ensureVisible(modelField);
+    await tester.pumpAndSettle();
+    await tester.enterText(modelField, 'iPhone 15 Pro Max');
+    await tester.pumpAndSettle();
+    expect(viewModel.deviceModel, 'iPhone 15 Pro Max');
+
+    // 6. Verify calendar / available day selection
+    await tester.ensureVisible(find.text('Available Day (Calendar)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Available Day (Calendar)'), findsOneWidget);
+    expect(find.text('Calendar'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Tomorrow'), findsOneWidget);
+
+    // 7. Input detailed description into large text box
+    final descField = find.byWidgetPredicate(
+      (w) =>
+          w is TextField &&
+          (w.decoration?.hintText?.contains('Describe what is actually wrong') ??
+              false),
+    );
+    expect(descField, findsOneWidget);
+    await tester.ensureVisible(descField);
+    await tester.pumpAndSettle();
     await tester.enterText(
         descField, 'Phone battery drops from 60% to 0% in 10 minutes when using camera.');
     await tester.pumpAndSettle();
     expect(viewModel.description,
         'Phone battery drops from 60% to 0% in 10 minutes when using camera.');
 
-    // 5. Submit Repair Request
+    // 8. Submit Repair Request
     await tester.ensureVisible(find.text('Submit Repair Request'));
     await tester.pumpAndSettle();
+    expect(find.text('Free Diagnostic & Quotation'), findsOneWidget);
+    expect(find.text('Submit Repair Request'), findsOneWidget);
     await tester.tap(find.text('Submit Repair Request'));
     await tester.pumpAndSettle();
 
-    // 6. Verify confirmation screen
+    // 9. Verify confirmation screen: no prices, shows manager quotation notice
     expect(find.text('Repair Request Submitted!'), findsOneWidget);
     expect(find.text('Ticket ID: ${viewModel.lastBooking!.id}'), findsOneWidget);
+    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
     expect(find.text('Battery Degradation / Fast Drain'), findsOneWidget);
+    expect(find.text('Sent by Store Manager'), findsOneWidget);
+    expect(find.text('Store Manager Estimate Pending'), findsOneWidget);
+    expect(find.textContaining('₵'), findsNothing);
     expect(find.text('Reported Fault Details'), findsOneWidget);
     expect(
         find.text(
             'Phone battery drops from 60% to 0% in 10 minutes when using camera.'),
         findsOneWidget);
     expect(find.text('Attached Damage Photo'), findsOneWidget);
-    expect(find.text('Done / Back to Repairs'), findsOneWidget);
+    expect(find.text('Back to Home'), findsOneWidget);
 
-    // 7. Tapping Done resets back to repair form
-    await tester.ensureVisible(find.text('Done / Back to Repairs'));
+    // 10. Tapping Back to Home calls onReturnHome and resets booking state
+    await tester.ensureVisible(find.text('Back to Home'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Done / Back to Repairs'));
+    await tester.tap(find.text('Back to Home'));
     await tester.pumpAndSettle();
+    expect(returnedHome, isTrue);
+    expect(viewModel.lastBooking, isNull);
+  });
+
+  testWidgets(
+      'submitting repairs in app and tapping Back to Home returns user directly to HomeView',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // 1. App starts at HomeView
+    expect(find.byType(HomeView), findsOneWidget);
+
+    // 2. Open menu drawer and tap Repairs
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Repairs'));
+    await tester.pumpAndSettle();
+
+    // 3. Verify on Express Repair Service screen
     expect(find.text('Express Repair Service'), findsOneWidget);
+
+    // 4. Fill in device model
+    final modelField = find.byWidgetPredicate(
+      (w) => w is TextField && (w.decoration?.hintText?.contains('phone model') ?? false),
+    );
+    await tester.ensureVisible(modelField);
+    await tester.pumpAndSettle();
+    await tester.enterText(modelField, 'Samsung S24 Ultra');
+    await tester.pumpAndSettle();
+
+    // 5. Fill in fault description
+    final descField = find.byWidgetPredicate(
+      (w) =>
+          w is TextField &&
+          (w.decoration?.hintText?.contains('Describe what is actually wrong') ??
+              false),
+    );
+    await tester.ensureVisible(descField);
+    await tester.pumpAndSettle();
+    await tester.enterText(descField, 'S-Pen not charging inside slot.');
+    await tester.pumpAndSettle();
+
+    // 6. Submit Repair Request
+    final submitButton = find.text('Submit Repair Request');
+    await tester.ensureVisible(submitButton);
+    await tester.pumpAndSettle();
+    await tester.tap(submitButton);
+    await tester.pumpAndSettle();
+
+    // 7. Verify Confirmation ticket screen and Back to Home button
+    expect(find.text('Repair Request Submitted!'), findsOneWidget);
+    expect(find.text('Back to Home'), findsOneWidget);
+
+    // 8. Tap Back to Home
+    await tester.ensureVisible(find.text('Back to Home'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Back to Home'));
+    await tester.pumpAndSettle();
+
+    // 9. Successfully back on HomeView
+    expect(find.byType(HomeView), findsOneWidget);
+    expect(find.text('Express Repair Service'), findsNothing);
+    expect(find.text('Customer Menu'), findsNothing);
+  });
+
+  testWidgets(
+      'when menu is opened and user navigates to another page and comes back, menu popup is dismissed',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // 1. Open menu
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Customer Menu'), findsOneWidget);
+
+    // 2. Tap Store Locations
+    await tester.tap(find.text('Store Locations'));
+    await tester.pumpAndSettle();
+    expect(find.text('Siaka Phones Circle'), findsOneWidget);
+
+    // 3. Tap back to return to Home
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    // 4. On HomeView, the menu popup / drawer is NOT there
+    expect(find.byType(HomeView), findsOneWidget);
+    expect(find.text('Customer Menu'), findsNothing);
+
+    // 5. Open menu again, then tap a bottom nav tab (Search)
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Customer Menu'), findsOneWidget);
+
+    await tester.tap(find.text('Search'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CatalogView), findsOneWidget);
+
+    // 6. Switch back to Home tab
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeView), findsOneWidget);
+    expect(find.text('Customer Menu'), findsNothing);
+  });
+
+  testWidgets(
+      'drawer menu displays Shop by Category section with Smartphones, Keypad Phones, Laptops, and Accessories',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // 1. Open menu
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+
+    // 2. Verify Shop by Category section
+    expect(find.text('SHOP BY CATEGORY'), findsOneWidget);
+    expect(find.text('Smartphones'), findsOneWidget);
+    expect(find.text('Keypad Phones'), findsOneWidget);
+    expect(find.text('Laptops'), findsOneWidget);
+    expect(find.text('Accessories'), findsWidgets);
+    expect(find.text('Tablets'), findsOneWidget);
+    expect(find.text('SERVICES & ACCOUNT'), findsOneWidget);
+    expect(find.text('My Orders'), findsOneWidget);
+  });
+
+  testWidgets(
+      'selecting a category from drawer menu closes drawer and navigates to Catalog with matching products',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // 1. Open menu
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+
+    // 2. Tap Keypad Phones in drawer menu
+    await tester.ensureVisible(find.text('Keypad Phones'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keypad Phones'));
+    await tester.pumpAndSettle();
+
+    // 3. Menu is dismissed, CatalogView is displayed with Keypad Phones products
+    expect(find.text('Customer Menu'), findsNothing);
+    expect(find.byType(CatalogView), findsOneWidget);
+    expect(find.text('Nokia 3310 (2024 Dual SIM)'), findsOneWidget);
+    expect(find.text('Itel Magic 2 4G (Wi-Fi Hotspot)'), findsOneWidget);
+
+    // 4. Return to Home tab
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeView), findsOneWidget);
+    expect(find.text('Customer Menu'), findsNothing);
+
+    // 5. Open menu again and tap Laptops
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Laptops'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Laptops'));
+    await tester.pumpAndSettle();
+
+    // 6. Menu is dismissed, CatalogView displays Laptops products
+    expect(find.text('Customer Menu'), findsNothing);
+    expect(find.byType(CatalogView), findsOneWidget);
+    expect(find.text('MacBook Pro 16" (M3 Max)'), findsOneWidget);
+    expect(find.text('Dell XPS 15 9530'), findsOneWidget);
   });
 }
 

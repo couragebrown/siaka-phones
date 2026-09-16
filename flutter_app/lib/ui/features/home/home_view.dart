@@ -33,8 +33,10 @@ class HomeView extends StatefulWidget {
   final VoidCallback onLocationsTap;
   final VoidCallback onSupportTap;
   final VoidCallback onProfileTap;
+  final ValueChanged<String>? onCategoryTap;
   final VoidCallback? onBuyNowPayLaterTap;
   final VoidCallback? onSignOut;
+  final bool isCurrentTab;
 
   const HomeView({
     super.key,
@@ -43,6 +45,7 @@ class HomeView extends StatefulWidget {
     required this.onSeeAllCatalog,
     this.onSeeAllBrands,
     this.onBrandTap,
+    this.onCategoryTap,
     required this.onTradeInTap,
     required this.onRepairsTap,
     required this.onOrdersTap,
@@ -52,6 +55,7 @@ class HomeView extends StatefulWidget {
     this.onBuyNowPayLaterTap,
     this.onSignOut,
     this.wishlistRepo,
+    this.isCurrentTab = true,
   });
 
   final WishlistRepository? wishlistRepo;
@@ -63,6 +67,26 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   static const _heroSlideInterval = Duration(seconds: 5);
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void _closeMenuDrawer() {
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      _scaffoldKey.currentState?.closeDrawer();
+    }
+  }
+
+  @override
+  void didUpdateWidget(HomeView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.isCurrentTab && oldWidget.isCurrentTab) {
+      _closeMenuDrawer();
+    } else if (widget.isCurrentTab && !oldWidget.isCurrentTab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && (_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
+          _closeMenuDrawer();
+        }
+      });
+    }
+  }
 
   static const _heroPromotions = [
     _HeroPromotion(
@@ -101,7 +125,7 @@ class _HomeViewState extends State<HomeView> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (match) => '${match[1]},',
         );
-    return 'From \$$formatted';
+    return 'From ₵$formatted';
   }
 
   @override
@@ -195,7 +219,13 @@ class _HomeViewState extends State<HomeView> {
               tooltip: 'Open menu',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              onPressed: () {
+                if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+                  _closeMenuDrawer();
+                } else {
+                  _scaffoldKey.currentState?.openDrawer();
+                }
+              },
               icon: const Icon(Icons.menu, color: Color(0xFF1F2937), size: 28),
             ),
             const SizedBox(width: 8),
@@ -264,6 +294,228 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  Widget _buildDrawerCategorySelector() {
+    final mainCategories = [
+      (
+        category: 'Smartphones',
+        icon: Icons.phone_android_rounded,
+        subtitle: 'Flagship & 5G',
+        color: const Color(0xFF1C7BFF),
+      ),
+      (
+        category: 'Keypad Phones',
+        icon: Icons.dialpad_rounded,
+        subtitle: 'Nokia & Itel',
+        color: const Color(0xFF10B981),
+      ),
+      (
+        category: 'Laptops',
+        icon: Icons.laptop_mac_rounded,
+        subtitle: 'MacBooks & Dell',
+        color: const Color(0xFF8B5CF6),
+      ),
+      (
+        category: 'Accessories',
+        icon: Icons.headphones_rounded,
+        subtitle: 'Audio & Power',
+        color: const Color(0xFFF59E0B),
+      ),
+    ];
+
+    final moreCategories = [
+      (category: 'Tablets', icon: Icons.tablet_mac_rounded),
+      (category: 'Wearables', icon: Icons.watch_rounded),
+      (category: 'Foldables', icon: Icons.devices_fold_rounded),
+      (category: 'All Products', icon: Icons.grid_view_rounded),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 2x2 Grid for the top 4 requested categories
+          Row(
+            children: [
+              Expanded(child: _buildCategoryCard(mainCategories[0])),
+              const SizedBox(width: 8),
+              Expanded(child: _buildCategoryCard(mainCategories[1])),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(child: _buildCategoryCard(mainCategories[2])),
+              const SizedBox(width: 8),
+              Expanded(child: _buildCategoryCard(mainCategories[3])),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Horizontal scrolling row for more categories
+          SizedBox(
+            height: 28,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: moreCategories.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              itemBuilder: (context, index) {
+                final item = moreCategories[index];
+                final isSelected =
+                    widget.viewModel.selectedCategory == item.category;
+                return InkWell(
+                  onTap: () {
+                    _closeMenuDrawer();
+                    widget.viewModel.selectCategory(item.category);
+                    widget.onCategoryTap?.call(item.category);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF1C7BFF)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF1C7BFF)
+                            : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          item.icon,
+                          size: 13,
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          item.category,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF334155),
+                            fontSize: 11,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard(({
+    String category,
+    IconData icon,
+    String subtitle,
+    Color color
+  }) item) {
+    final isSelected = widget.viewModel.selectedCategory == item.category;
+
+    return InkWell(
+      onTap: () {
+        _closeMenuDrawer();
+        widget.viewModel.selectCategory(item.category);
+        widget.onCategoryTap?.call(item.category);
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? item.color.withValues(alpha: 0.12) : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? item.color : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.5 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: item.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(item.icon, size: 16, color: item.color),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      item.category,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: const Color(0xFF1E293B),
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w600,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    item.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _menuSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 5),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: Color(0xFF94A3B8),
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
   Widget _buildMenuDrawer() {
     return Drawer(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -271,7 +523,7 @@ class _HomeViewState extends State<HomeView> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 10, 14),
+              padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
               child: Row(
                 children: [
                   Container(
@@ -302,7 +554,7 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         Text(
-                          'Account & Services',
+                          'Shop & Account Services',
                           style: TextStyle(
                             color: Color(0xFF6B7280),
                             fontSize: 11,
@@ -317,7 +569,7 @@ class _HomeViewState extends State<HomeView> {
                     iconSize: 20,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _closeMenuDrawer,
                     icon: const Icon(Icons.close_rounded, color: Color(0xFF6B7280)),
                   ),
                 ],
@@ -325,57 +577,67 @@ class _HomeViewState extends State<HomeView> {
             ),
             const Divider(height: 1, color: Color(0xFFE5E7EB)),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                children: [
-                  _menuItem(
-                    icon: Icons.person_outline_rounded,
-                    label: 'My Profile',
-                    onTap: widget.onProfileTap,
-                  ),
-                  _menuItem(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'My Orders',
-                    onTap: widget.onOrdersTap,
-                  ),
-                  _menuItem(
-                    icon: Icons.swap_horiz_rounded,
-                    label: 'Swap My Device',
-                    onTap: widget.onTradeInTap,
-                  ),
-                  _menuItem(
-                    icon: Icons.payments_outlined,
-                    label: 'Buy Now Pay Later',
-                    badgeText: '0% APR',
-                    onTap: () {
-                      if (widget.onBuyNowPayLaterTap != null) {
-                        widget.onBuyNowPayLaterTap!();
-                      } else {
-                        _showBuyNowPayLaterSheet();
-                      }
-                    },
-                  ),
-                  _menuItem(
-                    icon: Icons.build_outlined,
-                    label: 'Repairs',
-                    onTap: widget.onRepairsTap,
-                  ),
-                  _menuItem(
-                    icon: Icons.location_on_outlined,
-                    label: 'Store Locations',
-                    onTap: widget.onLocationsTap,
-                  ),
-                  _menuItem(
-                    icon: Icons.help_outline_rounded,
-                    label: 'Support',
-                    onTap: widget.onSupportTap,
-                  ),
-                ],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _menuSectionHeader('Shop by Category'),
+                    _buildDrawerCategorySelector(),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: Divider(height: 1, color: Color(0xFFE5E7EB)),
+                    ),
+                    _menuSectionHeader('Services & Account'),
+                    _menuItem(
+                      icon: Icons.person_outline_rounded,
+                      label: 'My Profile',
+                      onTap: widget.onProfileTap,
+                    ),
+                    _menuItem(
+                      icon: Icons.receipt_long_outlined,
+                      label: 'My Orders',
+                      onTap: widget.onOrdersTap,
+                    ),
+                    _menuItem(
+                      icon: Icons.swap_horiz_rounded,
+                      label: 'Swap My Device',
+                      onTap: widget.onTradeInTap,
+                    ),
+                    _menuItem(
+                      icon: Icons.payments_outlined,
+                      label: 'Buy Now Pay Later',
+                      badgeText: '0% APR',
+                      onTap: () {
+                        if (widget.onBuyNowPayLaterTap != null) {
+                          widget.onBuyNowPayLaterTap!();
+                        } else {
+                          _showBuyNowPayLaterSheet();
+                        }
+                      },
+                    ),
+                    _menuItem(
+                      icon: Icons.build_outlined,
+                      label: 'Repairs',
+                      onTap: widget.onRepairsTap,
+                    ),
+                    _menuItem(
+                      icon: Icons.location_on_outlined,
+                      label: 'Store Locations',
+                      onTap: widget.onLocationsTap,
+                    ),
+                    _menuItem(
+                      icon: Icons.help_outline_rounded,
+                      label: 'Support',
+                      onTap: widget.onSupportTap,
+                    ),
+                  ],
+                ),
               ),
             ),
             const Divider(height: 1, color: Color(0xFFE5E7EB)),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
               child: _menuItem(
                 icon: Icons.logout_rounded,
                 label: 'Sign Out',
@@ -395,6 +657,7 @@ class _HomeViewState extends State<HomeView> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    String? subtitle,
     String? badgeText,
     bool isDestructive = false,
   }) {
@@ -408,8 +671,8 @@ class _HomeViewState extends State<HomeView> {
 
     return ListTile(
       dense: true,
-      visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+      visualDensity: const VisualDensity(horizontal: -2, vertical: -3),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       leading: Container(
         width: 32,
         height: 32,
@@ -451,6 +714,17 @@ class _HomeViewState extends State<HomeView> {
             ),
         ],
       ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 11,
+              ),
+            )
+          : null,
       trailing: isDestructive
           ? null
           : const Icon(
@@ -459,7 +733,7 @@ class _HomeViewState extends State<HomeView> {
               color: Color(0xFF9CA3AF),
             ),
       onTap: () {
-        Navigator.of(context).pop();
+        _closeMenuDrawer();
         WidgetsBinding.instance.addPostFrameCallback((_) => onTap());
       },
     );
@@ -897,13 +1171,25 @@ class _HomeViewState extends State<HomeView> {
                 borderRadius: BorderRadius.circular(6),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Text(
-                    'View more',
-                    style: TextStyle(
-                      color: Color(0xFF1C7BFF),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View more',
+                        style: TextStyle(
+                          color: Color(0xFF1C7BFF),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 14,
+                        color: Color(0xFF1C7BFF),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1000,13 +1286,25 @@ class _HomeViewState extends State<HomeView> {
             borderRadius: BorderRadius.circular(6),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(
-                actionLabel,
-                style: const TextStyle(
-                  color: Color(0xFF1C7BFF),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    actionLabel,
+                    style: const TextStyle(
+                      color: Color(0xFF1C7BFF),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 14,
+                    color: Color(0xFF1C7BFF),
+                  ),
+                ],
               ),
             ),
           ),

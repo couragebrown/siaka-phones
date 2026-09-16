@@ -272,7 +272,7 @@ class ConfirmationView extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '\$${(item.product.price * item.quantity).toStringAsFixed(2)}',
+                                    '₵${(item.product.price * item.quantity).toStringAsFixed(2)}',
                                     style: const TextStyle(
                                       color: Color(0xFF1F2937),
                                       fontSize: 12.5,
@@ -315,7 +315,7 @@ class ConfirmationView extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '\$${order.totalAmount.toStringAsFixed(2)}',
+                              '₵${order.totalAmount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 color: Color(0xFF1C7BFF),
                                 fontSize: 17,

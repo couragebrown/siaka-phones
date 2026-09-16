@@ -53,8 +53,21 @@ class ProductRepository {
 
       // 4. Common device category synonyms
       final isPhone = p.category.toLowerCase().contains('smartphone') ||
-          p.category.toLowerCase().contains('foldable');
+          p.category.toLowerCase().contains('foldable') ||
+          p.category.toLowerCase().contains('keypad');
       if (isPhone && (token == 'phone' || token == 'phones' || token == 'mobile')) {
+        return true;
+      }
+      if (p.category.toLowerCase().contains('keypad') &&
+          (token == 'keypad' || token == 'feature' || token == 'yam' || token == 'button')) {
+        return true;
+      }
+      if (p.category.toLowerCase().contains('laptop') &&
+          (token == 'laptop' || token == 'laptops' || token == 'macbook' || token == 'pc' || token == 'notebook' || token == 'computer')) {
+        return true;
+      }
+      if (p.category.toLowerCase().contains('tablet') &&
+          (token == 'tablet' || token == 'tablets' || token == 'ipad' || token == 'tab')) {
         return true;
       }
       if (p.category.toLowerCase().contains('wearable') && (token == 'watch' || token == 'watches')) {
@@ -126,6 +139,15 @@ class ProductRepository {
   }
 
   Future<List<String>> getCategories() async {
-    return ['All', 'Smartphones', 'Foldables', 'Wearables', 'Accessories'];
+    return [
+      'All',
+      'Smartphones',
+      'Keypad Phones',
+      'Laptops',
+      'Accessories',
+      'Tablets',
+      'Foldables',
+      'Wearables',
+    ];
   }
 }

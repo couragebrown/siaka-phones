@@ -130,7 +130,7 @@ class _CheckoutViewState extends State<CheckoutView> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
-    return '\$$formatted';
+    return '₵$formatted';
   }
 
   @override
@@ -934,14 +934,14 @@ class _CheckoutViewState extends State<CheckoutView> {
                 : const Color(0xFF1F2937),
           ),
           const SizedBox(height: 6),
-          _summaryRow('Estimated Tax (8.25%)', '\$${tax.toStringAsFixed(2)}'),
+          _summaryRow('Estimated Tax (8.25%)', '₵${tax.toStringAsFixed(2)}'),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 10),
             child: Divider(height: 1, color: Color(0xFFE5E7EB)),
           ),
           _summaryRow(
             'Total',
-            '\$${total.toStringAsFixed(2)}',
+            '₵${total.toStringAsFixed(2)}',
             isBold: true,
             valueColor: const Color(0xFF1C7BFF),
           ),
@@ -1277,7 +1277,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '\$${total.toStringAsFixed(2)}',
+                    '₵${total.toStringAsFixed(2)}',
                     style: const TextStyle(
                       color: Color(0xFF1C7BFF),
                       fontSize: 19,
@@ -1333,7 +1333,7 @@ class _CheckoutViewState extends State<CheckoutView> {
             label: Text(
               widget.viewModel.isPlacingOrder
                   ? 'Processing Order...'
-                  : 'Place Order • \$${total.toStringAsFixed(2)}',
+                  : 'Place Order • ₵${total.toStringAsFixed(2)}',
               style: const TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w700,

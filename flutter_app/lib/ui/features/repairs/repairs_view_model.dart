@@ -9,13 +9,13 @@ class RepairsViewModel extends ChangeNotifier {
     required RepairRepository repairRepository,
   }) : _repairRepository = repairRepository;
 
-  String _deviceModel = 'Siaka Quantum Titan 16 Pro';
+  String _deviceModel = '';
   String _selectedIssue = 'Screen Replacement / AMOLED Crack';
   String _description = '';
   String? _photoPath;
   String _selectedBranch = 'Siaka Phones Circle';
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  String _timeSlot = '10:00 AM - 12:00 PM';
+  String _timeSlot = 'Full Day Availability';
   final String _customerName = 'Courage Brown';
   final String _customerPhone = '+233 24 100 2001';
   bool _isSubmitting = false;
@@ -35,7 +35,7 @@ class RepairsViewModel extends ChangeNotifier {
   RepairBooking? get lastBooking => _lastBooking;
 
   Map<String, double> get issuePricing => _repairRepository.issuePricing;
-  double get estimatedCost => _repairRepository.issuePricing[_selectedIssue] ?? 99.99;
+  double get estimatedCost => 0.0;
 
   void setDeviceModel(String model) {
     _deviceModel = model;
@@ -89,12 +89,12 @@ class RepairsViewModel extends ChangeNotifier {
 
     try {
       _lastBooking = await _repairRepository.createBooking(
-        deviceModel: _deviceModel,
+        deviceModel: _deviceModel.trim().isEmpty ? 'Customer Phone' : _deviceModel.trim(),
         issueType: _selectedIssue,
         description: _description.trim().isEmpty ? 'General inspection & diagnostic' : _description.trim(),
         photoPath: _photoPath,
         dropOffBranch: _selectedBranch,
-        estimatedCost: estimatedCost,
+        estimatedCost: 0.0,
         appointmentDate: _selectedDate,
         timeSlot: _timeSlot,
         customerName: _customerName,

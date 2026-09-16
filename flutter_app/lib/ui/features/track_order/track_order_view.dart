@@ -477,7 +477,7 @@ class TrackOrderView extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        '\$${(item.product.price * item.quantity).toStringAsFixed(2)}',
+                                        '₵${(item.product.price * item.quantity).toStringAsFixed(2)}',
                                         style: const TextStyle(
                                           color: Color(0xFF0F172A),
                                           fontSize: 12,

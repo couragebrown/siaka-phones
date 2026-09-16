@@ -328,7 +328,10 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
   void _navigateToRepairs() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => RepairsView(viewModel: widget.repairsVM),
+        builder: (_) => RepairsView(
+          viewModel: widget.repairsVM,
+          onReturnHome: () => _selectRootTab(0),
+        ),
       ),
     );
   }
@@ -387,6 +390,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
       builder: (context, _) {
         final List<Widget> pages = [
           HomeView(
+            isCurrentTab: _currentTabIndex == 0,
             viewModel: widget.homeVM,
             wishlistRepo: widget.wishlistRepo,
             onProductTap: _navigateToProductDetail,
@@ -394,6 +398,11 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             onSeeAllBrands: _navigateToBrands,
             onBrandTap: (brand) {
               widget.catalogVM.setSearchQuery(brand);
+              _selectRootTab(1);
+            },
+            onCategoryTap: (category) {
+              widget.catalogVM.setCategory(category);
+              widget.catalogVM.setSearchQuery('');
               _selectRootTab(1);
             },
             onTradeInTap: _navigateToTradeIn,
@@ -449,7 +458,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
         return BottomNavScaffold(
           currentIndex: _currentTabIndex,
           cartBadgeCount: widget.cartRepo.itemCount,
-          onTabSelected: (idx) => setState(() => _currentTabIndex = idx),
+          onTabSelected: _selectRootTab,
           body: IndexedStack(
             index: _currentTabIndex,
             children: pages,

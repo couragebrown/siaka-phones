@@ -267,7 +267,8 @@ class _CatalogViewState extends State<CatalogView> {
                         child:
                             CircularProgressIndicator(color: Color(0xFF1C7BFF)),
                       )
-                    : isSearching
+                    : (isSearching ||
+                            widget.viewModel.selectedCategory != 'All')
                         ? _buildSearchResultsView()
                         : _buildInitialFeaturedView(featuredProducts),
               ),
@@ -432,7 +433,9 @@ class _CatalogViewState extends State<CatalogView> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Try searching for "${_searchController.text.trim()}" in another category, or check spelling.',
+                        _searchController.text.trim().isNotEmpty
+                            ? 'Try searching for "${_searchController.text.trim()}" in another category, or check spelling.'
+                            : 'No devices found in ${widget.viewModel.selectedCategory}.',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Color(0xFF6B7280),
@@ -445,8 +448,12 @@ class _CatalogViewState extends State<CatalogView> {
                         height: 38,
                         child: OutlinedButton(
                           onPressed: () {
-                            _searchController.clear();
-                            widget.viewModel.setSearchQuery('');
+                            if (_searchController.text.isNotEmpty) {
+                              _searchController.clear();
+                              widget.viewModel.setSearchQuery('');
+                            } else {
+                              widget.viewModel.setCategory('All');
+                            }
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF1C7BFF),
@@ -455,9 +462,11 @@ class _CatalogViewState extends State<CatalogView> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          child: const Text(
-                            'Clear Search',
-                            style: TextStyle(
+                          child: Text(
+                            _searchController.text.trim().isNotEmpty
+                                ? 'Clear Search'
+                                : 'Show All Devices',
+                            style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -478,7 +487,9 @@ class _CatalogViewState extends State<CatalogView> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Text(
-            'Results for "${_searchController.text.trim()}" (${products.length})',
+            _searchController.text.trim().isNotEmpty
+                ? 'Results for "${_searchController.text.trim()}" (${products.length})'
+                : '${widget.viewModel.selectedCategory} (${products.length})',
             style: const TextStyle(
               color: Color(0xFF4B5563),
               fontSize: 13,
