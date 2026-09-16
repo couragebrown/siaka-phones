@@ -9,7 +9,7 @@ class ProductRepository {
     final hasQuery = trimmedQuery.isNotEmpty;
 
     if (!hasQuery) {
-      if (category != null && category != 'All') {
+      if (category != null && category != 'All' && category != 'All Products') {
         return _products
             .where((p) => p.category.toLowerCase() == category.toLowerCase())
             .toList();
@@ -101,13 +101,17 @@ class ProductRepository {
     final inCategory = _products.where((p) {
       if (category != null &&
           category != 'All' &&
+          category != 'All Products' &&
           p.category.toLowerCase() != category.toLowerCase()) {
         return false;
       }
       return matchesAllTokens(p);
     }).toList();
 
-    if (inCategory.isNotEmpty || category == null || category == 'All') {
+    if (inCategory.isNotEmpty ||
+        category == null ||
+        category == 'All' ||
+        category == 'All Products') {
       return inCategory;
     }
 

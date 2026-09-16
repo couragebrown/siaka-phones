@@ -1437,6 +1437,32 @@ void main() {
     expect(find.text('MacBook Pro 16" (M3 Max)'), findsOneWidget);
     expect(find.text('Dell XPS 15 9530'), findsOneWidget);
   });
+
+  testWidgets(
+      'All Products is first in drawer categories and tapping it navigates to Catalog showing all products',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // 1. Open menu
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+
+    // 2. Verify 'All Products' is visible
+    expect(find.text('All Products'), findsOneWidget);
+
+    // 3. Tap 'All Products'
+    await tester.tap(find.text('All Products'));
+    await tester.pumpAndSettle();
+
+    // 4. Menu is dismissed and CatalogView is displayed
+    expect(find.text('Customer Menu'), findsNothing);
+    expect(find.byType(CatalogView), findsOneWidget);
+
+    // 5. Verify devices from multiple categories are present (not empty)
+    expect(find.text('No devices found'), findsNothing);
+    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+  });
 }
 
 

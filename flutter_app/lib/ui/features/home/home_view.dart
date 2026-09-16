@@ -323,10 +323,10 @@ class _HomeViewState extends State<HomeView> {
     ];
 
     final moreCategories = [
+      (category: 'All Products', icon: Icons.grid_view_rounded),
       (category: 'Tablets', icon: Icons.tablet_mac_rounded),
       (category: 'Wearables', icon: Icons.watch_rounded),
       (category: 'Foldables', icon: Icons.devices_fold_rounded),
-      (category: 'All Products', icon: Icons.grid_view_rounded),
     ];
 
     return Padding(
@@ -361,12 +361,18 @@ class _HomeViewState extends State<HomeView> {
               itemBuilder: (context, index) {
                 final item = moreCategories[index];
                 final isSelected =
-                    widget.viewModel.selectedCategory == item.category;
+                    widget.viewModel.selectedCategory == item.category ||
+                    (item.category == 'All Products' &&
+                        (widget.viewModel.selectedCategory == 'All' ||
+                            widget.viewModel.selectedCategory == 'All Products'));
                 return InkWell(
                   onTap: () {
                     _closeMenuDrawer();
-                    widget.viewModel.selectCategory(item.category);
-                    widget.onCategoryTap?.call(item.category);
+                    final cat = item.category == 'All Products'
+                        ? 'All'
+                        : item.category;
+                    widget.viewModel.selectCategory(cat);
+                    widget.onCategoryTap?.call(cat);
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(

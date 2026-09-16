@@ -38,7 +38,7 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   void selectCategory(String category) {
-    _selectedCategory = category;
+    _selectedCategory = (category == 'All Products') ? 'All' : category;
     notifyListeners();
   }
 }

@@ -386,6 +386,7 @@ class _CatalogViewState extends State<CatalogView> {
     if (products.isEmpty) {
       return LayoutBuilder(
         builder: (context, constraints) {
+          final isSearching = _searchController.text.trim().isNotEmpty;
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
@@ -393,81 +394,96 @@ class _CatalogViewState extends State<CatalogView> {
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 minHeight: constraints.maxHeight,
+                minWidth: constraints.maxWidth,
               ),
-              child: IntrinsicHeight(
+              child: Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0, vertical: 16.0),
+                      horizontal: 24.0, vertical: 32.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                        width: 56,
-                        height: 56,
+                        width: 68,
+                        height: 68,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: const Color(0xFFEFF6FF),
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                          border: Border.all(color: const Color(0xFFDBEAFE)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                              color: const Color(0xFF1C7BFF)
+                                  .withValues(alpha: 0.08),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: const Icon(
                           Icons.search_off_rounded,
-                          size: 28,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'No devices found',
-                        style: TextStyle(
-                          color: Color(0xFF111827),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _searchController.text.trim().isNotEmpty
-                            ? 'Try searching for "${_searchController.text.trim()}" in another category, or check spelling.'
-                            : 'No devices found in ${widget.viewModel.selectedCategory}.',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0xFF6B7280),
-                          fontSize: 13,
-                          height: 1.3,
+                          size: 32,
+                          color: Color(0xFF1C7BFF),
                         ),
                       ),
                       const SizedBox(height: 16),
+                      const Text(
+                        'No devices found',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 320),
+                        child: Text(
+                          isSearching
+                              ? 'We couldn\'t find any devices matching "${_searchController.text.trim()}". Check spelling or try a different term.'
+                              : 'There are currently no devices available in this category.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 13.5,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                       SizedBox(
-                        height: 38,
-                        child: OutlinedButton(
+                        height: 40,
+                        child: ElevatedButton.icon(
                           onPressed: () {
                             if (_searchController.text.isNotEmpty) {
                               _searchController.clear();
                               widget.viewModel.setSearchQuery('');
-                            } else {
-                              widget.viewModel.setCategory('All');
                             }
+                            widget.viewModel.setCategory('All');
                           },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1C7BFF),
-                            side: const BorderSide(color: Color(0xFFBFDBFE)),
+                          icon: Icon(
+                            isSearching
+                                ? Icons.clear_rounded
+                                : Icons.grid_view_rounded,
+                            size: 17,
+                          ),
+                          label: Text(
+                            isSearching ? 'Clear Search' : 'Show All Devices',
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1C7BFF),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                          ),
-                          child: Text(
-                            _searchController.text.trim().isNotEmpty
-                                ? 'Clear Search'
-                                : 'Show All Devices',
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),

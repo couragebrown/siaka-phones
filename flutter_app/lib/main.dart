@@ -401,7 +401,8 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
               _selectRootTab(1);
             },
             onCategoryTap: (category) {
-              widget.catalogVM.setCategory(category);
+              final cat = (category == 'All Products') ? 'All' : category;
+              widget.catalogVM.setCategory(cat);
               widget.catalogVM.setSearchQuery('');
               _selectRootTab(1);
             },

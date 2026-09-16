@@ -44,7 +44,7 @@ class CatalogViewModel extends ChangeNotifier {
   }
 
   void setCategory(String category) {
-    _selectedCategory = category;
+    _selectedCategory = (category == 'All Products') ? 'All' : category;
     _products = _productRepository.filterProducts(
       category: _selectedCategory,
       query: _searchQuery,
