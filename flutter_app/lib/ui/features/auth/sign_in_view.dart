@@ -460,33 +460,39 @@ class _SignInViewState extends State<SignInView> {
   }
 
   Widget _buildSocialList() {
-    return Column(
+    return Row(
       children: [
-        _buildFullSocialButton(
-          label: 'Continue with Google',
-          icon: _googleIconWidget(),
-          providerName: 'Google',
+        Expanded(
+          child: _buildIconSocialButton(
+            icon: _googleIconWidget(),
+            providerName: 'Google',
+            label: 'Google',
+          ),
         ),
-        const SizedBox(height: 10),
-        _buildFullSocialButton(
-          label: 'Continue with Apple',
-          icon: const Icon(Icons.apple, color: Colors.black, size: 21),
-          providerName: 'Apple',
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildIconSocialButton(
+            icon: const Icon(Icons.apple, color: Colors.black, size: 22),
+            providerName: 'Apple',
+            label: 'Apple',
+          ),
         ),
-        const SizedBox(height: 10),
-        _buildFullSocialButton(
-          label: 'Continue with Facebook',
-          icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 21),
-          providerName: 'Facebook',
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildIconSocialButton(
+            icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
+            providerName: 'Facebook',
+            label: 'Facebook',
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildFullSocialButton({
-    required String label,
+  Widget _buildIconSocialButton({
     required Widget icon,
     required String providerName,
+    required String label,
   }) {
     final isSelected = _selectedProvider == providerName;
 
@@ -514,28 +520,24 @@ class _SignInViewState extends State<SignInView> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 1),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             icon,
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF1E293B),
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -543,6 +545,7 @@ class _SignInViewState extends State<SignInView> {
       ),
     );
   }
+
 
   Widget _googleIconWidget() {
     return Container(

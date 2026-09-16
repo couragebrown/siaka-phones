@@ -1,24 +1,38 @@
 import 'package:flutter/foundation.dart';
 import '../../../data/repositories/cart_repository.dart';
 import '../../../data/repositories/order_repository.dart';
+import '../../../data/repositories/user_repository.dart';
+import '../../../data/mock_data.dart';
 import '../../../domain/models/cart_item.dart';
 import '../../../domain/models/order.dart';
 
 class CheckoutViewModel extends ChangeNotifier {
   final CartRepository _cartRepository;
   final OrderRepository _orderRepository;
+  final UserRepository? _userRepository;
 
   CheckoutViewModel({
     required CartRepository cartRepository,
     required OrderRepository orderRepository,
+    UserRepository? userRepository,
   })  : _cartRepository = cartRepository,
-        _orderRepository = orderRepository;
+        _orderRepository = orderRepository,
+        _userRepository = userRepository {
+    final p = userRepository?.profile ?? MockData.profile;
+    _fullName = p.name;
+    _address = p.detailAddress;
+    _city = p.region;
+    _zip = p.gpsCode;
+    _phone = p.phone;
+  }
 
-  String _fullName = 'Courage Brown';
-  String _address = '742 Evergreen Terrace';
-  String _city = 'Springfield';
-  String _zip = '97477';
-  String _phone = '+1 (555) 839-2041';
+  UserRepository? get userRepository => _userRepository;
+
+  late String _fullName;
+  late String _address;
+  late String _city;
+  late String _zip;
+  late String _phone;
   String _selectedPaymentMethod = 'MTN Mobile Money';
   String _selectedShippingMethod = 'Standard Express (2–4 days)';
   double? _customShippingFee;
@@ -81,7 +95,7 @@ class CheckoutViewModel extends ChangeNotifier {
         tax: tax,
         shippingFee: shipping,
         totalAmount: total,
-        shippingAddress: '$_address, $_city, $_zip',
+        shippingAddress: '$_address, $_city • $_zip',
         paymentMethod: _selectedPaymentMethod,
       );
 

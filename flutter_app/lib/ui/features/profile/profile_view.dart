@@ -231,8 +231,46 @@ class ProfileView extends StatelessWidget {
                       _rowDivider(),
                       _menuRow(
                         icon: Icons.location_on_outlined,
-                        label: 'Saved Delivery Addresses',
-                        onTap: onLocationsTap,
+                        label: 'Saved Delivery Address',
+                        subtitle:
+                            '${profile.detailAddress} • ${profile.gpsCode}',
+                        onTap: null, // User must click on Edit button to open edit panel
+                        trailing: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _showEditAddressSheet(context),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1C7BFF).withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: const Color(0xFF1C7BFF).withValues(alpha: 0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.edit_outlined,
+                                      size: 11, color: Color(0xFF1C7BFF)),
+                                  SizedBox(width: 3),
+                                  Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      color: Color(0xFF1C7BFF),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                       _rowDivider(),
                       _menuRow(
@@ -346,44 +384,386 @@ class ProfileView extends StatelessWidget {
   Widget _menuRow({
     required IconData icon,
     required String label,
-    required VoidCallback onTap,
+    String? subtitle,
+    VoidCallback? onTap,
+    Widget? trailing,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C7BFF).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 17, color: const Color(0xFF1C7BFF)),
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C7BFF).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFF1F2937),
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.2,
+            child: Icon(icon, size: 17, color: const Color(0xFF1C7BFF)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFF1F2937),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
                 ),
-              ),
+                if (subtitle != null && subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ],
             ),
+          ),
+          const SizedBox(width: 8),
+          if (trailing != null)
+            trailing
+          else
             const Icon(
               Icons.chevron_right_rounded,
               color: Color(0xFF9CA3AF),
               size: 18,
             ),
-          ],
-        ),
+        ],
       ),
+    );
+
+    if (onTap == null) {
+      return content;
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: content,
+    );
+  }
+
+  void _showEditAddressSheet(BuildContext context) {
+    final detailController =
+        TextEditingController(text: viewModel.profile.detailAddress);
+    final gpsController =
+        TextEditingController(text: viewModel.profile.gpsCode);
+    String selectedRegion = viewModel.profile.region.isNotEmpty
+        ? viewModel.profile.region
+        : 'Greater Accra';
+
+    const regions = [
+      'Greater Accra',
+      'Ashanti',
+      'Central',
+      'Eastern',
+      'Western',
+      'Western North',
+      'Volta',
+      'Oti',
+      'Northern',
+      'North East',
+      'Savannah',
+      'Upper East',
+      'Upper West',
+      'Bono',
+      'Bono East',
+      'Ahafo',
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom +
+                    MediaQuery.of(context).padding.bottom +
+                    24,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE5E7EB),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Edit Saved Address',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Only 1 Address',
+                            style: TextStyle(
+                              color: Color(0xFF1C7BFF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'This address will be automatically used for all your orders.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Detail Address
+                    const Text(
+                      'Detail Address / Street / House No.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: detailController,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF111827),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. House No. 14, Independence Ave, Airport',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF9CA3AF),
+                          fontSize: 13.5,
+                        ),
+                        prefixIcon: const Icon(Icons.home_outlined,
+                            size: 19, color: Color(0xFF6B7280)),
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF1C7BFF), width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Ghana GPS Code
+                    const Text(
+                      'Ghana GPS Digital Address',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: gpsController,
+                      textCapitalization: TextCapitalization.characters,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF111827),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. GA-014-2041',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF9CA3AF),
+                          fontSize: 13.5,
+                          letterSpacing: 0,
+                        ),
+                        prefixIcon: const Icon(Icons.qr_code_rounded,
+                            size: 19, color: Color(0xFF1C7BFF)),
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF1C7BFF), width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Region
+                    const Text(
+                      'Region (Ghana)',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: regions.contains(selectedRegion)
+                              ? selectedRegion
+                              : regions.first,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                              color: Color(0xFF6B7280)),
+                          items: regions.map((r) {
+                            return DropdownMenuItem(
+                              value: r,
+                              child: Text(
+                                r,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF1F2937),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setSheetState(() => selectedRegion = val);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final detail = detailController.text.trim();
+                          final gps = gpsController.text.trim().toUpperCase();
+                          if (detail.isEmpty || gps.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Please provide detail address and GPS code.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+
+                          viewModel.updateAddress(
+                            detailAddress: detail,
+                            gpsCode: gps,
+                            region: selectedRegion,
+                          );
+
+                          Navigator.of(sheetContext).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Address updated successfully'),
+                              duration: Duration(seconds: 2),
+                              backgroundColor: Color(0xFF10B981),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1C7BFF),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Save Address',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

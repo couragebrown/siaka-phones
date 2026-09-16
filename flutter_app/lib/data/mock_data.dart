@@ -848,10 +848,14 @@ class MockData {
     id: 'usr-902',
     name: 'Courage Brown',
     email: 'courage@siakaphones.com',
-    phone: '+1 (555) 839-2041',
+    phone: '+233 (024) 555-0192',
     avatarUrl:
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
     membershipTier: 'Diamond Elite VIP',
     rewardPoints: 4850,
+    detailAddress: 'House No. 14, Independence Avenue, Airport Residential Area',
+    gpsCode: 'GA-014-2041',
+    region: 'Greater Accra',
+    country: 'Ghana',
   );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/bottom_nav_scaffold.dart';
 import '../../core/widgets/featured_phone_card.dart';
 import '../../../domain/models/order.dart';
+import '../../../data/mock_data.dart';
 import 'checkout_view_model.dart';
 
 class CheckoutView extends StatefulWidget {
@@ -27,15 +28,15 @@ class _CheckoutViewState extends State<CheckoutView> {
   int _checkoutStep = 0;
 
   // Shipping selection
-  int _selectedAddressIndex = 0;
   int _selectedShippingOptionIndex = 0;
+  late Map<String, String> _address;
 
   // Payment selection: 0 = Mobile Money, 1 = Card, 2 = Apple/Google Pay, 3 = Pay on Delivery
   int _selectedPaymentMethodIndex = 0;
   String _selectedMoMoCarrier = 'MTN MoMo';
   bool _saveCard = true;
 
-  // Controllers for Add Address Dialog
+  // Controllers for Edit Address Dialog
   final TextEditingController _dlgNameController = TextEditingController();
   final TextEditingController _dlgAddressController = TextEditingController();
   final TextEditingController _dlgCityController = TextEditingController();
@@ -51,23 +52,6 @@ class _CheckoutViewState extends State<CheckoutView> {
   // Controller for MoMo phone
   final TextEditingController _momoPhoneController =
       TextEditingController(text: '024 555 0192');
-
-  final List<Map<String, String>> _addresses = [
-    {
-      'name': 'Courage Brown',
-      'tag': 'Default',
-      'line1': 'House No. 14, Independence Avenue',
-      'line2': 'Airport Residential Area, Accra • GA-014-2041',
-      'phone': '+233 (024) 555-0192',
-    },
-    {
-      'name': 'Courage Brown',
-      'tag': 'Office',
-      'line1': 'Suite 402, Silicon Square, East Legon',
-      'line2': 'Greater Accra • GA-402-9981',
-      'phone': '+233 (050) 888-3412',
-    },
-  ];
 
   final List<Map<String, dynamic>> _shippingMethods = [
     {
@@ -96,6 +80,23 @@ class _CheckoutViewState extends State<CheckoutView> {
   @override
   void initState() {
     super.initState();
+    final p = widget.viewModel.userRepository?.profile ?? MockData.profile;
+    _address = {
+      'name': p.name,
+      'line1': p.detailAddress,
+      'line2': '${p.region}, Ghana • ${p.gpsCode}',
+      'detailAddress': p.detailAddress,
+      'region': p.region,
+      'gpsCode': p.gpsCode,
+      'phone': p.phone,
+    };
+    widget.viewModel.updateShippingInfo(
+      fullName: _address['name'],
+      address: _address['detailAddress'],
+      city: _address['region'],
+      zip: _address['gpsCode'],
+      phone: _address['phone'],
+    );
     _applySelectedShipping();
   }
 
@@ -342,20 +343,20 @@ class _CheckoutViewState extends State<CheckoutView> {
               ),
             ),
             InkWell(
-              onTap: _showAddAddressDialog,
+              onTap: _showEditAddressDialog,
               borderRadius: BorderRadius.circular(6),
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add, size: 14, color: Color(0xFF1C7BFF)),
-                    SizedBox(width: 2),
+                    Icon(Icons.edit_outlined, size: 14, color: Color(0xFF1C7BFF)),
+                    SizedBox(width: 3),
                     Text(
-                      '+ Add New',
+                      'Edit',
                       style: TextStyle(
                         color: Color(0xFF1C7BFF),
-                        fontSize: 12,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -367,138 +368,124 @@ class _CheckoutViewState extends State<CheckoutView> {
         ),
         const SizedBox(height: 10),
 
-        // Address Cards List
-        ...List.generate(_addresses.length, (index) {
-          final address = _addresses[index];
-          final isSelected = _selectedAddressIndex == index;
-
-          return GestureDetector(
-            onTap: () {
-              setState(() => _selectedAddressIndex = index);
-              widget.viewModel.updateShippingInfo(
-                fullName: address['name'],
-                address: address['line1'],
-                city: address['line2'],
-                phone: address['phone'],
-              );
-            },
-            child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFF0F7FF) : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF1C7BFF)
-                      : const Color(0xFFE5E7EB),
-                  width: isSelected ? 1.5 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+        // Single Saved Address Card (from user account)
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F7FF),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: const Color(0xFF1C7BFF),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 2, right: 10),
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFF1C7BFF)
-                            : const Color(0xFF94A3B8),
-                        width: isSelected ? 5.5 : 1.5,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 2, right: 10),
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C7BFF).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  size: 16,
+                  color: Color(0xFF1C7BFF),
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                address['name'] ?? '',
-                                style: const TextStyle(
-                                  color: Color(0xFF1F2937),
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            if ((address['tag'] ?? '').isNotEmpty) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 1.5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  address['tag']!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF1C7BFF),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          address['line1'] ?? '',
-                          style: const TextStyle(
-                            color: Color(0xFF475467),
-                            fontSize: 12,
-                          ),
-                        ),
-                        if ((address['line2'] ?? '').isNotEmpty)
-                          Text(
-                            address['line2']!,
+                        Expanded(
+                          child: Text(
+                            _address['name'] ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: Color(0xFF667085),
-                              fontSize: 11.5,
+                              color: Color(0xFF1F2937),
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.phone_outlined,
-                                size: 12, color: Color(0xFF6B7280)),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                address['phone'] ?? '',
-                                style: const TextStyle(
-                                  color: Color(0xFF6B7280),
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1C7BFF).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Saved Address',
+                            style: TextStyle(
+                              color: Color(0xFF1C7BFF),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
                             ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      _address['line1'] ?? '',
+                      style: const TextStyle(
+                        color: Color(0xFF374151),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _address['line2'] ?? '',
+                      style: const TextStyle(
+                        color: Color(0xFF667085),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        const Icon(Icons.phone_outlined,
+                            size: 12, color: Color(0xFF6B7280)),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _address['phone'] ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        }),
+            ],
+          ),
+        ),
 
         const SizedBox(height: 12),
 
@@ -623,12 +610,12 @@ class _CheckoutViewState extends State<CheckoutView> {
           height: 48,
           child: ElevatedButton.icon(
             onPressed: () {
-              final selected = _addresses[_selectedAddressIndex];
               widget.viewModel.updateShippingInfo(
-                fullName: selected['name'],
-                address: selected['line1'],
-                city: selected['line2'],
-                phone: selected['phone'],
+                fullName: _address['name'],
+                address: _address['detailAddress'] ?? _address['line1'],
+                city: _address['region'] ?? 'Greater Accra',
+                zip: _address['gpsCode'] ?? '',
+                phone: _address['phone'],
               );
               _applySelectedShipping();
               setState(() => _checkoutStep = 1);
@@ -661,7 +648,6 @@ class _CheckoutViewState extends State<CheckoutView> {
   // ===========================================================================
   Widget _buildReviewStep() {
     final items = widget.viewModel.items;
-    final selectedAddress = _addresses[_selectedAddressIndex];
     final selectedShipping = _shippingMethods[_selectedShippingOptionIndex];
 
     return Column(
@@ -717,7 +703,7 @@ class _CheckoutViewState extends State<CheckoutView> {
               ),
               const SizedBox(height: 8),
               Text(
-                '${selectedAddress['name']} • ${selectedAddress['phone']}',
+                '${_address['name']} • ${_address['phone']}',
                 style: const TextStyle(
                   color: Color(0xFF1F2937),
                   fontSize: 12.5,
@@ -726,7 +712,7 @@ class _CheckoutViewState extends State<CheckoutView> {
               ),
               const SizedBox(height: 2),
               Text(
-                '${selectedAddress['line1']}, ${selectedAddress['line2']}',
+                '${_address['line1']}, ${_address['line2']}',
                 style: const TextStyle(
                   color: Color(0xFF4B5563),
                   fontSize: 11.5,
@@ -1519,19 +1505,20 @@ class _CheckoutViewState extends State<CheckoutView> {
     );
   }
 
-  void _showAddAddressDialog() {
-    _dlgNameController.clear();
-    _dlgAddressController.clear();
-    _dlgCityController.clear();
-    _dlgZipController.clear();
-    _dlgPhoneController.clear();
+  void _showEditAddressDialog() {
+    _dlgNameController.text = _address['name'] ?? '';
+    _dlgAddressController.text =
+        _address['detailAddress'] ?? _address['line1'] ?? '';
+    _dlgCityController.text = _address['region'] ?? 'Greater Accra';
+    _dlgZipController.text = _address['gpsCode'] ?? '';
+    _dlgPhoneController.text = _address['phone'] ?? '';
 
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
-          'Add Delivery Address',
+          'Edit Delivery Address',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         content: SingleChildScrollView(
@@ -1540,10 +1527,10 @@ class _CheckoutViewState extends State<CheckoutView> {
             children: [
               _dialogField(_dlgNameController, 'Full Name', 'e.g. Courage Brown'),
               const SizedBox(height: 8),
-              _dialogField(_dlgAddressController, 'Street Address',
-                  'e.g. 14 Independence Ave'),
+              _dialogField(_dlgAddressController, 'Detail Address',
+                  'e.g. House No. 14, Independence Ave'),
               const SizedBox(height: 8),
-              _dialogField(_dlgCityController, 'Town / City', 'e.g. Accra'),
+              _dialogField(_dlgCityController, 'Region / City', 'e.g. Greater Accra'),
               const SizedBox(height: 8),
               _dialogField(_dlgZipController, 'Ghana GPS Code', 'e.g. GA-014-2041'),
               const SizedBox(height: 8),
@@ -1560,22 +1547,57 @@ class _CheckoutViewState extends State<CheckoutView> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (_dlgNameController.text.trim().isEmpty ||
-                  _dlgAddressController.text.trim().isEmpty) {
+              if (_dlgAddressController.text.trim().isEmpty ||
+                  _dlgZipController.text.trim().isEmpty) {
                 return;
               }
+              final name = _dlgNameController.text.trim();
+              final detail = _dlgAddressController.text.trim();
+              final region = _dlgCityController.text.trim();
+              final gps = _dlgZipController.text.trim().toUpperCase();
+              final phone = _dlgPhoneController.text.trim();
+
               setState(() {
-                _addresses.add({
-                  'name': _dlgNameController.text.trim(),
-                  'tag': 'New',
-                  'line1': _dlgAddressController.text.trim(),
-                  'line2':
-                      '${_dlgCityController.text.trim()} • ${_dlgZipController.text.trim()}',
-                  'phone': _dlgPhoneController.text.trim(),
-                });
-                _selectedAddressIndex = _addresses.length - 1;
+                _address = {
+                  'name': name.isNotEmpty ? name : (_address['name'] ?? ''),
+                  'line1': detail,
+                  'line2': '$region, Ghana • $gps',
+                  'detailAddress': detail,
+                  'region': region,
+                  'gpsCode': gps,
+                  'phone': phone.isNotEmpty ? phone : (_address['phone'] ?? ''),
+                };
               });
+
+              widget.viewModel.updateShippingInfo(
+                fullName: _address['name'],
+                address: _address['detailAddress'],
+                city: _address['region'],
+                zip: _address['gpsCode'],
+                phone: _address['phone'],
+              );
+
+              // Update account saved address in UserRepository
+              widget.viewModel.userRepository?.updateAddress(
+                detailAddress: detail,
+                gpsCode: gps,
+                region: region,
+              );
+              if (name.isNotEmpty || phone.isNotEmpty) {
+                widget.viewModel.userRepository?.updateProfile(
+                  name: name.isNotEmpty ? name : null,
+                  phone: phone.isNotEmpty ? phone : null,
+                );
+              }
+
               Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Delivery address updated successfully'),
+                  duration: Duration(seconds: 2),
+                  backgroundColor: Color(0xFF10B981),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1C7BFF),

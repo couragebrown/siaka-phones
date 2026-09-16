@@ -248,6 +248,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
     final checkoutVM = CheckoutViewModel(
       cartRepository: widget.cartRepo,
       orderRepository: widget.orderRepo,
+      userRepository: widget.profileVM.userRepository,
     );
 
     Navigator.of(context).push(
@@ -365,7 +366,12 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             email: email,
             phone: phone,
           );
-          widget.profileVM.addAddress('$address, $region, $country ($gpsCode)');
+          widget.profileVM.updateAddress(
+            detailAddress: address,
+            gpsCode: gpsCode,
+            region: region,
+            country: country,
+          );
           await SessionManager.saveSession();
           setState(() {
             _isAuthenticated = true;

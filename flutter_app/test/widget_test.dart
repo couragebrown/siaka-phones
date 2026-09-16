@@ -33,7 +33,7 @@ import 'package:siaka_phones_flutter/domain/models/cart_item.dart';
 void main() {
   testWidgets('app launches directly to HomeView without splash',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const SiakaPhonesApp());
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
     await tester.pumpAndSettle();
 
     // Directly displays HomeView
@@ -253,7 +253,30 @@ void main() {
     expect(find.text('Account Services'), findsOneWidget);
     expect(find.text('My Orders & Tracking'), findsOneWidget);
     expect(find.text('Swap My Device'), findsOneWidget);
-    expect(find.text('Saved Delivery Addresses'), findsOneWidget);
+    // Verify Saved Delivery Address row has small Edit button
+    expect(find.text('Saved Delivery Address'), findsOneWidget);
+    final editBtn = find.text('Edit');
+    expect(editBtn, findsOneWidget);
+
+    // Tapping on 'Saved Delivery Address' label text must NOT open the sheet
+    await tester.tap(find.text('Saved Delivery Address'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Saved Address'), findsNothing);
+
+    // Clicking directly on 'Edit' opens the edit address sheet
+    await tester.tap(editBtn);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Saved Address'), findsOneWidget);
+    expect(find.text('Detail Address / Street / House No.'), findsOneWidget);
+    expect(find.text('Ghana GPS Digital Address'), findsOneWidget);
+
+    // Save and close sheet
+    await tester.tap(find.text('Save Address'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Saved Address'), findsNothing);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
     expect(find.text('Customer Support & FAQ'), findsOneWidget);
     expect(find.text('Saved Payment Methods'), findsOneWidget);
     expect(find.text('My Wishlist'), findsOneWidget);
@@ -445,12 +468,11 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     bool signedIn = false;
-    bool backPressed = false;
-
+ 
     await tester.pumpWidget(
       MaterialApp(
         home: LoginView(
-          onBack: () => backPressed = true,
+          onBack: () {},
           onSignIn: () => signedIn = true,
           onCreateAccount: (_, __, ___, ____, _____, ______, _______) {},
         ),
@@ -469,14 +491,11 @@ void main() {
     expect(find.text('Forgot Password?'), findsOneWidget);
     expect(find.text('Sign In'), findsWidgets); // button and tab
     expect(find.text('Or'), findsOneWidget);
-    expect(find.text('Continue with Google'), findsOneWidget);
-    expect(find.text('Continue with Apple'), findsOneWidget);
-    expect(find.text('Continue with Facebook'), findsOneWidget);
+    expect(find.text('Google'), findsOneWidget);
+    expect(find.text('Apple'), findsOneWidget);
+    expect(find.text('Facebook'), findsOneWidget);
 
-    // Verify back button works
-    await tester.tap(find.byTooltip('Back'));
-    await tester.pumpAndSettle();
-    expect(backPressed, isTrue);
+    // Note: Back button was removed on Sign In page per user design request
 
     // Verify Sign In action
     await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Sign In'));
@@ -510,7 +529,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome to SiakaPhones'), findsOneWidget);
-    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Google'), findsOneWidget);
   });
 
   testWidgets('LoginView renders on narrow 320px screen with no overflow',
@@ -734,7 +753,7 @@ void main() {
 
     // Verify Step 0 sections
     expect(find.text('Delivery Address'), findsOneWidget);
-    expect(find.text('+ Add New'), findsOneWidget);
+    expect(find.text('Edit'), findsOneWidget);
     expect(find.text('Delivery Speed'), findsOneWidget);
     expect(find.text('Standard Express (2–4 days)'), findsOneWidget);
 

@@ -197,12 +197,20 @@ class _BrandsViewState extends State<BrandsView> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredBrands = BrandsView.allBrands.where((brand) {
-      if (_filterQuery.isEmpty) return true;
-      final q = _filterQuery.toLowerCase();
-      return brand.name.toLowerCase().contains(q) ||
-          brand.tagline.toLowerCase().contains(q);
-    }).toList();
+    final List<BrandItem> filteredBrands;
+    if (_filterQuery.isEmpty) {
+      filteredBrands = List.of(BrandsView.allBrands);
+    } else {
+      final q = _filterQuery.toLowerCase().trim();
+      // Only match brands starting with the typed query (e.g. typing 'a' only lists Apple, Asus, Acer, Alienware)
+      filteredBrands = BrandsView.allBrands.where((b) {
+        final name = b.name.toLowerCase();
+        if (name.startsWith(q)) return true;
+        final words = name.split(RegExp(r'[\s\-_]+'));
+        return words.any((w) => w.startsWith(q));
+      }).toList();
+    }
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),

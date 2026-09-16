@@ -21,9 +21,24 @@ class ProfileViewModel extends ChangeNotifier {
   }
 
   UserProfile get profile => _userRepository.profile;
+  UserRepository get userRepository => _userRepository;
 
   void updateProfile({String? name, String? phone, String? email}) {
     _userRepository.updateProfile(name: name, phone: phone, email: email);
+  }
+
+  void updateAddress({
+    required String detailAddress,
+    required String gpsCode,
+    String? region,
+    String? country,
+  }) {
+    _userRepository.updateAddress(
+      detailAddress: detailAddress,
+      gpsCode: gpsCode,
+      region: region,
+      country: country,
+    );
   }
 
   void addAddress(String address) {
