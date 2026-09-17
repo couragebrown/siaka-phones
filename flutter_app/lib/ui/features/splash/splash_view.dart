@@ -21,8 +21,6 @@ class _SplashViewState extends State<SplashView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _progressAnimation;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<double> _scaleAnimation;
 
   @override
   void initState() {
@@ -33,21 +31,9 @@ class _SplashViewState extends State<SplashView>
       duration: widget.duration,
     );
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.92, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOutCubic),
-      ),
-    );
-
     _progressAnimation = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.15, 0.95, curve: Curves.easeInOutCubic),
+      curve: const Interval(0.05, 0.95, curve: Curves.easeInOutCubic),
     );
 
     _controller.forward();
@@ -103,58 +89,49 @@ class _SplashViewState extends State<SplashView>
               return Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Official Logo with Fade & Scale Animation
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: Container(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Official Siaka Phones Logo (instantly visible, perfectly centered)
+                      Container(
+                        width: 250,
+                        height: 250,
+                        alignment: Alignment.center,
+                        child: Image.asset(
+                          'assets/images/siaka_logo.png',
                           width: 250,
                           height: 250,
-                          alignment: Alignment.center,
-                          child: Image.asset(
-                            'assets/images/siaka_logo.png',
-                            width: 250,
-                            height: 250,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              // Fallback in case asset is loading
-                              return const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.phone_android_rounded,
-                                    size: 80,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.phone_android_rounded,
+                                  size: 80,
+                                  color: Color(0xFF1C7BFF),
+                                ),
+                                SizedBox(height: 12),
+                                Text(
+                                  'SIAKA PHONES',
+                                  style: TextStyle(
                                     color: Color(0xFF1C7BFF),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 22,
+                                    letterSpacing: 2,
                                   ),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    'SIAKA PHONES',
-                                    style: TextStyle(
-                                      color: Color(0xFF1C7BFF),
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 22,
-                                      letterSpacing: 2,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 28),
 
-                    // Modern Loading Bar State
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Column(
+                      // Modern Loading Bar Under Logo
+                      Column(
                         children: [
                           // Progress Track & Animated Fill
                           Container(
@@ -226,14 +203,13 @@ class _SplashViewState extends State<SplashView>
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
       ),
     );
   }
