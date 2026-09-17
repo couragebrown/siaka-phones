@@ -191,7 +191,7 @@ class _HomeViewState extends State<HomeView> {
                 children: [
                   const SizedBox(height: 6),
                   _buildSearchBar(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   _buildHeroBanner(),
                   const SizedBox(height: 18),
                   _buildBrandRow(),
@@ -915,44 +915,352 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GestureDetector(
-        onTap: widget.onSeeAllCatalog,
-        child: Container(
-          height: 44,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF6F7F9),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE1E5EA)),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 12),
-              const Icon(Icons.search, color: Color(0xFF8A93A6), size: 20),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Search for phones, accessories...',
-                  style: TextStyle(
-                    color: Color(0xFF8A93A6),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F7F9),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE1E5EA)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                key: const ValueKey('home_search_bar_field'),
+                behavior: HitTestBehavior.opaque,
+                onTap: widget.onSeeAllCatalog,
+                child: const Row(
+                  children: [
+                    SizedBox(width: 12),
+                    Icon(Icons.search, color: Color(0xFF8A93A6), size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Search for phones, accessories...',
+                        style: TextStyle(
+                          color: Color(0xFF8A93A6),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            InkWell(
+              key: const ValueKey('home_search_tune_button'),
+              borderRadius: BorderRadius.circular(10),
+              onTap: _showCategoriesBottomSheet,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6, left: 4, top: 4, bottom: 4),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFFFF),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE6E8ED)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.tune_rounded,
+                    size: 18,
+                    color: Color(0xFF1F2937),
                   ),
                 ),
               ),
-              Container(
-                margin: const EdgeInsets.only(right: 6),
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: const Color(0xFFE6E8ED)),
-                ),
-                child: const Icon(Icons.tune_rounded,
-                    size: 16, color: Color(0xFF1F2937)),
-              )
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCategoriesBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final categories = [
+          (
+            category: 'Smartphones',
+            icon: Icons.phone_android_rounded,
+            subtitle: 'Flagship & 5G',
+            color: const Color(0xFF2563EB),
+            bgColor: const Color(0xFFEFF6FF),
+          ),
+          (
+            category: 'Keypad Phones',
+            icon: Icons.dialpad_rounded,
+            subtitle: 'Nokia & Itel',
+            color: const Color(0xFF10B981),
+            bgColor: const Color(0xFFECFDF5),
+          ),
+          (
+            category: 'Laptops',
+            icon: Icons.laptop_mac_rounded,
+            subtitle: 'MacBooks & Dell',
+            color: const Color(0xFF8B5CF6),
+            bgColor: const Color(0xFFF5F3FF),
+          ),
+          (
+            category: 'Accessories',
+            icon: Icons.headphones_rounded,
+            subtitle: 'Audio & Power',
+            color: const Color(0xFFF59E0B),
+            bgColor: const Color(0xFFFFFBEB),
+          ),
+          (
+            category: 'Tablets',
+            icon: Icons.tablet_mac_rounded,
+            subtitle: 'iPads & Android',
+            color: const Color(0xFF0284C7),
+            bgColor: const Color(0xFFF0F9FF),
+          ),
+          (
+            category: 'Wearables',
+            icon: Icons.watch_rounded,
+            subtitle: 'Smartwatches',
+            color: const Color(0xFFEC4899),
+            bgColor: const Color(0xFFFDF2F8),
+          ),
+          (
+            category: 'Foldables',
+            icon: Icons.devices_fold_rounded,
+            subtitle: 'Flip & Fold',
+            color: const Color(0xFF6366F1),
+            bgColor: const Color(0xFFEEF2FF),
+          ),
+          (
+            category: 'All Products',
+            icon: Icons.grid_view_rounded,
+            subtitle: 'Entire Store',
+            color: const Color(0xFF059669),
+            bgColor: const Color(0xFFECFDF5),
+          ),
+        ];
+
+        final bottomInset = MediaQuery.of(ctx).padding.bottom;
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 20,
+                offset: Offset(0, -4),
+              ),
             ],
           ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 4),
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 12, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C7BFF).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: const Icon(
+                        Icons.tune_rounded,
+                        color: Color(0xFF1C7BFF),
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Select Category',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          Text(
+                            'Filter phones, laptops & gadgets in store',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      iconSize: 20,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+              const SizedBox(height: 14),
+
+              // 2-column Grid of categories
+              Padding(
+                padding: EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  bottom: bottomInset + 48,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (int i = 0; i < categories.length; i += 2) ...[
+                      Row(
+                        children: [
+                          Expanded(child: _buildCategorySheetCard(ctx, categories[i])),
+                          const SizedBox(width: 8),
+                          if (i + 1 < categories.length)
+                            Expanded(child: _buildCategorySheetCard(ctx, categories[i + 1]))
+                          else
+                            const Spacer(),
+                        ],
+                      ),
+                      if (i + 2 < categories.length) const SizedBox(height: 10),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCategorySheetCard(
+    BuildContext ctx,
+    ({
+      String category,
+      IconData icon,
+      String subtitle,
+      Color color,
+      Color bgColor,
+    }) item,
+  ) {
+    final isSelected = widget.viewModel.selectedCategory == item.category ||
+        (item.category == 'All Products' &&
+            (widget.viewModel.selectedCategory == 'All' ||
+                widget.viewModel.selectedCategory == 'All Products'));
+
+    return InkWell(
+      key: ValueKey('category_card_${item.category}'),
+      onTap: () {
+        Navigator.of(ctx).pop();
+        final cat = item.category == 'All Products' ? 'All' : item.category;
+        widget.viewModel.selectCategory(cat);
+        if (widget.onCategoryTap != null) {
+          widget.onCategoryTap!(cat);
+        } else {
+          widget.onSeeAllCatalog();
+        }
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? item.bgColor : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? item.color : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.6 : 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: item.bgColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(item.icon, size: 21, color: item.color),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      item.category,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: const Color(0xFF1E293B),
+                        fontSize: 13.5,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      item.subtitle,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

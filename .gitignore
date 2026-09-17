@@ -3,3 +3,5 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+*.apk
+flutter_app/screen_*.png

@@ -552,7 +552,7 @@ class _TradeInViewState extends State<TradeInView> {
         children: [
           Row(
             children: [
-              _buildStepBadge('2', const Color(0xFFF59E0B)),
+              _buildStepBadge('2', const Color(0xFF059669)),
               const SizedBox(width: 10),
               const Expanded(
                 child: Column(
@@ -595,24 +595,43 @@ class _TradeInViewState extends State<TradeInView> {
                       vm.setCurrentBrand(brand);
                       _currentModelController.text = vm.currentModel;
                     },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
+                    borderRadius: BorderRadius.circular(10),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFFEF3C7) : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
+                        color: isSelected ? const Color(0xFF059669) : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                          color: isSelected ? const Color(0xFF059669) : const Color(0xFFA7F3D0),
                           width: isSelected ? 1.5 : 1,
                         ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFF059669).withValues(alpha: 0.25),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1.5),
+                                ),
+                              ]
+                            : null,
                       ),
-                      child: Text(
-                        brand,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? const Color(0xFFB45309) : const Color(0xFF334155),
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            const Icon(Icons.check_rounded, size: 13, color: Colors.white),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            brand,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                              color: isSelected ? Colors.white : const Color(0xFF065F46),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -634,7 +653,7 @@ class _TradeInViewState extends State<TradeInView> {
             decoration: InputDecoration(
               hintText: 'e.g. iPhone 13, Galaxy S22...',
               hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-              prefixIcon: const Icon(Icons.devices_other_rounded, color: Color(0xFFF59E0B), size: 20),
+              prefixIcon: const Icon(Icons.devices_other_rounded, color: Color(0xFF059669), size: 20),
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -648,7 +667,7 @@ class _TradeInViewState extends State<TradeInView> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 1.5),
+                borderSide: const BorderSide(color: Color(0xFF059669), width: 1.5),
               ),
             ),
           ),
@@ -671,22 +690,42 @@ class _TradeInViewState extends State<TradeInView> {
                   vm.setCurrentModel(model);
                 },
                 borderRadius: BorderRadius.circular(20),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: isMatch ? const Color(0xFFF59E0B) : const Color(0xFFF1F5F9),
+                    color: isMatch ? const Color(0xFF059669) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isMatch ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                      color: isMatch ? const Color(0xFF059669) : const Color(0xFFA7F3D0),
+                      width: isMatch ? 1.5 : 1,
                     ),
+                    boxShadow: isMatch
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF059669).withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: Text(
-                    model,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isMatch ? FontWeight.bold : FontWeight.w500,
-                      color: isMatch ? Colors.white : const Color(0xFF334155),
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isMatch) ...[
+                        const Icon(Icons.check_rounded, size: 12, color: Colors.white),
+                        const SizedBox(width: 3),
+                      ],
+                      Text(
+                        model,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isMatch ? FontWeight.bold : FontWeight.w600,
+                          color: isMatch ? Colors.white : const Color(0xFF065F46),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -705,10 +744,23 @@ class _TradeInViewState extends State<TradeInView> {
             children: TradeInViewModel.storageOptions.map((s) {
               final isSel = vm.currentStorage == s;
               return ChoiceChip(
-                label: Text(s, style: TextStyle(fontSize: 11.5, color: isSel ? Colors.white : const Color(0xFF334155))),
+                showCheckmark: true,
+                checkmarkColor: Colors.white,
+                label: Text(
+                  s,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
+                    color: isSel ? Colors.white : const Color(0xFF065F46),
+                  ),
+                ),
                 selected: isSel,
-                selectedColor: const Color(0xFFF59E0B),
-                backgroundColor: const Color(0xFFF8FAFC),
+                selectedColor: const Color(0xFF059669),
+                backgroundColor: Colors.white,
+                side: BorderSide(
+                  color: isSel ? const Color(0xFF059669) : const Color(0xFFA7F3D0),
+                  width: isSel ? 1.5 : 1,
+                ),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 onSelected: (_) => vm.setCurrentStorage(s),
               );
@@ -728,10 +780,23 @@ class _TradeInViewState extends State<TradeInView> {
             children: TradeInViewModel.currentConditionOptions.map((c) {
               final isSel = vm.currentCondition == c;
               return ChoiceChip(
-                label: Text(c, style: TextStyle(fontSize: 11.5, color: isSel ? Colors.white : const Color(0xFF334155))),
+                showCheckmark: true,
+                checkmarkColor: Colors.white,
+                label: Text(
+                  c,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
+                    color: isSel ? Colors.white : const Color(0xFF065F46),
+                  ),
+                ),
                 selected: isSel,
-                selectedColor: const Color(0xFFF59E0B),
-                backgroundColor: const Color(0xFFF8FAFC),
+                selectedColor: const Color(0xFF059669),
+                backgroundColor: Colors.white,
+                side: BorderSide(
+                  color: isSel ? const Color(0xFF059669) : const Color(0xFFA7F3D0),
+                  width: isSel ? 1.5 : 1,
+                ),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 onSelected: (_) => vm.setCurrentCondition(c),
               );

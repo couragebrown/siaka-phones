@@ -42,6 +42,8 @@ import 'package:siaka_phones_flutter/ui/features/tradein/tradein_view.dart';
 import 'package:siaka_phones_flutter/ui/features/tradein/tradein_view_model.dart';
 import 'package:siaka_phones_flutter/ui/features/tradein/devices_swapped_view.dart';
 import 'package:siaka_phones_flutter/ui/features/splash/splash_view.dart';
+import 'package:siaka_phones_flutter/ui/features/orders/orders_view.dart';
+import 'package:siaka_phones_flutter/ui/features/orders/orders_view_model.dart';
 
 
 
@@ -1791,6 +1793,177 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SplashView), findsNothing);
     expect(find.byType(HomeView), findsOneWidget);
+  });
+
+  testWidgets(
+      'TrackOrderView shows green ORDER PLACED & CONFIRMED and CONFIRMED badge on step 1 when order is placed',
+      (WidgetTester tester) async {
+    final orderRepo = OrderRepository();
+    orderRepo.updateOrderStatus('SP-883921', OrderStatus.placed);
+    final placedOrder = orderRepo.getOrderById('SP-883921')!;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TrackOrderView(
+          order: placedOrder,
+          orderRepository: orderRepo,
+          onTabSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // Verify correct green badge on summary card
+    expect(find.text('ORDER PLACED & CONFIRMED'), findsOneWidget);
+    expect(find.text('Order Placed & Confirmed'), findsWidgets);
+    expect(find.text('CONFIRMED'), findsOneWidget);
+    expect(find.text(placedOrder.trackingNumber), findsOneWidget);
+
+    // Manager status advance simulation in order repository
+    orderRepo.advanceOrderStatus(placedOrder.orderId);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // After manager updates, status moves forward to Packing / Processing
+    expect(find.text('PROCESSING & PACKING'), findsOneWidget);
+    expect(find.text('Order is Being Packed'), findsOneWidget);
+
+    // Manager advances order again: status moves to Dispatched / In Transit
+    orderRepo.advanceOrderStatus(placedOrder.orderId);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('IN TRANSIT'), findsOneWidget);
+    expect(find.text('Package is on the way'), findsOneWidget);
+  });
+
+  testWidgets('OrdersView displays orders with Ghanaian Cedis and triggers onTrackOrder',
+      (WidgetTester tester) async {
+    final orderRepo = OrderRepository();
+    final ordersVM = OrdersViewModel(orderRepository: orderRepo);
+    OrderModel? trackedOrder;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OrdersView(
+          viewModel: ordersVM,
+          orderRepo: orderRepo,
+          onTrackOrder: (o) => trackedOrder = o,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('My Orders & Tracking'), findsOneWidget);
+    expect(find.text('All Orders'), findsNothing); // Chips are 'All (3)', 'In Progress (2)', etc.
+    expect(find.textContaining('All ('), findsOneWidget);
+    expect(find.text('Track Order'), findsWidgets);
+
+    // Tap first Track Order button
+    await tester.tap(find.text('Track Order').first);
+    await tester.pumpAndSettle();
+
+    expect(trackedOrder, isNotNull);
+  });
+
+  testWidgets('ProfileView orders stat and My Orders & Tracking row both trigger onOrdersTap',
+      (WidgetTester tester) async {
+    final userRepo = UserRepository();
+    final profileVM = ProfileViewModel(userRepository: userRepo);
+    int ordersTapCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProfileView(
+          viewModel: profileVM,
+          ordersCount: '5',
+          onOrdersTap: () => ordersTapCount++,
+          onTradeInTap: () {},
+          onLocationsTap: () {},
+          onSupportTap: () {},
+          onSignOut: () {},
+          onBack: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify Orders stat shows count '5'
+    expect(find.text('5'), findsOneWidget);
+    expect(find.text('Orders'), findsOneWidget);
+
+    // Tap Orders stat
+    await tester.tap(find.text('Orders'));
+    await tester.pumpAndSettle();
+    expect(ordersTapCount, 1);
+
+    // Tap My Orders & Tracking row
+    await tester.tap(find.text('My Orders & Tracking'));
+    await tester.pumpAndSettle();
+    expect(ordersTapCount, 2);
+  });
+
+  testWidgets(
+      'tapping tune button in homepage search bar opens categories sheet and selecting category filters catalog',
+      (tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // Verify search bar has the tune button
+    final tuneBtn = find.byKey(const ValueKey('home_search_tune_button'));
+    expect(tuneBtn, findsOneWidget);
+
+    // Tap the tune button
+    await tester.tap(tuneBtn);
+    await tester.pumpAndSettle();
+
+    // Verify category sheet is open with title & categories from image
+    expect(find.text('Select Category'), findsOneWidget);
+    expect(find.text('Filter phones, laptops & gadgets in store'), findsOneWidget);
+    expect(find.text('Smartphones'), findsOneWidget);
+    expect(find.text('Flagship & 5G'), findsOneWidget);
+    expect(find.text('Keypad Phones'), findsOneWidget);
+    expect(find.text('Nokia & Itel'), findsOneWidget);
+    expect(find.text('Laptops'), findsOneWidget);
+    expect(find.text('MacBooks & Dell'), findsOneWidget);
+    expect(find.text('Accessories'), findsWidgets);
+    expect(find.text('Audio & Power'), findsOneWidget);
+
+    // Tap Smartphones card
+    final smartphonesCard =
+        find.byKey(const ValueKey('category_card_Smartphones'));
+    expect(smartphonesCard, findsOneWidget);
+    await tester.tap(smartphonesCard);
+    await tester.pumpAndSettle();
+
+    // Verify sheet dismissed and navigated to Catalog filtered to Smartphones
+    expect(find.text('Select Category'), findsNothing);
+    expect(find.textContaining('Smartphones'), findsWidgets);
+    expect(find.text('iPhone 15 Pro Max'), findsWidgets);
+  });
+
+  testWidgets(
+      'tapping search bar on homepage navigates to catalog and auto-focuses search textfield',
+      (tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // Verify on HomeView
+    expect(find.byType(HomeView), findsOneWidget);
+
+    // Tap the search bar field on HomeView
+    final searchBarField =
+        find.byKey(const ValueKey('home_search_bar_field'));
+    expect(searchBarField, findsOneWidget);
+    await tester.tap(searchBarField);
+    await tester.pumpAndSettle();
+
+    // Verify CatalogView is now active and search TextField has focus
+    final searchTextField =
+        find.byKey(const ValueKey('catalog_search_textfield'));
+    expect(searchTextField, findsOneWidget);
+    final textFieldWidget = tester.widget<TextField>(searchTextField);
+    expect(textFieldWidget.focusNode?.hasFocus, isTrue);
   });
 }
 

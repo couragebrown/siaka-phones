@@ -12,6 +12,7 @@ class ProfileView extends StatelessWidget {
   final VoidCallback onSignOut;
   final VoidCallback onBack;
   final VoidCallback? onWishlistTap;
+  final String? ordersCount;
 
   const ProfileView({
     super.key,
@@ -25,6 +26,7 @@ class ProfileView extends StatelessWidget {
     required this.onSignOut,
     required this.onBack,
     this.onWishlistTap,
+    this.ordersCount,
   });
 
   String _getInitials(String name) {
@@ -183,13 +185,22 @@ class ProfileView extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      _summaryStat('3', 'Orders'),
+                      _summaryStat(
+                        ordersCount ?? '3',
+                        'Orders',
+                        onTap: onOrdersTap,
+                      ),
                       _verticalDivider(),
-                      _summaryStat('4', 'Wishlist'),
+                      _summaryStat(
+                        '4',
+                        'Wishlist',
+                        onTap: onWishlistTap,
+                      ),
                       _verticalDivider(),
                       _summaryStat(
                         profile.savedAddresses.length.toString(),
                         'Addresses',
+                        onTap: () => _showEditAddressSheet(context),
                       ),
                     ],
                   ),
@@ -359,30 +370,37 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _summaryStat(String value, String label) {
+  Widget _summaryStat(String value, String label, {VoidCallback? onTap}) {
     return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Color(0xFF1C7BFF),
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Color(0xFF1C7BFF),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF6B7280),
-                fontSize: 11.5,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

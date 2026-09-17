@@ -2,16 +2,64 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/bottom_nav_scaffold.dart';
 import '../../core/widgets/featured_phone_card.dart';
 import '../../../domain/models/order.dart';
+import '../../../data/repositories/order_repository.dart';
 
-class TrackOrderView extends StatelessWidget {
+class TrackOrderView extends StatefulWidget {
   final OrderModel order;
+  final OrderRepository? orderRepository;
   final ValueChanged<int> onTabSelected;
 
   const TrackOrderView({
     super.key,
     required this.order,
+    this.orderRepository,
     required this.onTabSelected,
   });
+
+  @override
+  State<TrackOrderView> createState() => _TrackOrderViewState();
+}
+
+class _TrackOrderViewState extends State<TrackOrderView> {
+  late OrderModel _order;
+
+  @override
+  void initState() {
+    super.initState();
+    _order = widget.order;
+    widget.orderRepository?.addListener(_onRepoChanged);
+  }
+
+  @override
+  void didUpdateWidget(TrackOrderView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.order != widget.order) {
+      _order = widget.order;
+    }
+    if (oldWidget.orderRepository != widget.orderRepository) {
+      oldWidget.orderRepository?.removeListener(_onRepoChanged);
+      widget.orderRepository?.addListener(_onRepoChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.orderRepository?.removeListener(_onRepoChanged);
+    super.dispose();
+  }
+
+  void _onRepoChanged() {
+    if (widget.orderRepository != null) {
+      final updated = widget.orderRepository!.getOrderById(_order.orderId);
+      if (updated != null && mounted) {
+        setState(() {
+          _order = updated;
+        });
+      }
+    }
+  }
+
+
 
   String _formatDate(DateTime dt) {
     const months = [
@@ -29,6 +77,13 @@ class TrackOrderView extends StatelessWidget {
       'Dec'
     ];
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+  }
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 
   String _formatEstimatedDelivery(DateTime dt) {
@@ -51,6 +106,185 @@ class TrackOrderView extends StatelessWidget {
     return '${months[start.month - 1]} ${start.day} – ${months[end.month - 1]} ${end.day}, ${end.year}';
   }
 
+  List<_TrackingStepData> _buildSteps() {
+    final orderDateStr = _formatDate(_order.date);
+    final orderTimeStr = _formatTime(_order.date);
+    final estDeliveryStr = _formatEstimatedDelivery(_order.date);
+
+    switch (_order.status) {
+      case OrderStatus.placed:
+        return [
+          _TrackingStepData(
+            title: 'Order Placed & Confirmed',
+            description: '$orderDateStr • $orderTimeStr • Siaka Online Store',
+            status: _StepStatus.completed,
+          ),
+          const _TrackingStepData(
+            title: 'Processed & Packed',
+            description: 'Awaiting fulfillment at Siaka Accra Hub',
+            status: _StepStatus.upcoming,
+          ),
+          _TrackingStepData(
+            title: 'Dispatched with Courier',
+            description:
+                'Assigned upon packaging (Tracking #${_order.trackingNumber})',
+            status: _StepStatus.upcoming,
+          ),
+          const _TrackingStepData(
+            title: 'Out for Delivery',
+            description: 'Courier assigned on scheduled delivery day',
+            status: _StepStatus.upcoming,
+          ),
+          _TrackingStepData(
+            title: 'Delivered to Destination',
+            description: 'Expected $estDeliveryStr',
+            status: _StepStatus.upcoming,
+          ),
+        ];
+
+      case OrderStatus.processing:
+        return [
+          _TrackingStepData(
+            title: 'Order Placed & Confirmed',
+            description: '$orderDateStr • $orderTimeStr • Siaka Online Store',
+            status: _StepStatus.completed,
+          ),
+          _TrackingStepData(
+            title: 'Processed & Packed',
+            description:
+                '$orderDateStr • Quality inspection & packaging in progress',
+            status: _StepStatus.active,
+          ),
+          _TrackingStepData(
+            title: 'Dispatched with Courier',
+            description:
+                'Carrier assigned on dispatch (Tracking #${_order.trackingNumber})',
+            status: _StepStatus.upcoming,
+          ),
+          const _TrackingStepData(
+            title: 'Out for Delivery',
+            description: 'Courier assigned on scheduled delivery day',
+            status: _StepStatus.upcoming,
+          ),
+          _TrackingStepData(
+            title: 'Delivered to Destination',
+            description: 'Expected $estDeliveryStr',
+            status: _StepStatus.upcoming,
+          ),
+        ];
+
+      case OrderStatus.shipped:
+        return [
+          _TrackingStepData(
+            title: 'Order Placed & Confirmed',
+            description: '$orderDateStr • $orderTimeStr • Siaka Online Store',
+            status: _StepStatus.completed,
+          ),
+          _TrackingStepData(
+            title: 'Processed & Packed',
+            description: '$orderDateStr • Siaka Accra Hub',
+            status: _StepStatus.completed,
+          ),
+          _TrackingStepData(
+            title: 'Dispatched with Carrier',
+            description:
+                'Carrier: FedEx Express (Tracking #${_order.trackingNumber})',
+            status: _StepStatus.active,
+          ),
+          const _TrackingStepData(
+            title: 'Out for Delivery',
+            description: 'Courier assigned on scheduled delivery day',
+            status: _StepStatus.upcoming,
+          ),
+          _TrackingStepData(
+            title: 'Delivered to Destination',
+            description: 'Expected $estDeliveryStr',
+            status: _StepStatus.upcoming,
+          ),
+        ];
+
+      case OrderStatus.outForDelivery:
+        return [
+          _TrackingStepData(
+            title: 'Order Placed & Confirmed',
+            description: '$orderDateStr • $orderTimeStr • Siaka Online Store',
+            status: _StepStatus.completed,
+          ),
+          _TrackingStepData(
+            title: 'Processed & Packed',
+            description: '$orderDateStr • Siaka Accra Hub',
+            status: _StepStatus.completed,
+          ),
+          _TrackingStepData(
+            title: 'Dispatched with Courier',
+            description:
+                'Dispatched from Siaka Hub (Tracking #${_order.trackingNumber})',
+            status: _StepStatus.completed,
+          ),
+          const _TrackingStepData(
+            title: 'Out for Delivery',
+            description:
+                'Courier Michael R. is on the way to your delivery address',
+            status: _StepStatus.active,
+          ),
+          _TrackingStepData(
+            title: 'Delivered to Destination',
+            description: 'Expected $estDeliveryStr',
+            status: _StepStatus.upcoming,
+          ),
+        ];
+
+      case OrderStatus.delivered:
+        return [
+          _TrackingStepData(
+            title: 'Order Placed & Confirmed',
+            description: '$orderDateStr • $orderTimeStr • Siaka Online Store',
+            status: _StepStatus.completed,
+          ),
+          _TrackingStepData(
+            title: 'Processed & Packed',
+            description: '$orderDateStr • Siaka Accra Hub',
+            status: _StepStatus.completed,
+          ),
+          _TrackingStepData(
+            title: 'Dispatched with Courier',
+            description:
+                'Dispatched from Siaka Hub (Tracking #${_order.trackingNumber})',
+            status: _StepStatus.completed,
+          ),
+          const _TrackingStepData(
+            title: 'Out for Delivery',
+            description: 'Courier Michael R. arrived at delivery area',
+            status: _StepStatus.completed,
+          ),
+          _TrackingStepData(
+            title: 'Delivered to Destination',
+            description: 'Delivered and verified at ${_order.shippingAddress}',
+            status: _StepStatus.completed,
+          ),
+        ];
+
+      case OrderStatus.cancelled:
+        return [
+          _TrackingStepData(
+            title: 'Order Placed',
+            description: '$orderDateStr • $orderTimeStr',
+            status: _StepStatus.completed,
+          ),
+          const _TrackingStepData(
+            title: 'Order Cancelled',
+            description: 'Order was cancelled per customer or manager request',
+            status: _StepStatus.active,
+          ),
+          const _TrackingStepData(
+            title: 'Fulfillment Stopped',
+            description: 'No further delivery actions scheduled',
+            status: _StepStatus.upcoming,
+          ),
+        ];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     void handleBack() {
@@ -61,36 +295,79 @@ class TrackOrderView extends StatelessWidget {
       }
     }
 
-    final hasItems = order.items.isNotEmpty;
+    final hasItems = _order.items.isNotEmpty;
+    final steps = _buildSteps();
 
-    // Ordered timeline step definition
-    final steps = [
-      _TrackingStepData(
-        title: 'Order Placed & Confirmed',
-        description: '${_formatDate(order.date)} • 10:30 AM',
-        status: _StepStatus.completed,
-      ),
-      _TrackingStepData(
-        title: 'Processed & Packed',
-        description: '${_formatDate(order.date)} • 11:15 AM • Siaka Hub',
-        status: _StepStatus.completed,
-      ),
-      _TrackingStepData(
-        title: 'Dispatched with Carrier',
-        description: 'Carrier: FedEx Express (Tracking #${order.trackingNumber})',
-        status: _StepStatus.active,
-      ),
-      const _TrackingStepData(
-        title: 'Out for Delivery',
-        description: 'Courier assigned on scheduled delivery day',
-        status: _StepStatus.upcoming,
-      ),
-      _TrackingStepData(
-        title: 'Delivered to Destination',
-        description: 'Expected ${_formatEstimatedDelivery(order.date)}',
-        status: _StepStatus.upcoming,
-      ),
-    ];
+    // Summary badge and headline logic
+    final String badgeText;
+    final IconData badgeIcon;
+    final Color badgeColor;
+    final Color badgeBg;
+    final Color badgeBorder;
+    final String headlineText;
+    final String carrierText;
+
+    switch (_order.status) {
+      case OrderStatus.placed:
+        badgeText = 'ORDER PLACED & CONFIRMED';
+        badgeIcon = Icons.check_circle_outline_rounded;
+        badgeColor = const Color(0xFF059669);
+        badgeBg = const Color(0xFFECFDF5);
+        badgeBorder = const Color(0xFFA7F3D0);
+        headlineText = 'Order Placed & Confirmed';
+        carrierText = 'Siaka Express Delivery';
+        break;
+
+      case OrderStatus.processing:
+        badgeText = 'PROCESSING & PACKING';
+        badgeIcon = Icons.inventory_2_outlined;
+        badgeColor = const Color(0xFFD97706);
+        badgeBg = const Color(0xFFFEF3C7);
+        badgeBorder = const Color(0xFFFDE68A);
+        headlineText = 'Order is Being Packed';
+        carrierText = 'Siaka Fulfillment Hub';
+        break;
+
+      case OrderStatus.shipped:
+        badgeText = 'IN TRANSIT';
+        badgeIcon = Icons.local_shipping_rounded;
+        badgeColor = const Color(0xFF1D4ED8);
+        badgeBg = const Color(0xFFEFF6FF);
+        badgeBorder = const Color(0xFFBFDBFE);
+        headlineText = 'Package is on the way';
+        carrierText = 'FedEx Express';
+        break;
+
+      case OrderStatus.outForDelivery:
+        badgeText = 'OUT FOR DELIVERY';
+        badgeIcon = Icons.delivery_dining_rounded;
+        badgeColor = const Color(0xFF7C3AED);
+        badgeBg = const Color(0xFFF5F3FF);
+        badgeBorder = const Color(0xFFDDD6FE);
+        headlineText = 'Package Out for Delivery';
+        carrierText = 'Michael R. (Courier)';
+        break;
+
+      case OrderStatus.delivered:
+        badgeText = 'DELIVERED';
+        badgeIcon = Icons.task_alt_rounded;
+        badgeColor = const Color(0xFF059669);
+        badgeBg = const Color(0xFFECFDF5);
+        badgeBorder = const Color(0xFFA7F3D0);
+        headlineText = 'Package Delivered';
+        carrierText = 'Delivered by Michael R.';
+        break;
+
+      case OrderStatus.cancelled:
+        badgeText = 'ORDER CANCELLED';
+        badgeIcon = Icons.cancel_outlined;
+        badgeColor = const Color(0xFFDC2626);
+        badgeBg = const Color(0xFFFEF2F2);
+        badgeBorder = const Color(0xFFFECACA);
+        headlineText = 'Order Cancelled';
+        carrierText = 'Order Closed';
+        break;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -121,15 +398,14 @@ class TrackOrderView extends StatelessWidget {
             padding: const EdgeInsets.only(right: 14),
             child: Center(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0xFFBFDBFE)),
                 ),
                 child: Text(
-                  '#${order.orderId}',
+                  '#${_order.orderId}',
                   style: const TextStyle(
                     color: Color(0xFF1D4ED8),
                     fontSize: 11,
@@ -158,6 +434,7 @@ class TrackOrderView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+
                       // 1. Order Status Summary Card
                       Container(
                         width: double.infinity,
@@ -182,38 +459,36 @@ class TrackOrderView extends StatelessWidget {
                               children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
+                                      horizontal: 8, vertical: 3.5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
+                                    color: badgeBg,
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                        color: const Color(0xFFBFDBFE)),
+                                    border: Border.all(color: badgeBorder),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.local_shipping_rounded,
-                                          size: 12,
-                                          color: Color(0xFF1D4ED8)),
-                                      SizedBox(width: 4),
+                                      Icon(badgeIcon,
+                                          size: 13, color: badgeColor),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        'IN TRANSIT',
+                                        badgeText,
                                         style: TextStyle(
-                                          color: Color(0xFF1D4ED8),
+                                          color: badgeColor,
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.3,
+                                          letterSpacing: 0.2,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                const Flexible(
+                                Flexible(
                                   child: Text(
-                                    'FedEx Express',
+                                    carrierText,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Color(0xFF64748B),
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w600,
@@ -223,9 +498,9 @@ class TrackOrderView extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            const Text(
-                              'Package is on the way',
-                              style: TextStyle(
+                            Text(
+                              headlineText,
+                              style: const TextStyle(
                                 color: Color(0xFF0F172A),
                                 fontSize: 16.5,
                                 fontWeight: FontWeight.w800,
@@ -234,15 +509,18 @@ class TrackOrderView extends StatelessWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              'Estimated Delivery: ${_formatEstimatedDelivery(order.date)}',
-                              style: const TextStyle(
-                                color: Color(0xFF059669),
+                              _order.status == OrderStatus.delivered
+                                  ? 'Delivered on ${_formatDate(_order.date)}'
+                                  : 'Estimated Delivery: ${_formatEstimatedDelivery(_order.date)}',
+                              style: TextStyle(
+                                color: _order.status == OrderStatus.delivered
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFF1D4ED8),
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const Divider(
-                                height: 20, color: Color(0xFFF1F5F9)),
+                            const Divider(height: 20, color: Color(0xFFF1F5F9)),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -269,7 +547,7 @@ class TrackOrderView extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    order.trackingNumber,
+                                    _order.trackingNumber,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       color: Color(0xFF1C7BFF),
@@ -318,9 +596,17 @@ class TrackOrderView extends StatelessWidget {
                             ...List.generate(steps.length, (index) {
                               final step = steps[index];
                               final isLast = index == steps.length - 1;
+                              final nextStep =
+                                  !isLast ? steps[index + 1] : null;
+                              final isConnectorGreen = step.status ==
+                                      _StepStatus.completed &&
+                                  (nextStep?.status == _StepStatus.completed ||
+                                      nextStep?.status == _StepStatus.active);
+
                               return _buildTimelineItem(
                                 step: step,
                                 isLast: isLast,
+                                isConnectorGreen: isConnectorGreen,
                               );
                             }),
                           ],
@@ -369,7 +655,7 @@ class TrackOrderView extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    order.shippingAddress,
+                                    _order.shippingAddress,
                                     style: const TextStyle(
                                       color: Color(0xFF0F172A),
                                       fontSize: 12.5,
@@ -415,7 +701,7 @@ class TrackOrderView extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '${order.items.length} ${order.items.length == 1 ? 'item' : 'items'}',
+                                    '${_order.items.length} ${_order.items.length == 1 ? 'item' : 'items'}',
                                     style: const TextStyle(
                                       color: Color(0xFF64748B),
                                       fontSize: 11.5,
@@ -426,11 +712,11 @@ class TrackOrderView extends StatelessWidget {
                               ),
                               const Divider(
                                   height: 16, color: Color(0xFFF1F5F9)),
-                              ...List.generate(order.items.length, (index) {
-                                final item = order.items[index];
+                              ...List.generate(_order.items.length, (index) {
+                                final item = _order.items[index];
                                 return Padding(
                                   padding: EdgeInsets.only(
-                                      bottom: index == order.items.length - 1
+                                      bottom: index == _order.items.length - 1
                                           ? 0
                                           : 8),
                                   child: Row(
@@ -552,7 +838,8 @@ class TrackOrderView extends StatelessWidget {
                               onTap: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Calling courier Michael R...'),
+                                    content:
+                                        Text('Calling courier Michael R...'),
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
@@ -577,7 +864,8 @@ class TrackOrderView extends StatelessWidget {
                               onTap: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Opening chat with courier...'),
+                                    content:
+                                        Text('Opening chat with courier...'),
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
@@ -611,7 +899,7 @@ class TrackOrderView extends StatelessWidget {
                           onPressed: () {
                             Navigator.of(context)
                                 .popUntil((route) => route.isFirst);
-                            onTabSelected(0);
+                            widget.onTabSelected(0);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF1C7BFF),
@@ -641,16 +929,19 @@ class TrackOrderView extends StatelessWidget {
           ),
           AppBottomNavBar(
             currentIndex: 0,
-            onTabSelected: onTabSelected,
+            onTabSelected: widget.onTabSelected,
           ),
         ],
       ),
     );
   }
 
+
+
   Widget _buildTimelineItem({
     required _TrackingStepData step,
     required bool isLast,
+    required bool isConnectorGreen,
   }) {
     final isDone = step.status == _StepStatus.completed;
     final isActive = step.status == _StepStatus.active;
@@ -662,7 +953,8 @@ class TrackOrderView extends StatelessWidget {
     if (isDone) {
       circleColor = const Color(0xFF059669);
       borderColor = const Color(0xFF059669);
-      iconWidget = const Icon(Icons.check_rounded, size: 13, color: Colors.white);
+      iconWidget =
+          const Icon(Icons.check_rounded, size: 13, color: Colors.white);
     } else if (isActive) {
       circleColor = const Color(0xFF1C7BFF);
       borderColor = const Color(0xFF1C7BFF);
@@ -715,7 +1007,7 @@ class TrackOrderView extends StatelessWidget {
                     child: Container(
                       width: 2,
                       margin: const EdgeInsets.symmetric(vertical: 3),
-                      color: isDone
+                      color: isConnectorGreen
                           ? const Color(0xFF059669)
                           : const Color(0xFFE2E8F0),
                     ),
@@ -737,17 +1029,37 @@ class TrackOrderView extends StatelessWidget {
                         child: Text(
                           step.title,
                           style: TextStyle(
-                            color: isActive
-                                ? const Color(0xFF1C7BFF)
-                                : const Color(0xFF0F172A),
+                            color: isDone
+                                ? const Color(0xFF059669)
+                                : (isActive
+                                    ? const Color(0xFF1C7BFF)
+                                    : const Color(0xFF0F172A)),
                             fontSize: 13,
-                            fontWeight: isActive
+                            fontWeight: (isActive || isDone)
                                 ? FontWeight.w800
                                 : FontWeight.w700,
                           ),
                         ),
                       ),
-                      if (isActive)
+                      if (isDone)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                          ),
+                          child: const Text(
+                            'CONFIRMED',
+                            style: TextStyle(
+                              color: Color(0xFF059669),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        )
+                      else if (isActive)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 1.5),

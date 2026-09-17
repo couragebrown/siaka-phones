@@ -21,4 +21,14 @@ class OrdersViewModel extends ChangeNotifier {
   }
 
   List<OrderModel> get orders => _orderRepository.orders;
+
+  OrderModel? getOrderById(String orderId) => _orderRepository.getOrderById(orderId);
+
+  void updateOrderStatus(String orderId, OrderStatus newStatus) {
+    _orderRepository.updateOrderStatus(orderId, newStatus);
+  }
+
+  void advanceOrderStatus(String orderId) {
+    _orderRepository.advanceOrderStatus(orderId);
+  }
 }

@@ -45,4 +45,32 @@ class OrderModel {
         return 'Cancelled';
     }
   }
+
+  OrderModel copyWith({
+    String? orderId,
+    DateTime? date,
+    List<CartItem>? items,
+    double? subtotal,
+    double? tax,
+    double? shippingFee,
+    double? totalAmount,
+    String? shippingAddress,
+    String? paymentMethod,
+    OrderStatus? status,
+    String? trackingNumber,
+  }) {
+    return OrderModel(
+      orderId: orderId ?? this.orderId,
+      date: date ?? this.date,
+      items: items ?? this.items,
+      subtotal: subtotal ?? this.subtotal,
+      tax: tax ?? this.tax,
+      shippingFee: shippingFee ?? this.shippingFee,
+      totalAmount: totalAmount ?? this.totalAmount,
+      shippingAddress: shippingAddress ?? this.shippingAddress,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      status: status ?? this.status,
+      trackingNumber: trackingNumber ?? this.trackingNumber,
+    );
+  }
 }

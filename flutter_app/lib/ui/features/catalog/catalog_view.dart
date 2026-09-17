@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/app_colors.dart';
 import '../../core/widgets/featured_phone_card.dart';
 import '../../../domain/models/product.dart';
@@ -26,6 +27,8 @@ class CatalogView extends StatefulWidget {
   final Function(Product)? onProductTap;
   final VoidCallback? onBack;
   final WishlistRepository? wishlistRepo;
+  final bool autoFocusSearch;
+  final VoidCallback? onSearchFocused;
 
   const CatalogView({
     super.key,
@@ -33,6 +36,8 @@ class CatalogView extends StatefulWidget {
     this.onProductTap,
     this.onBack,
     this.wishlistRepo,
+    this.autoFocusSearch = false,
+    this.onSearchFocused,
   });
 
   @override
@@ -41,6 +46,7 @@ class CatalogView extends StatefulWidget {
 
 class _CatalogViewState extends State<CatalogView> {
   final TextEditingController _searchController = TextEditingController();
+  late final FocusNode _searchFocusNode;
   final Set<String> _wishlistProductIds = {'phone-1'};
   late final PageController _heroPageController;
   Timer? _heroTimer;
@@ -73,9 +79,22 @@ class _CatalogViewState extends State<CatalogView> {
     ),
   ];
 
+  void _triggerAutoFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _searchFocusNode.requestFocus();
+      SystemChannels.textInput.invokeMethod('TextInput.show');
+      widget.onSearchFocused?.call();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    _searchFocusNode = FocusNode();
+    if (widget.autoFocusSearch) {
+      _triggerAutoFocus();
+    }
     _heroPageController = PageController();
     _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted || !_heroPageController.hasClients) return;
@@ -91,6 +110,14 @@ class _CatalogViewState extends State<CatalogView> {
     _searchController.addListener(_onSearchChanged);
   }
 
+  @override
+  void didUpdateWidget(covariant CatalogView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.autoFocusSearch) {
+      _triggerAutoFocus();
+    }
+  }
+
   void _onSearchChanged() {
     widget.viewModel.setSearchQuery(_searchController.text);
     setState(() {});
@@ -100,6 +127,7 @@ class _CatalogViewState extends State<CatalogView> {
   void dispose() {
     _heroTimer?.cancel();
     _heroPageController.dispose();
+    _searchFocusNode.dispose();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
@@ -163,7 +191,9 @@ class _CatalogViewState extends State<CatalogView> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
+                          key: const ValueKey('catalog_search_textfield'),
                           controller: _searchController,
+                          focusNode: _searchFocusNode,
                           cursorColor: const Color(0xFF1C7BFF),
                           textInputAction: TextInputAction.search,
                           style: const TextStyle(
@@ -187,7 +217,7 @@ class _CatalogViewState extends State<CatalogView> {
                           },
                           onSubmitted: (val) {
                             widget.viewModel.setSearchQuery(val);
-                            FocusScope.of(context).unfocus();
+                            _searchFocusNode.unfocus();
                           },
                         ),
                       ),

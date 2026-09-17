@@ -21,10 +21,10 @@ class OrderRepository extends ChangeNotifier {
       tax: 98.99,
       shippingFee: 0.0,
       totalAmount: 1298.98,
-      shippingAddress: '742 Evergreen Terrace, Springfield, OR 97477',
-      paymentMethod: 'Siaka Apple Pay (•••• 4092)',
+      shippingAddress: 'House No. 14, Airport Residential Area, Accra',
+      paymentMethod: 'MTN Mobile Money (•••• 4092)',
       status: OrderStatus.shipped,
-      trackingNumber: 'TRK-902847291-US',
+      trackingNumber: 'TRK-GH-883921-SP',
     ),
     OrderModel(
       orderId: 'SP-771024',
@@ -42,14 +42,65 @@ class OrderRepository extends ChangeNotifier {
       tax: 28.87,
       shippingFee: 0.0,
       totalAmount: 378.86,
-      shippingAddress: '742 Evergreen Terrace, Springfield, OR 97477',
-      paymentMethod: 'Visa (•••• 8821)',
+      shippingAddress: 'Plot 22, Boundary Road, East Legon, Accra',
+      paymentMethod: 'Telecel Cash (•••• 8821)',
       status: OrderStatus.delivered,
-      trackingNumber: 'TRK-881920199-US',
+      trackingNumber: 'TRK-GH-771024-SP',
     ),
   ];
 
   List<OrderModel> get orders => List.unmodifiable(_orders);
+
+  OrderModel? getOrderById(String orderId) {
+    try {
+      return _orders.firstWhere((o) => o.orderId == orderId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void updateOrderStatus(String orderId, OrderStatus newStatus) {
+    final index = _orders.indexWhere((o) => o.orderId == orderId);
+    if (index != -1) {
+      final old = _orders[index];
+      _orders[index] = OrderModel(
+        orderId: old.orderId,
+        date: old.date,
+        items: old.items,
+        subtotal: old.subtotal,
+        tax: old.tax,
+        shippingFee: old.shippingFee,
+        totalAmount: old.totalAmount,
+        shippingAddress: old.shippingAddress,
+        paymentMethod: old.paymentMethod,
+        status: newStatus,
+        trackingNumber: old.trackingNumber,
+      );
+      notifyListeners();
+    }
+  }
+
+  void advanceOrderStatus(String orderId) {
+    final order = getOrderById(orderId);
+    if (order == null) return;
+    switch (order.status) {
+      case OrderStatus.placed:
+        updateOrderStatus(orderId, OrderStatus.processing);
+        break;
+      case OrderStatus.processing:
+        updateOrderStatus(orderId, OrderStatus.shipped);
+        break;
+      case OrderStatus.shipped:
+        updateOrderStatus(orderId, OrderStatus.outForDelivery);
+        break;
+      case OrderStatus.outForDelivery:
+        updateOrderStatus(orderId, OrderStatus.delivered);
+        break;
+      case OrderStatus.delivered:
+      case OrderStatus.cancelled:
+        break;
+    }
+  }
 
   Future<OrderModel> placeOrder({
     required List<CartItem> items,
@@ -72,7 +123,7 @@ class OrderRepository extends ChangeNotifier {
       shippingAddress: shippingAddress,
       paymentMethod: paymentMethod,
       status: OrderStatus.placed,
-      trackingNumber: 'TRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(4)}-US',
+      trackingNumber: 'TRK-GH-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}-SP',
     );
     _orders.insert(0, newOrder);
     notifyListeners();

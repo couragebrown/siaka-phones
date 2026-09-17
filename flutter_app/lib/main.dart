@@ -216,6 +216,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
     with WidgetsBindingObserver {
   late bool _isAuthenticated;
   int _currentTabIndex = 0;
+  bool _autoFocusSearch = false;
 
   @override
   void initState() {
@@ -242,7 +243,10 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
 
   void _selectRootTab(int index) {
     Navigator.of(context).popUntil((route) => route.isFirst);
-    setState(() => _currentTabIndex = index);
+    setState(() {
+      _currentTabIndex = index;
+      _autoFocusSearch = false;
+    });
   }
 
   void _navigateToProductDetail(Product product) {
@@ -294,6 +298,18 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
     );
   }
 
+  void _navigateToTrackOrder(OrderModel order) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TrackOrderView(
+          order: order,
+          orderRepository: widget.orderRepo,
+          onTabSelected: _selectRootTab,
+        ),
+      ),
+    );
+  }
+
   void _navigateToConfirmation(OrderModel order) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -301,14 +317,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
           order: order,
           onTrackOrder: () {
             Navigator.of(context).popUntil((route) => route.isFirst);
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => TrackOrderView(
-                  order: order,
-                  onTabSelected: _selectRootTab,
-                ),
-              ),
-            );
+            _navigateToTrackOrder(order);
           },
           onContinueShopping: () {
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -322,7 +331,15 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
   void _navigateToOrders() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => OrdersView(viewModel: widget.ordersVM),
+        builder: (_) => OrdersView(
+          viewModel: widget.ordersVM,
+          orderRepo: widget.orderRepo,
+          onTrackOrder: (order) => _navigateToTrackOrder(order),
+          onBrowseCatalog: () {
+            Navigator.of(context).pop();
+            _selectRootTab(1);
+          },
+        ),
       ),
     );
   }
@@ -468,7 +485,10 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             viewModel: widget.homeVM,
             wishlistRepo: widget.wishlistRepo,
             onProductTap: _navigateToProductDetail,
-            onSeeAllCatalog: () => setState(() => _currentTabIndex = 1),
+            onSeeAllCatalog: () => setState(() {
+              _currentTabIndex = 1;
+              _autoFocusSearch = true;
+            }),
             onSeeAllBrands: _navigateToBrands,
             onBrandTap: (brand) {
               widget.catalogVM.setSearchQuery(brand);
@@ -499,6 +519,10 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             viewModel: widget.catalogVM,
             wishlistRepo: widget.wishlistRepo,
             onProductTap: _navigateToProductDetail,
+            autoFocusSearch: _autoFocusSearch,
+            onSearchFocused: () {
+              _autoFocusSearch = false;
+            },
           ),
           CartView(
             viewModel: widget.cartVM,
@@ -515,6 +539,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
           ),
           ProfileView(
             viewModel: widget.profileVM,
+            ordersCount: widget.orderRepo.orders.length.toString(),
             onOrdersTap: _navigateToOrders,
             onRepairsTap: _navigateToMyRepairs,
             onTradeInTap: _navigateToTradeIn,
