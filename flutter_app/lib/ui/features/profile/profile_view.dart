@@ -4,7 +4,9 @@ import 'profile_view_model.dart';
 class ProfileView extends StatelessWidget {
   final ProfileViewModel viewModel;
   final VoidCallback onOrdersTap;
+  final VoidCallback? onRepairsTap;
   final VoidCallback onTradeInTap;
+  final VoidCallback? onDevicesSwappedTap;
   final VoidCallback onLocationsTap;
   final VoidCallback onSupportTap;
   final VoidCallback onSignOut;
@@ -15,7 +17,9 @@ class ProfileView extends StatelessWidget {
     super.key,
     required this.viewModel,
     required this.onOrdersTap,
+    this.onRepairsTap,
     required this.onTradeInTap,
+    this.onDevicesSwappedTap,
     required this.onLocationsTap,
     required this.onSupportTap,
     required this.onSignOut,
@@ -220,13 +224,22 @@ class ProfileView extends StatelessWidget {
                       _menuRow(
                         icon: Icons.receipt_long_outlined,
                         label: 'My Orders & Tracking',
+                        subtitle: 'Track status of your orders & deliveries',
                         onTap: onOrdersTap,
                       ),
                       _rowDivider(),
                       _menuRow(
+                        icon: Icons.build_circle_outlined,
+                        label: 'My Repairs',
+                        subtitle: 'View all repairs initiated or completed',
+                        onTap: onRepairsTap,
+                      ),
+                      _rowDivider(),
+                      _menuRow(
                         icon: Icons.swap_horiz_rounded,
-                        label: 'Swap My Device',
-                        onTap: onTradeInTap,
+                        label: 'Devices Swapped',
+                        subtitle: 'View all devices swapped or initiated',
+                        onTap: onDevicesSwappedTap ?? onTradeInTap,
                       ),
                       _rowDivider(),
                       _menuRow(

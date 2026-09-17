@@ -12,18 +12,10 @@ class LocationsView extends StatefulWidget {
 }
 
 class _LocationsViewState extends State<LocationsView> {
-  final TextEditingController _searchController = TextEditingController();
-
   @override
   void initState() {
     super.initState();
     widget.viewModel.loadLocations();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -57,59 +49,6 @@ class _LocationsViewState extends State<LocationsView> {
               : ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   children: [
-                    // Search bar
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Search Circle, Madina, Kasoa...',
-                          hintStyle: const TextStyle(
-                            color: Color(0xFF94A3B8),
-                            fontSize: 13,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.location_searching_rounded,
-                            color: Color(0xFF1C7BFF),
-                            size: 20,
-                          ),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear,
-                                      color: Color(0xFF94A3B8), size: 18),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    widget.viewModel.setSearchQuery('');
-                                  },
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 13),
-                        ),
-                        onChanged: (val) =>
-                            widget.viewModel.setSearchQuery(val),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
                     // Store Network Hero Card
                     Container(
                       padding: const EdgeInsets.all(18),

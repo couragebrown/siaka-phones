@@ -2,7 +2,15 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- White background -->
     <item android:drawable="@android:color/white" />
+    <!-- Centered Siaka Phones logo -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/siaka_logo"
+            android:tileMode="disabled" />
+    </item>
 </layer-list>
+
 
 
 

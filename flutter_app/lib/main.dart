@@ -39,8 +39,10 @@ import 'ui/features/orders/orders_view_model.dart';
 import 'ui/features/orders/orders_view.dart';
 import 'ui/features/repairs/repairs_view_model.dart';
 import 'ui/features/repairs/repairs_view.dart';
+import 'ui/features/repairs/my_repairs_view.dart';
 import 'ui/features/tradein/tradein_view_model.dart';
 import 'ui/features/tradein/tradein_view.dart';
+import 'ui/features/tradein/devices_swapped_view.dart';
 import 'ui/features/support/support_view_model.dart';
 import 'ui/features/support/support_view.dart';
 import 'ui/features/locations/locations_view_model.dart';
@@ -50,6 +52,9 @@ import 'ui/features/reviews/reviews_view.dart';
 import 'ui/features/wishlist/wishlist_view.dart';
 import 'ui/features/track_order/track_order_view.dart';
 import 'ui/features/brands/brands_view.dart';
+import 'ui/features/bnpl/bnpl_view_model.dart';
+import 'ui/features/bnpl/bnpl_view.dart';
+import 'ui/features/splash/splash_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,18 +68,25 @@ void main() async {
   // Check whether the user has a valid (non-expired) session
   final hasSession = await SessionManager.hasValidSession();
 
-  runApp(SiakaPhonesApp(startAuthenticated: hasSession));
+  runApp(SiakaPhonesApp(startAuthenticated: hasSession, showSplash: true));
 }
 
 class SiakaPhonesApp extends StatefulWidget {
   final bool startAuthenticated;
-  const SiakaPhonesApp({super.key, required this.startAuthenticated});
+  final bool showSplash;
+  const SiakaPhonesApp({
+    super.key,
+    required this.startAuthenticated,
+    this.showSplash = true,
+  });
 
   @override
   State<SiakaPhonesApp> createState() => _SiakaPhonesAppState();
 }
 
 class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
+  late bool _splashFinished;
+
   // Shared Singleton Repositories
   final ProductRepository _productRepo = ProductRepository();
   final CartRepository _cartRepo = CartRepository();
@@ -97,10 +109,12 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
   late final SupportViewModel _supportVM;
   late final LocationsViewModel _locationsVM;
   late final ReviewsViewModel _reviewsVM;
+  late final BnplViewModel _bnplVM;
 
   @override
   void initState() {
     super.initState();
+    _splashFinished = !widget.showSplash;
     _homeVM = HomeViewModel(productRepository: _productRepo);
     _catalogVM = CatalogViewModel(productRepository: _productRepo);
     _cartVM = CartViewModel(cartRepository: _cartRepo);
@@ -111,6 +125,7 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
     _supportVM = SupportViewModel();
     _locationsVM = LocationsViewModel(locationRepository: _locationRepo);
     _reviewsVM = ReviewsViewModel();
+    _bnplVM = BnplViewModel();
   }
 
   @override
@@ -119,23 +134,34 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
       title: 'Siaka Phones',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: AppRootNavigationHub(
-        startAuthenticated: widget.startAuthenticated,
-        productRepo: _productRepo,
-        cartRepo: _cartRepo,
-        orderRepo: _orderRepo,
-        wishlistRepo: _wishlistRepo,
-        homeVM: _homeVM,
-        catalogVM: _catalogVM,
-        cartVM: _cartVM,
-        profileVM: _profileVM,
-        ordersVM: _ordersVM,
-        repairsVM: _repairsVM,
-        tradeInVM: _tradeInVM,
-        supportVM: _supportVM,
-        locationsVM: _locationsVM,
-        reviewsVM: _reviewsVM,
-      ),
+      home: !_splashFinished
+          ? SplashView(
+              onLoaded: () {
+                if (mounted) {
+                  setState(() {
+                    _splashFinished = true;
+                  });
+                }
+              },
+            )
+          : AppRootNavigationHub(
+              startAuthenticated: widget.startAuthenticated,
+              productRepo: _productRepo,
+              cartRepo: _cartRepo,
+              orderRepo: _orderRepo,
+              wishlistRepo: _wishlistRepo,
+              homeVM: _homeVM,
+              catalogVM: _catalogVM,
+              cartVM: _cartVM,
+              profileVM: _profileVM,
+              ordersVM: _ordersVM,
+              repairsVM: _repairsVM,
+              tradeInVM: _tradeInVM,
+              supportVM: _supportVM,
+              locationsVM: _locationsVM,
+              reviewsVM: _reviewsVM,
+              bnplVM: _bnplVM,
+            ),
     );
   }
 }
@@ -156,6 +182,7 @@ class AppRootNavigationHub extends StatefulWidget {
   final SupportViewModel supportVM;
   final LocationsViewModel locationsVM;
   final ReviewsViewModel reviewsVM;
+  final BnplViewModel bnplVM;
 
   const AppRootNavigationHub({
     super.key,
@@ -174,6 +201,7 @@ class AppRootNavigationHub extends StatefulWidget {
     required this.supportVM,
     required this.locationsVM,
     required this.reviewsVM,
+    required this.bnplVM,
   });
 
   @override
@@ -336,6 +364,48 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
     );
   }
 
+  void _navigateToMyRepairs() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MyRepairsView(
+          viewModel: widget.repairsVM,
+          onBookNewRepair: () {
+            Navigator.of(context).pop();
+            _navigateToRepairs();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDevicesSwapped() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DevicesSwappedView(
+          viewModel: widget.tradeInVM,
+          onInitiateNewSwap: () {
+            Navigator.of(context).pop();
+            _navigateToTradeIn();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _navigateToBuyNowPayLater() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BnplView(
+          viewModel: widget.bnplVM,
+          onReturnHome: () {
+            Navigator.of(context).pop();
+            _selectRootTab(0);
+          },
+        ),
+      ),
+    );
+  }
+
   void _navigateToBrands() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -411,6 +481,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             onOrdersTap: _navigateToOrders,
             onLocationsTap: _navigateToLocations,
             onSupportTap: _navigateToSupport,
+            onBuyNowPayLaterTap: _navigateToBuyNowPayLater,
             onProfileTap: () => setState(() => _currentTabIndex = 4),
             onSignOut: () async {
               await SessionManager.clearSession();
@@ -441,7 +512,9 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
           ProfileView(
             viewModel: widget.profileVM,
             onOrdersTap: _navigateToOrders,
+            onRepairsTap: _navigateToMyRepairs,
             onTradeInTap: _navigateToTradeIn,
+            onDevicesSwappedTap: _navigateToDevicesSwapped,
             onLocationsTap: _navigateToLocations,
             onSupportTap: _navigateToSupport,
             onWishlistTap: () => setState(() => _currentTabIndex = 3),

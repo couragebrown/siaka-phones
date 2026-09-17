@@ -2,7 +2,34 @@ import 'package:flutter/foundation.dart';
 import '../../domain/models/repair_booking.dart';
 
 class RepairRepository extends ChangeNotifier {
-  final List<RepairBooking> _bookings = [];
+  final List<RepairBooking> _bookings = [
+    RepairBooking(
+      id: 'REP-GH-8219',
+      deviceModel: 'Samsung Galaxy S22 Ultra',
+      issueType: 'Screen Replacement / AMOLED Crack',
+      description: 'Front glass cracked, display touch working. Genuine replacement requested.',
+      dropOffBranch: 'Siaka Phones Circle',
+      estimatedCost: 0.0,
+      appointmentDate: DateTime.now().subtract(const Duration(days: 4)),
+      timeSlot: 'Morning (9:00 AM - 1:00 PM)',
+      customerName: 'Kwame Mensah',
+      customerPhone: '024 555 0192',
+      status: 'Completed',
+    ),
+    RepairBooking(
+      id: 'REP-GH-9442',
+      deviceModel: 'iPhone 13 Pro',
+      issueType: 'Battery Degradation / Fast Drain',
+      description: 'Battery health degraded at 74%. Needs original battery replacement.',
+      dropOffBranch: 'Siaka Phones Madina',
+      estimatedCost: 0.0,
+      appointmentDate: DateTime.now().add(const Duration(days: 1)),
+      timeSlot: 'Afternoon (2:00 PM - 5:00 PM)',
+      customerName: 'Kwame Mensah',
+      customerPhone: '024 555 0192',
+      status: 'In Progress / Diagnostic',
+    ),
+  ];
 
   List<RepairBooking> get bookings => List.unmodifiable(_bookings);
 

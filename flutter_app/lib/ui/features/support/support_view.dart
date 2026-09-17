@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../data/services/dialer_service.dart';
 import 'support_view_model.dart';
 
 class SupportView extends StatefulWidget {
@@ -34,10 +35,16 @@ class _SupportViewState extends State<SupportView> {
     });
   }
 
-  void _callCustomerServiceLine(BuildContext context) {
+  Future<void> _callCustomerServiceLine(BuildContext context) async {
+    final success = await DialerService.openDialer(SupportViewModel.customerServicePhone);
+    if (success) {
+      return;
+    }
+
     Clipboard.setData(
       const ClipboardData(text: SupportViewModel.customerServicePhone),
     );
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

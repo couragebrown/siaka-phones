@@ -35,6 +35,13 @@ import 'package:siaka_phones_flutter/data/repositories/repair_repository.dart';
 import 'package:siaka_phones_flutter/ui/features/repairs/repairs_view.dart';
 import 'package:siaka_phones_flutter/ui/features/repairs/repairs_view_model.dart';
 import 'package:siaka_phones_flutter/ui/features/support/support_view.dart';
+import 'package:siaka_phones_flutter/ui/features/bnpl/bnpl_view.dart';
+import 'package:siaka_phones_flutter/ui/features/bnpl/bnpl_view_model.dart';
+import 'package:siaka_phones_flutter/ui/features/repairs/my_repairs_view.dart';
+import 'package:siaka_phones_flutter/ui/features/tradein/tradein_view.dart';
+import 'package:siaka_phones_flutter/ui/features/tradein/tradein_view_model.dart';
+import 'package:siaka_phones_flutter/ui/features/tradein/devices_swapped_view.dart';
+import 'package:siaka_phones_flutter/ui/features/splash/splash_view.dart';
 
 
 
@@ -260,7 +267,8 @@ void main() {
     // Verify Account Services section
     expect(find.text('Account Services'), findsOneWidget);
     expect(find.text('My Orders & Tracking'), findsOneWidget);
-    expect(find.text('Swap My Device'), findsOneWidget);
+    expect(find.text('My Repairs'), findsOneWidget);
+    expect(find.text('Devices Swapped'), findsOneWidget);
     // Verify Saved Delivery Address row has small Edit button
     expect(find.text('Saved Delivery Address'), findsOneWidget);
     final editBtn = find.text('Edit');
@@ -1128,7 +1136,7 @@ void main() {
   });
 
   testWidgets(
-      'LocationsView displays Siaka Phones Circle, Madina, and Kasoa with search support',
+      'LocationsView displays Siaka Phones Circle, Madina, and Kasoa without search bar',
       (WidgetTester tester) async {
     final locationRepo = LocationRepository();
     final viewModel = LocationsViewModel(locationRepository: locationRepo);
@@ -1150,21 +1158,8 @@ void main() {
     expect(find.text('GhanaPost GPS: GM-023-8890'), findsOneWidget);
     expect(find.text('GhanaPost GPS: CG-012-5544'), findsOneWidget);
 
-    // 2. Search for Circle
-    await tester.enterText(find.byType(TextField), 'Circle');
-    await tester.pumpAndSettle();
-
-    expect(find.text('Siaka Phones Circle'), findsOneWidget);
-    expect(find.text('Siaka Phones Madina'), findsNothing);
-    expect(find.text('Siaka Phones Kasoa'), findsNothing);
-
-    // 3. Search for Kasoa
-    await tester.enterText(find.byType(TextField), 'kasoa');
-    await tester.pumpAndSettle();
-
-    expect(find.text('Siaka Phones Kasoa'), findsOneWidget);
-    expect(find.text('Siaka Phones Circle'), findsNothing);
-    expect(find.text('Siaka Phones Madina'), findsNothing);
+    // 2. Verify search bar has been removed
+    expect(find.byType(TextField), findsNothing);
   });
 
   testWidgets(
@@ -1490,8 +1485,312 @@ void main() {
 
     // 4. Tap 'Call' button
     await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+      'tapping Buy Now Pay Later in app drawer navigates to dedicated BnplView',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // 1. Open menu drawer
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+
+    // 2. Tap 'Buy Now Pay Later'
+    expect(find.text('Buy Now Pay Later'), findsOneWidget);
+    await tester.tap(find.text('Buy Now Pay Later'));
+    await tester.pumpAndSettle();
+
+    // 3. Verify BnplView is opened
+    expect(find.byType(BnplView), findsOneWidget);
+    expect(find.text('0% APR Installment Plans with Siaka Pay'), findsOneWidget);
+  });
+
+  testWidgets(
+      'BnplView allows selecting between Tecno, Infinix, Samsung, and iPhone, typing model, selecting specs, and submitting for manager review',
+      (WidgetTester tester) async {
+    final viewModel = BnplViewModel();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BnplView(viewModel: viewModel),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. Verify 4 brand options exist
+    expect(find.text('Tecno'), findsOneWidget);
+    expect(find.text('Infinix'), findsOneWidget);
+    expect(find.text('Samsung'), findsOneWidget);
+    expect(find.text('iPhone'), findsOneWidget);
+
+    // 2. Select Samsung brand
+    await tester.tap(find.text('Samsung'));
+    await tester.pumpAndSettle();
+    expect(viewModel.selectedBrand, 'Samsung');
+
+    // 3. Tap popular model chip or enter text into TextField
+    expect(find.text('Galaxy S24 Ultra'), findsOneWidget);
+    await tester.tap(find.text('Galaxy S24 Ultra'));
+    await tester.pumpAndSettle();
+    expect(viewModel.modelName, 'Galaxy S24 Ultra');
+
+    // 4. Select specs (e.g. 512 GB storage, 12 GB RAM, and Weekly installment duration)
+    await tester.tap(find.text('512 GB'));
+    await tester.pumpAndSettle();
+    expect(viewModel.selectedStorage, '512 GB');
+
+    await tester.tap(find.text('12 GB'));
+    await tester.pumpAndSettle();
+    expect(viewModel.selectedRam, '12 GB');
+
+    expect(find.text('Daily'), findsOneWidget);
+    expect(find.text('Weekly'), findsOneWidget);
+    expect(find.text('Monthly'), findsOneWidget);
+    await tester.tap(find.text('Weekly'));
+    await tester.pumpAndSettle();
+    expect(viewModel.selectedPlanDuration, 'Weekly');
+
+    // 5. Submit for manager review
+    await tester.tap(find.text('Submit for Manager Review'));
     await tester.pump();
-    expect(find.byType(SnackBar), findsOneWidget);
+    await tester.pumpAndSettle();
+
+    // 6. Verify submission confirmation screen
+    expect(find.text('Application Submitted to Manager!'), findsOneWidget);
+    expect(find.textContaining('Reference: BNPL-'), findsOneWidget);
+    expect(
+        find.textContaining('Manager response expected within 30 - 60 minutes'),
+        findsOneWidget);
+    expect(find.text('Galaxy S24 Ultra'), findsOneWidget);
+    expect(find.text('512 GB'), findsOneWidget);
+    expect(find.text('12 GB'), findsOneWidget);
+    expect(find.text('Weekly'), findsOneWidget);
+    expect(
+        find.text('Call Customer Service: +233 (024) 555-0192'), findsOneWidget);
+  });
+
+  testWidgets(
+      'tapping Swap My Device in drawer menu opens TradeInView with phone selection and swap specs',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    // 1. Open drawer menu
+    await tester.tap(find.byTooltip('Open menu'));
+    await tester.pumpAndSettle();
+
+    // 2. Tap Swap My Device
+    await tester.ensureVisible(find.text('Swap My Device'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Swap My Device'));
+    await tester.pumpAndSettle();
+
+    // 3. Verify TradeInView is opened
+    expect(find.byType(TradeInView), findsOneWidget);
+    expect(find.text('Swap My Device'), findsOneWidget);
+    expect(find.text('Phone You Want'), findsOneWidget);
+    expect(find.text('The Phone You Are Swapping'), findsOneWidget);
+    expect(find.text('SWAP SUMMARY'), findsOneWidget);
+  });
+
+  testWidgets(
+      'TradeInView allows selecting desired phone and specs, selecting current phone to swap, and submitting request',
+      (WidgetTester tester) async {
+    final viewModel = TradeInViewModel();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TradeInView(
+          viewModel: viewModel,
+          onApplyToPurchase: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. Desired phone brand selection (e.g. Samsung)
+    expect(find.text('Samsung'), findsWidgets);
+    await tester.tap(find.text('Samsung').first);
+    await tester.pumpAndSettle();
+    expect(viewModel.desiredBrand, 'Samsung');
+
+    // 2. Select desired model via suggestion or controller
+    expect(find.text('Galaxy S24 Ultra'), findsWidgets);
+    await tester.tap(find.text('Galaxy S24 Ultra').first);
+    await tester.pumpAndSettle();
+    expect(viewModel.desiredModel, 'Galaxy S24 Ultra');
+
+    // 3. Select desired storage (512 GB)
+    await tester.tap(find.text('512 GB').first);
+    await tester.pumpAndSettle();
+    expect(viewModel.desiredStorage, '512 GB');
+
+    // 4. Current phone selection (e.g. Tecno)
+    await tester.ensureVisible(find.text('Select Current Phone Brand'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tecno'), findsWidgets);
+    await tester.tap(find.text('Tecno').last);
+    await tester.pumpAndSettle();
+    expect(viewModel.currentBrand, 'Tecno');
+
+    // Tap popular model for current phone (e.g. Camon 30 Pro 5G)
+    expect(find.text('Camon 30 Pro 5G'), findsWidgets);
+    await tester.tap(find.text('Camon 30 Pro 5G').first);
+    await tester.pumpAndSettle();
+    expect(viewModel.currentModel, 'Camon 30 Pro 5G');
+
+    // 5. Submit swap request
+    await tester.ensureVisible(find.text('Submit Swap Request for Manager Review'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Submit Swap Request for Manager Review'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    // 6. Verify submission confirmation screen
+    expect(find.text('Swap Request Sent to Manager!'), findsOneWidget);
+    expect(find.textContaining('Reference #SWAP-GH-'), findsOneWidget);
+    expect(find.text('Swap Device Breakdown'), findsOneWidget);
+    expect(find.textContaining('Galaxy S24 Ultra'), findsWidgets);
+    expect(find.text('Valuation & Cost: Pending Manager Review'), findsOneWidget);
+    expect(find.text('Call Store Manager (+233 024 555-0192)'), findsOneWidget);
+  });
+
+  testWidgets('TradeInView renders on narrow 320px screen without any overflow',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final viewModel = TradeInViewModel();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TradeInView(
+          viewModel: viewModel,
+          onApplyToPurchase: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Phone You Want'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('The Phone You Are Swapping'),
+      100,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('The Phone You Are Swapping'), findsOneWidget);
+  });
+
+  testWidgets('MyRepairsView displays all repairs initiated or completed',
+      (WidgetTester tester) async {
+    final repairRepo = RepairRepository();
+    final repairsVM = RepairsViewModel(repairRepository: repairRepo);
+
+    bool bookedNew = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MyRepairsView(
+          viewModel: repairsVM,
+          onBookNewRepair: () => bookedNew = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('My Repairs'), findsOneWidget);
+    expect(find.text('Repairs initiated or completed at Siaka Phones'), findsOneWidget);
+    expect(find.text('Total Repairs'), findsOneWidget);
+    expect(find.text('In Progress'), findsOneWidget);
+    expect(find.text('Completed'), findsWidgets);
+    expect(find.text('REP-GH-8219'), findsOneWidget);
+    expect(find.text('REP-GH-9442'), findsOneWidget);
+    expect(find.text('Samsung Galaxy S22 Ultra'), findsOneWidget);
+    expect(find.text('iPhone 13 Pro'), findsOneWidget);
+
+    // Tap Book a New Device Repair
+    await tester.tap(find.text('Book a New Device Repair'));
+    await tester.pumpAndSettle();
+    expect(bookedNew, isTrue);
+  });
+
+  testWidgets('DevicesSwappedView displays all devices swapped or initiated without artificial prices',
+      (WidgetTester tester) async {
+    final tradeInVM = TradeInViewModel();
+
+    bool initiatedNew = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DevicesSwappedView(
+          viewModel: tradeInVM,
+          onInitiateNewSwap: () => initiatedNew = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Devices Swapped'), findsOneWidget);
+    expect(find.text('All device swaps initiated or completed'), findsOneWidget);
+    expect(find.text('Total Swaps'), findsOneWidget);
+    expect(find.text('Under Review'), findsWidgets);
+    expect(find.text('Completed'), findsWidgets);
+    expect(find.text('SWAP-GH-7840'), findsOneWidget);
+    expect(find.text('SWAP-GH-4921'), findsOneWidget);
+    expect(find.text('Phone Wanted (Target Device):'), findsWidgets);
+    expect(find.text('Phone Swapped / Traded-In:'), findsWidgets);
+    expect(find.text('Initiate New Device Swap'), findsOneWidget);
+
+    // Tap Initiate New Device Swap
+    await tester.tap(find.text('Initiate New Device Swap'));
+    await tester.pumpAndSettle();
+    expect(initiatedNew, isTrue);
+  });
+
+  testWidgets('SplashView displays official logo, animated loading bar state, and transitions on completion',
+      (WidgetTester tester) async {
+    bool loaded = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SplashView(
+          duration: const Duration(milliseconds: 300),
+          onLoaded: () => loaded = true,
+        ),
+      ),
+    );
+
+    // Initial state: SplashView is active, logo container is 250x250
+    expect(find.byType(SplashView), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.textContaining('%'), findsOneWidget);
+
+    // Advance halfway through animation
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(find.byType(SplashView), findsOneWidget);
+
+    // Settle through the rest of the duration
+    await tester.pumpAndSettle();
+    expect(loaded, isTrue);
+  });
+
+  testWidgets('app launched with showSplash: true shows SplashView on first page before transitioning to HomeView',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true, showSplash: true));
+
+    // First frame: SplashView is the first page that appears after app is launched
+    expect(find.byType(SplashView), findsOneWidget);
+    expect(find.byType(HomeView), findsNothing);
+
+    // After animation completes, transitions smoothly to HomeView
+    await tester.pumpAndSettle();
+    expect(find.byType(SplashView), findsNothing);
+    expect(find.byType(HomeView), findsOneWidget);
   });
 }
 
