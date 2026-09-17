@@ -173,47 +173,41 @@ class _SignInViewState extends State<SignInView> {
   }
 
   Widget _buildTopBar() {
-    return Row(
-      children: [
-        const SizedBox(width: 38), // spacer to balance the right side
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(7),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
-                ),
-                child: const Icon(
-                  Icons.phone_android_rounded,
-                  size: 15,
-                  color: Color(0xFF1C7BFF),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Flexible(
-                child: Text(
-                  'SiakaPhones',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-            ],
+    return Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFBFDBFE), width: 1.2),
+            ),
+            child: const Icon(
+              Icons.phone_android_rounded,
+              size: 22,
+              color: Color(0xFF1C7BFF),
+            ),
           ),
-        ),
-        const SizedBox(width: 38), // Balance spacer
-      ],
+          const SizedBox(width: 10),
+          const Flexible(
+            child: Text(
+              'SiakaPhones',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.6,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
