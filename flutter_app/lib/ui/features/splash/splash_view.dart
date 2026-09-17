@@ -10,7 +10,7 @@ class SplashView extends StatefulWidget {
   const SplashView({
     super.key,
     required this.onLoaded,
-    this.duration = const Duration(milliseconds: 2200),
+    this.duration = const Duration(milliseconds: 500),
   });
 
   @override
@@ -93,15 +93,14 @@ class _SplashViewState extends State<SplashView>
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Official Siaka Phones Logo (instantly visible, perfectly centered)
+                      // Official Siaka Phones Logo (instantly visible, large & prominent)
                       Container(
-                        width: 250,
-                        height: 250,
+                        constraints: const BoxConstraints(maxWidth: 340),
+                        width: MediaQuery.of(context).size.width * 0.82,
                         alignment: Alignment.center,
                         child: Image.asset(
                           'assets/images/siaka_logo.png',
-                          width: 250,
-                          height: 250,
+                          width: MediaQuery.of(context).size.width * 0.82,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return const Column(
@@ -128,14 +127,15 @@ class _SplashViewState extends State<SplashView>
                         ),
                       ),
 
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 32),
 
                       // Modern Loading Bar Under Logo
                       Column(
                         children: [
                           // Progress Track & Animated Fill
                           Container(
-                            width: 220,
+                            constraints: const BoxConstraints(maxWidth: 280),
+                            width: MediaQuery.of(context).size.width * 0.68,
                             height: 6,
                             decoration: BoxDecoration(
                               color: const Color(0xFFEFF6FF),
