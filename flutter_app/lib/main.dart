@@ -126,6 +126,10 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
     _locationsVM = LocationsViewModel(locationRepository: _locationRepo);
     _reviewsVM = ReviewsViewModel();
     _bnplVM = BnplViewModel();
+
+    // Pre-warm data in background during splash screen
+    _homeVM.loadData();
+    _catalogVM.loadCatalog();
   }
 
   @override

@@ -6,9 +6,23 @@ class CatalogViewModel extends ChangeNotifier {
   final ProductRepository _productRepository;
 
   CatalogViewModel({required ProductRepository productRepository})
-      : _productRepository = productRepository;
+      : _productRepository = productRepository {
+    _categories = [
+      'All',
+      'Smartphones',
+      'Keypad Phones',
+      'Laptops',
+      'Accessories',
+      'Tablets',
+      'Foldables',
+      'Wearables',
+    ];
+    _products = _productRepository.filterProducts();
+    _featuredProducts = _products.where((p) => p.isFeatured).toList();
+    _isLoading = false;
+  }
 
-  bool _isLoading = true;
+  bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   List<Product> _products = [];
@@ -27,8 +41,10 @@ class CatalogViewModel extends ChangeNotifier {
   String get searchQuery => _searchQuery;
 
   Future<void> loadCatalog() async {
-    _isLoading = true;
-    notifyListeners();
+    if (_products.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
       _categories = await _productRepository.getCategories();

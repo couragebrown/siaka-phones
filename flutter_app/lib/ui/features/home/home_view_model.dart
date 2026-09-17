@@ -6,9 +6,29 @@ class HomeViewModel extends ChangeNotifier {
   final ProductRepository _productRepository;
 
   HomeViewModel({required ProductRepository productRepository})
-      : _productRepository = productRepository;
+      : _productRepository = productRepository {
+    _featuredProducts = _productRepository
+        .filterProducts()
+        .where((p) => p.isFeatured)
+        .toList();
+    _newArrivals = _productRepository
+        .filterProducts()
+        .where((p) => p.isNewArrival)
+        .toList();
+    _categories = [
+      'All',
+      'Smartphones',
+      'Keypad Phones',
+      'Laptops',
+      'Accessories',
+      'Tablets',
+      'Foldables',
+      'Wearables',
+    ];
+    _isLoading = false;
+  }
 
-  bool _isLoading = true;
+  bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   List<Product> _featuredProducts = [];
@@ -24,8 +44,10 @@ class HomeViewModel extends ChangeNotifier {
   String get selectedCategory => _selectedCategory;
 
   Future<void> loadData() async {
-    _isLoading = true;
-    notifyListeners();
+    if (_featuredProducts.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
       _featuredProducts = await _productRepository.getFeaturedProducts();

@@ -124,17 +124,14 @@ class ProductRepository {
   }
 
   Future<List<Product>> getFeaturedProducts() async {
-    await Future.delayed(const Duration(milliseconds: 100));
     return _products.where((p) => p.isFeatured).toList();
   }
 
   Future<List<Product>> getNewArrivals() async {
-    await Future.delayed(const Duration(milliseconds: 100));
     return _products.where((p) => p.isNewArrival).toList();
   }
 
   Future<Product?> getProductById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 50));
     try {
       return _products.firstWhere((p) => p.id == id);
     } catch (_) {

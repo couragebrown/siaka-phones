@@ -164,7 +164,8 @@ class _HomeViewState extends State<HomeView> {
         if (widget.wishlistRepo != null) widget.wishlistRepo!,
       ]),
       builder: (context, _) {
-        if (widget.viewModel.isLoading) {
+        if (widget.viewModel.isLoading &&
+            widget.viewModel.featuredProducts.isEmpty) {
           return const Scaffold(
             backgroundColor: Color(0xFFF3F4F6),
             body: Center(

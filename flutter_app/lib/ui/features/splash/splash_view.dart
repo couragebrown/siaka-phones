@@ -10,7 +10,7 @@ class SplashView extends StatefulWidget {
   const SplashView({
     super.key,
     required this.onLoaded,
-    this.duration = const Duration(milliseconds: 500),
+    this.duration = const Duration(milliseconds: 2200),
   });
 
   @override
@@ -93,14 +93,13 @@ class _SplashViewState extends State<SplashView>
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Official Siaka Phones Logo (instantly visible, large & prominent)
+                      // Official Siaka Phones Logo (matched to native Android splash size for seamless transition)
                       Container(
-                        constraints: const BoxConstraints(maxWidth: 340),
-                        width: MediaQuery.of(context).size.width * 0.82,
+                        width: 175,
                         alignment: Alignment.center,
                         child: Image.asset(
                           'assets/images/siaka_logo.png',
-                          width: MediaQuery.of(context).size.width * 0.82,
+                          width: 175,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return const Column(
@@ -108,16 +107,16 @@ class _SplashViewState extends State<SplashView>
                               children: [
                                 Icon(
                                   Icons.phone_android_rounded,
-                                  size: 80,
+                                  size: 70,
                                   color: Color(0xFF1C7BFF),
                                 ),
-                                SizedBox(height: 12),
+                                SizedBox(height: 10),
                                 Text(
                                   'SIAKA PHONES',
                                   style: TextStyle(
                                     color: Color(0xFF1C7BFF),
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 22,
+                                    fontSize: 18,
                                     letterSpacing: 2,
                                   ),
                                 ),
@@ -127,16 +126,15 @@ class _SplashViewState extends State<SplashView>
                         ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
 
-                      // Modern Loading Bar Under Logo
+                      // Modern Loading Bar Under Logo (matched to logo width)
                       Column(
                         children: [
                           // Progress Track & Animated Fill
                           Container(
-                            constraints: const BoxConstraints(maxWidth: 280),
-                            width: MediaQuery.of(context).size.width * 0.68,
-                            height: 6,
+                            width: 175,
+                            height: 5,
                             decoration: BoxDecoration(
                               color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(10),
