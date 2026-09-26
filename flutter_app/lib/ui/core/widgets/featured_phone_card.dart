@@ -25,6 +25,11 @@ class FeaturedPhoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayName =
+        product.name.toLowerCase().startsWith(product.brand.toLowerCase())
+            ? product.name
+            : '${product.brand} ${product.name}';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -84,7 +89,7 @@ class FeaturedPhoneCard extends StatelessWidget {
 
             // Product Title
             Text(
-              product.name,
+              displayName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -238,8 +243,8 @@ class ProductPhoneGraphic extends StatelessWidget {
         final maxW = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : 160.0;
-        final availableHeight = maxH.clamp(40.0, 180.0);
-        final availableWidth = maxW.clamp(40.0, 180.0);
+        final availableHeight = maxH.clamp(40.0, 260.0);
+        final availableWidth = maxW.clamp(40.0, 260.0);
         return SizedBox(
           width: availableWidth,
           height: availableHeight,

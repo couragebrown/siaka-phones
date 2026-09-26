@@ -1706,6 +1706,10 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildCompactFeaturedCard(Product product) {
     final isWishlisted = widget.wishlistRepo?.isWishlisted(product.id) ??
         _wishlistProductIds.contains(product.id);
+    final displayName =
+        product.name.toLowerCase().startsWith(product.brand.toLowerCase())
+            ? product.name
+            : '${product.brand} ${product.name}';
 
     return GestureDetector(
       onTap: () => widget.onProductTap(product),
@@ -1777,7 +1781,7 @@ class _HomeViewState extends State<HomeView> {
             const SizedBox(height: 4),
             // Name
             Text(
-              product.name,
+              displayName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(

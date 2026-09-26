@@ -100,7 +100,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Featured Phones'), findsOneWidget);
-    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    expect(find.textContaining('iPhone 15 Pro Max'), findsOneWidget);
     expect(find.text('From ₵1,099'), findsOneWidget);
     expect(find.text('New'), findsWidgets);
     expect(find.text('Buy Now'), findsWidgets);
@@ -138,7 +138,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Featured Phones'), findsOneWidget);
-    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    expect(find.textContaining('iPhone 15 Pro Max'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -178,12 +178,12 @@ void main() {
     const expectedHeight = expectedWidth * 1.56;
 
     final firstCardFinder = find.ancestor(
-      of: find.text('iPhone 15 Pro Max'),
+      of: find.textContaining('iPhone 15 Pro Max'),
       matching: find.byType(SizedBox),
     );
     expect(firstCardFinder, findsWidgets);
 
-    final cardSize = tester.getSize(find.text('iPhone 15 Pro Max'));
+    final cardSize = tester.getSize(find.textContaining('iPhone 15 Pro Max'));
     expect(cardSize.width, lessThanOrEqualTo(expectedWidth));
 
     // Verify 2 cards fit across screen width horizontally (cardWidth * 2 + spacing + padding <= screenWidth)
@@ -440,7 +440,7 @@ void main() {
     expect(find.text('Search Devices'), findsOneWidget);
     expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
     expect(find.text('Featured Phones'), findsOneWidget);
-    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    expect(find.textContaining('iPhone 15 Pro Max'), findsOneWidget);
 
     // 2. Verify search TextField typed text style matches the login page (AppColors.textPrimary)
     final textField = tester.widget<TextField>(find.byType(TextField));
@@ -454,13 +454,13 @@ void main() {
 
     // Verify search results view with matching devices displayed
     expect(find.textContaining('Results for "Samsung"'), findsOneWidget);
-    expect(find.text('Galaxy S24 Ultra'), findsOneWidget);
+    expect(find.textContaining('Galaxy S24 Ultra'), findsOneWidget);
 
     // 4. Test multi-token search with trailing space (e.g., keyboard autocomplete)
     await tester.enterText(find.byType(TextField), 'iphone 15 ');
     await tester.pumpAndSettle();
     expect(find.textContaining('Results for "iphone 15"'), findsOneWidget);
-    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    expect(find.textContaining('iPhone 15 Pro Max'), findsOneWidget);
 
     // 5. Clear search query
     await tester.tap(find.byIcon(Icons.clear_rounded));
@@ -1534,7 +1534,7 @@ void main() {
     // 6. Menu is dismissed, CatalogView displays Laptops products
     expect(find.text('Customer Menu'), findsNothing);
     expect(find.byType(CatalogView), findsOneWidget);
-    expect(find.text('MacBook Pro 16" (M3 Max)'), findsOneWidget);
+    expect(find.textContaining('MacBook Pro 16"'), findsOneWidget);
     expect(find.text('Dell XPS 15 9530'), findsOneWidget);
   });
 
@@ -1561,7 +1561,7 @@ void main() {
 
     // 5. Verify devices from multiple categories are present (not empty)
     expect(find.text('No devices found'), findsNothing);
-    expect(find.text('iPhone 15 Pro Max'), findsOneWidget);
+    expect(find.textContaining('iPhone 15 Pro Max'), findsOneWidget);
   });
 
   testWidgets(
@@ -2043,7 +2043,7 @@ void main() {
     // Verify sheet dismissed and navigated to Catalog filtered to Smartphones
     expect(find.text('Select Category'), findsNothing);
     expect(find.textContaining('Smartphones'), findsWidgets);
-    expect(find.text('iPhone 15 Pro Max'), findsWidgets);
+    expect(find.textContaining('iPhone 15 Pro Max'), findsWidgets);
   });
 
   testWidgets(
@@ -2068,6 +2068,104 @@ void main() {
     expect(searchTextField, findsOneWidget);
     final textFieldWidget = tester.widget<TextField>(searchTextField);
     expect(textFieldWidget.focusNode?.hasFocus, isTrue);
+  });
+
+  testWidgets(
+      'about phone ProductDetailView displays enlarged flagship phone card, 4 photo angle previews, and 1 video preview thumbnail',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final detailVM = ProductDetailViewModel(
+      product: MockData.products.first,
+      cartRepository: CartRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProductDetailView(
+          viewModel: detailVM,
+          onTabSelected: (_) {},
+          onReviewsTap: () {},
+          onGoToCart: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify 4 angle thumbnails exist: Front, Back, Side, Angle
+    expect(find.text('Front'), findsOneWidget);
+    expect(find.text('Back'), findsOneWidget);
+    expect(find.text('Side'), findsOneWidget);
+    expect(find.text('Angle'), findsOneWidget);
+
+    // Verify 1 dedicated video thumbnail exists with VIDEO text
+    expect(find.text('VIDEO'), findsOneWidget);
+
+    // Verify initial angle counter badge
+    expect(find.text('Angle 1/4'), findsOneWidget);
+
+    // Tap on the 2nd angle preview (Back)
+    await tester.tap(find.text('Back'));
+    await tester.pumpAndSettle();
+
+    expect(detailVM.selectedImageIndex, 1);
+    expect(find.text('Angle 2/4'), findsOneWidget);
+
+    // Tap on the Video preview thumbnail
+    await tester.tap(find.text('VIDEO'));
+    await tester.pumpAndSettle();
+
+    expect(detailVM.selectedImageIndex, 4);
+    expect(detailVM.isVideoSelected, isTrue);
+
+    // Verify video showcase HUD elements appear
+    expect(find.text('4K 60FPS DEMO'), findsOneWidget);
+    expect(find.text('Hands-on Tour'), findsOneWidget);
+
+    // Tap on Front angle to return to photo mode
+    await tester.tap(find.text('Front'));
+    await tester.pumpAndSettle();
+
+    expect(detailVM.selectedImageIndex, 0);
+    expect(detailVM.isVideoSelected, isFalse);
+    expect(find.text('Angle 1/4'), findsOneWidget);
+  });
+
+  testWidgets(
+      'about phone ProductDetailView renders on narrow 320px screen without any overflow',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final detailVM = ProductDetailViewModel(
+      product: MockData.products.first,
+      cartRepository: CartRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProductDetailView(
+          viewModel: detailVM,
+          onTabSelected: (_) {},
+          onReviewsTap: () {},
+          onGoToCart: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+
+    // Switch to video on narrow screen and verify zero overflow
+    await tester.tap(find.text('VIDEO'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
   });
 }
 
