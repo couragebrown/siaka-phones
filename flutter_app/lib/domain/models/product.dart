@@ -16,6 +16,7 @@ class Product {
   final bool isNewArrival;
   final bool inStock;
   final int stockCount;
+  final String condition;
 
   const Product({
     required this.id,
@@ -35,6 +36,7 @@ class Product {
     this.isNewArrival = false,
     this.inStock = true,
     this.stockCount = 15,
+    this.condition = 'New',
   });
 
   double get discountPercent =>

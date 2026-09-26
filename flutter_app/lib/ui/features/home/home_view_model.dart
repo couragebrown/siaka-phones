@@ -18,6 +18,7 @@ class HomeViewModel extends ChangeNotifier {
     _categories = [
       'All',
       'Smartphones',
+      'UK Used',
       'Keypad Phones',
       'Laptops',
       'Accessories',

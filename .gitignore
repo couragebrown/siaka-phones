@@ -5,3 +5,6 @@ Thumbs.db
 .idea/
 *.apk
 flutter_app/screen_*.png
+manager_desktop/emulator_screen.png
+manager_desktop/live_manager_screen.png
+manager_desktop/logcat.txt

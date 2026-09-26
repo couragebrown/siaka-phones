@@ -1,0 +1,813 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+
+import '../../domain/models/customer_activity.dart';
+import '../../domain/models/customer_message.dart';
+import '../../domain/models/manager_bnpl.dart';
+import '../../domain/models/manager_notification.dart';
+import '../../domain/models/manager_order.dart';
+import '../../domain/models/manager_product.dart';
+import '../../domain/models/manager_repair.dart';
+import '../../domain/models/manager_shipping.dart';
+import '../../domain/models/manager_swap.dart';
+import '../../domain/models/service_ticket.dart';
+import '../mock_manager_data.dart';
+
+class ManagerRepository extends ChangeNotifier {
+  List<ManagerProduct> _products = [];
+  List<ManagerOrder> _orders = [];
+  List<ManagerBnpl> _bnplApplications = [];
+  List<ManagerRepair> _repairs = [];
+  List<ManagerSwap> _swaps = [];
+  List<CustomerActivity> _customers = [];
+  List<CustomerMessage> _sentMessages = [];
+  List<ServiceTicket> _serviceTickets = [];
+  List<ManagerShippingItem> _shipments = [];
+  List<ManagerNotification> _notifications = [];
+  Map<String, List<String>> _brandModels = {};
+  final List<String> _categories = [
+    'Smartphones',
+    'Phones',
+    'Laptops',
+    'Tablets',
+    'Smartwatches',
+    'Accessories',
+    'Audio & Sound',
+    'Gaming & Consoles',
+  ];
+
+  // 24-Hour Auth Session State
+  bool _isAuthenticated = true;
+  DateTime? _lastLoginTime = DateTime.now();
+  String _managerEmail = 'manager@siakaphones.com';
+  String _managerName = 'General Manager';
+
+  String _currentBranch = 'Accra Central (Circle)';
+  final List<String> branches = [
+    'Accra Central (Circle)',
+    'Madina Zongo Junction',
+    'Kasoa Main Market',
+  ];
+
+  ManagerRepository() {
+    _products = MockManagerData.getInitialProducts();
+    _orders = MockManagerData.getInitialOrders();
+    _bnplApplications = MockManagerData.getInitialBnplApplications();
+    _repairs = MockManagerData.getInitialRepairs();
+    _swaps = MockManagerData.getInitialSwaps();
+    _customers = MockManagerData.getInitialCustomerActivities();
+    _sentMessages = MockManagerData.getInitialCustomerMessages();
+    _serviceTickets = MockManagerData.getInitialServiceTickets();
+    _shipments = MockManagerData.getInitialShipments();
+    _syncOrdersWithShipments();
+    _notifications = MockManagerData.getInitialNotifications();
+    _brandModels = {
+      'Apple': [
+        'iPhone 16 Pro Max',
+        'iPhone 16 Pro',
+        'iPhone 16 Plus',
+        'iPhone 16',
+        'iPhone 15 Pro Max',
+        'iPhone 15 Pro',
+        'iPhone 15 Plus',
+        'iPhone 15',
+        'iPhone 14 Pro Max',
+        'iPhone 14 Pro',
+        'iPhone 14',
+        'iPhone 13 Pro Max',
+        'iPhone 13 Pro',
+        'iPhone 13',
+        'iPhone 12 Pro Max',
+        'iPhone 12',
+        'iPhone 11',
+      ],
+      'Samsung': [
+        'Galaxy S24 Ultra',
+        'Galaxy S24+',
+        'Galaxy S24',
+        'Galaxy S23 Ultra',
+        'Galaxy S23+',
+        'Galaxy S23',
+        'Galaxy Z Fold 6',
+        'Galaxy Z Flip 6',
+        'Galaxy Z Fold 5',
+        'Galaxy A55 5G',
+        'Galaxy A35 5G',
+        'Galaxy A25 5G',
+        'Galaxy A15',
+      ],
+      'Tecno': [
+        'Camon 30 Premier 5G',
+        'Camon 30 Pro 5G',
+        'Camon 30 5G',
+        'Spark 20 Pro+',
+        'Spark 20 Pro',
+        'Spark 20',
+        'Phantom V Fold 2',
+        'Phantom V Flip 2',
+        'Pova 6 Pro 5G',
+      ],
+      'Infinix': [
+        'Note 40 Pro+ 5G',
+        'Note 40 Pro 5G',
+        'Note 40',
+        'Hot 40 Pro',
+        'Hot 40',
+        'GT 20 Pro 5G',
+        'Zero 30 5G',
+        'Smart 8 Pro',
+      ],
+      'Google': [
+        'Pixel 9 Pro XL',
+        'Pixel 9 Pro',
+        'Pixel 9',
+        'Pixel 8 Pro',
+        'Pixel 8',
+        'Pixel 7a',
+        'Pixel 7 Pro',
+      ],
+      'Xiaomi': [
+        'Xiaomi 14 Ultra',
+        'Xiaomi 14',
+        'Redmi Note 13 Pro+ 5G',
+        'Redmi Note 13 Pro',
+        'Redmi Note 13',
+        'Poco X6 Pro 5G',
+        'Poco F6 Pro',
+      ],
+      'Oraimo': [
+        'FreePods 4 ANC Earbuds',
+        'FreePods Pro TWS',
+        'Watch 4 Plus Smartwatch',
+        'Watch Nova V AMOLED',
+        'Toast 10 Byte 10000mAh Power Bank',
+        'PowerBox 300 30000mAh Heavy Duty',
+      ],
+      'Other / Custom': [
+        'Custom / Unlisted Model',
+      ],
+    };
+  }
+
+  // Getters
+  List<ManagerProduct> get products => List.unmodifiable(_products);
+  List<ManagerOrder> get orders => List.unmodifiable(_orders);
+  List<ManagerBnpl> get bnplApplications => List.unmodifiable(_bnplApplications);
+  List<ManagerRepair> get repairs => List.unmodifiable(_repairs);
+  List<ManagerSwap> get swaps => List.unmodifiable(_swaps);
+  List<CustomerActivity> get customers => List.unmodifiable(_customers);
+  List<CustomerMessage> get sentMessages => List.unmodifiable(_sentMessages);
+  List<ServiceTicket> get serviceTickets => List.unmodifiable(_serviceTickets);
+  List<ManagerShippingItem> get shipments => List.unmodifiable(_shipments);
+  List<ManagerNotification> get notifications => List.unmodifiable(_notifications);
+  Map<String, List<String>> get brandModels => _brandModels;
+  List<String> get categories => List.unmodifiable(_categories);
+  String get currentBranch => _currentBranch;
+
+  // Authentication & Session Getters
+  bool get isAuthenticated => _isAuthenticated;
+  DateTime? get lastLoginTime => _lastLoginTime;
+  String get managerEmail => _managerEmail;
+  String get managerName => _managerName;
+
+  int get unreadServiceTicketsCount =>
+      _serviceTickets.where((t) => t.unreadCountForManager > 0).length;
+
+  int get unreadNotificationsCount =>
+      _notifications.where((n) => !n.isRead).length;
+
+  int get activeShipmentsCount => _shipments.where((s) =>
+      s.status == ShippingStatus.inTransit ||
+      s.status == ShippingStatus.outForDelivery ||
+      s.status == ShippingStatus.pendingPickup).length;
+
+  void selectBranch(String branch) {
+    _currentBranch = branch;
+    notifyListeners();
+  }
+
+  // Analytics
+  double get totalRevenue =>
+      _orders.where((o) => o.status != OrderStatus.cancelled).fold(0.0, (acc, o) => acc + o.totalAmount);
+
+  int get todayOrdersCount {
+    final now = DateTime.now();
+    return _orders.where((o) =>
+        o.date.year == now.year &&
+        o.date.month == now.month &&
+        o.date.day == now.day).length;
+  }
+
+  double get todayRevenue {
+    final now = DateTime.now();
+    return _orders.where((o) =>
+        o.status != OrderStatus.cancelled &&
+        o.date.year == now.year &&
+        o.date.month == now.month &&
+        o.date.day == now.day).fold(0.0, (acc, o) => acc + o.totalAmount);
+  }
+
+  double get todayProfit => todayRevenue * 0.225;
+
+  double get totalProfitEarned => totalRevenue * 0.225;
+
+  int get onlineCustomersCount =>
+      _customers.where((c) => c.isOnline || DateTime.now().difference(c.lastLogin).inMinutes < 45).length;
+
+  int get pendingOrdersCount =>
+      _orders.where((o) => o.status == OrderStatus.pending).length;
+
+  int get pendingBnplCount =>
+      _bnplApplications.where((b) => b.status == BnplStatus.pending).length;
+
+  int get activeRepairsCount =>
+      _repairs.where((r) => r.stage != RepairStage.completed).length;
+
+  int get lowStockProductsCount =>
+      _products.where((p) => p.lowStock).length;
+
+  // Order Actions
+  void updateOrderStatus(String orderId, OrderStatus newStatus) {
+    final idx = _orders.indexWhere((o) => o.id == orderId);
+    if (idx != -1) {
+      _orders[idx].status = newStatus;
+
+      // Keep linked shipment in _shipments synchronized
+      final shipIdx = _shipments.indexWhere((s) => s.orderOrProcessId == orderId);
+      if (shipIdx != -1) {
+        final shipment = _shipments[shipIdx];
+        if (newStatus == OrderStatus.delivered) {
+          shipment.status = ShippingStatus.delivered;
+          shipment.deliveredAt = DateTime.now();
+          shipment.lastLocationUpdate = 'Delivered to ${shipment.destinationAddress}';
+        } else if (newStatus == OrderStatus.dispatched) {
+          shipment.status = ShippingStatus.inTransit;
+          shipment.dispatchedAt ??= DateTime.now();
+          shipment.lastLocationUpdate = 'Dispatched with courier, en route to recipient';
+        } else if (newStatus == OrderStatus.cancelled) {
+          shipment.status = ShippingStatus.returned;
+          shipment.lastLocationUpdate = 'Order cancelled - returned to stock';
+        } else if (newStatus == OrderStatus.confirmed) {
+          shipment.status = ShippingStatus.pendingPickup;
+          shipment.lastLocationUpdate = 'Order confirmed. Packaged at Circle Hub awaiting courier dispatch.';
+        }
+      }
+      notifyListeners();
+    }
+  }
+
+  // Product Actions
+  void addProduct(ManagerProduct product) {
+    _products.insert(0, product);
+    notifyListeners();
+  }
+
+  void updateProduct(ManagerProduct product) {
+    final idx = _products.indexWhere((p) => p.id == product.id);
+    if (idx != -1) {
+      _products[idx] = product;
+      notifyListeners();
+    }
+  }
+
+  void deleteProduct(String productId) {
+    _products.removeWhere((p) => p.id == productId);
+    notifyListeners();
+  }
+
+  void updateStock(String productId, int newStock) {
+    final idx = _products.indexWhere((p) => p.id == productId);
+    if (idx != -1) {
+      _products[idx].stock = newStock;
+      notifyListeners();
+    }
+  }
+
+  // BNPL Actions
+  void updateBnplStatus(String id, BnplStatus status, {String notes = ''}) {
+    final idx = _bnplApplications.indexWhere((b) => b.id == id);
+    if (idx != -1) {
+      _bnplApplications[idx].status = status;
+      if (notes.isNotEmpty) {
+        _bnplApplications[idx].managerNotes = notes;
+      }
+      notifyListeners();
+    }
+  }
+
+  // Repair Actions
+  void updateRepairStage(String id, RepairStage stage, {String? notes, double? cost}) {
+    final idx = _repairs.indexWhere((r) => r.id == id);
+    if (idx != -1) {
+      _repairs[idx].stage = stage;
+      if (notes != null && notes.isNotEmpty) {
+        _repairs[idx].technicianNotes = notes;
+      }
+      if (cost != null) {
+        _repairs[idx].estimatedCost = cost;
+      }
+      notifyListeners();
+    }
+  }
+
+  // Swap Actions
+  void updateSwapStatus(String id, SwapEvaluationStatus status, {String? notes}) {
+    final idx = _swaps.indexWhere((s) => s.id == id);
+    if (idx != -1) {
+      _swaps[idx].status = status;
+      if (notes != null && notes.isNotEmpty) {
+        _swaps[idx].inspectionNotes = notes;
+      }
+      notifyListeners();
+    }
+  }
+
+  CustomerActivity? _activeMessagingCustomer;
+  CustomerActivity? get activeMessagingCustomer => _activeMessagingCustomer;
+
+  String? _initialMessagingSubject;
+  String? get initialMessagingSubject => _initialMessagingSubject;
+
+  String? _initialMessagingBody;
+  String? get initialMessagingBody => _initialMessagingBody;
+
+  MessageCategory? _initialMessagingCategory;
+  MessageCategory? get initialMessagingCategory => _initialMessagingCategory;
+
+  void clearInitialMessagingDraft() {
+    _initialMessagingSubject = null;
+    _initialMessagingBody = null;
+    _initialMessagingCategory = null;
+  }
+
+  void setMessagingCustomer(CustomerActivity customer) {
+    _activeMessagingCustomer = customer;
+    notifyListeners();
+  }
+
+  void selectCustomerForMessaging({
+    required String customerName,
+    String? phone,
+    String? email,
+    String? initialSubject,
+    String? initialBody,
+    MessageCategory? initialCategory,
+  }) {
+    _initialMessagingSubject = initialSubject;
+    _initialMessagingBody = initialBody;
+    _initialMessagingCategory = initialCategory;
+
+    final match = _customers.cast<CustomerActivity?>().firstWhere(
+      (c) =>
+          c != null &&
+          (c.fullName.trim().toLowerCase() == customerName.trim().toLowerCase() ||
+              (phone != null && c.phone.replaceAll(' ', '') == phone.replaceAll(' ', ''))),
+      orElse: () => null,
+    );
+
+    if (match != null) {
+      if (email != null && email.isNotEmpty && (match.email.isEmpty || match.email.contains('@example.com'))) {
+        final updated = CustomerActivity(
+          id: match.id,
+          fullName: match.fullName,
+          phone: match.phone,
+          email: email,
+          signupDate: match.signupDate,
+          loginCount: match.loginCount,
+          lastLogin: match.lastLogin,
+          primaryDevice: match.primaryDevice,
+          status: match.status,
+          totalSpend: match.totalSpend,
+        );
+        final idx = _customers.indexOf(match);
+        if (idx != -1) {
+          _customers[idx] = updated;
+          _activeMessagingCustomer = updated;
+        } else {
+          _activeMessagingCustomer = match;
+        }
+      } else {
+        _activeMessagingCustomer = match;
+      }
+    } else {
+      final newCustomer = CustomerActivity(
+        id: 'CUST-${DateTime.now().millisecondsSinceEpoch}',
+        fullName: customerName,
+        phone: phone ?? '+233 24 000 0000',
+        email: email ?? '${customerName.toLowerCase().replaceAll(' ', '.')}@gmail.com',
+        signupDate: DateTime.now(),
+        loginCount: 1,
+        lastLogin: DateTime.now(),
+        primaryDevice: 'Mobile App User',
+        status: 'Active',
+        totalSpend: 0.0,
+      );
+      _customers.insert(0, newCustomer);
+      _activeMessagingCustomer = newCustomer;
+    }
+    notifyListeners();
+  }
+
+  // Customer Messaging Actions (Outbound & Inbound Simulation)
+  void sendCustomerMessage(CustomerMessage message) {
+    _sentMessages.insert(0, message);
+    notifyListeners();
+  }
+
+  void addIncomingCustomerReply(String customerId, String replyText, {MessageChannel channel = MessageChannel.inApp}) {
+    final cust = _customers.firstWhere(
+      (c) => c.id == customerId,
+      orElse: () => CustomerActivity(
+        id: customerId,
+        fullName: 'Customer',
+        phone: '+233 24 000 0000',
+        email: 'customer@gmail.com',
+        signupDate: DateTime.now(),
+        loginCount: 1,
+        lastLogin: DateTime.now(),
+        primaryDevice: 'Mobile App',
+        status: 'Active',
+        totalSpend: 0.0,
+      ),
+    );
+
+    final newMsg = CustomerMessage(
+      id: 'MSG-IN-${DateTime.now().millisecondsSinceEpoch}',
+      customerId: cust.id,
+      customerName: cust.fullName,
+      customerPhone: cust.phone,
+      customerEmail: cust.email,
+      channel: channel,
+      category: MessageCategory.general,
+      subject: 'Inbound Customer Reply',
+      message: replyText,
+      sentAt: DateTime.now(),
+      sentBy: cust.fullName,
+      status: MessageDeliveryStatus.read,
+      isFromCustomer: true,
+    );
+    _sentMessages.insert(0, newMsg);
+    notifyListeners();
+  }
+
+  // Service Center Actions (Inbound Customer Chat & Support Desk)
+  void replyToServiceTicket(String ticketId, String replyText) {
+    final idx = _serviceTickets.indexWhere((t) => t.id == ticketId);
+    if (idx != -1) {
+      final ticket = _serviceTickets[idx];
+      final newMsg = ServiceMessage(
+        id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+        senderType: ServiceSenderType.manager,
+        senderName: 'Store Manager',
+        text: replyText,
+        timestamp: DateTime.now(),
+        isRead: true,
+      );
+      ticket.messages.add(newMsg);
+      ticket.status = ServiceTicketStatus.waitingCustomer;
+      notifyListeners();
+    }
+  }
+
+  void updateServiceTicketStatus(String ticketId, ServiceTicketStatus newStatus) {
+    final idx = _serviceTickets.indexWhere((t) => t.id == ticketId);
+    if (idx != -1) {
+      _serviceTickets[idx].status = newStatus;
+      notifyListeners();
+    }
+  }
+
+  void markTicketAsRead(String ticketId) {
+    final idx = _serviceTickets.indexWhere((t) => t.id == ticketId);
+    if (idx != -1) {
+      for (final msg in _serviceTickets[idx].messages) {
+        msg.isRead = true;
+      }
+      notifyListeners();
+    }
+  }
+
+  void addIncomingCustomerMessage(String ticketId, String customerText) {
+    final idx = _serviceTickets.indexWhere((t) => t.id == ticketId);
+    if (idx != -1) {
+      final ticket = _serviceTickets[idx];
+      final newMsg = ServiceMessage(
+        id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+        senderType: ServiceSenderType.customer,
+        senderName: ticket.customerName,
+        text: customerText,
+        timestamp: DateTime.now(),
+        isRead: false,
+      );
+      ticket.messages.add(newMsg);
+      ticket.status = ServiceTicketStatus.open;
+      notifyListeners();
+    }
+  }
+
+  // Category Actions
+  void addCategory(String category) {
+    final clean = category.trim();
+    if (clean.isEmpty) return;
+    if (!_categories.any((c) => c.toLowerCase() == clean.toLowerCase())) {
+      _categories.add(clean);
+      notifyListeners();
+    }
+  }
+
+  // Device Model Actions
+  void addDeviceModel({required String brand, required String modelName, String? category}) {
+    final cleanBrand = brand.trim();
+    final cleanModel = modelName.trim();
+    if (cleanBrand.isEmpty || cleanModel.isEmpty) return;
+
+    if (!_brandModels.containsKey(cleanBrand)) {
+      _brandModels[cleanBrand] = [];
+    }
+
+    if (!_brandModels[cleanBrand]!.contains(cleanModel)) {
+      _brandModels[cleanBrand]!.insert(0, cleanModel);
+    }
+
+    if (category != null && category.trim().isNotEmpty) {
+      addCategory(category.trim());
+    }
+
+    notifyListeners();
+  }
+
+  // 24-Hour Auth Session Actions
+  bool checkSessionValid() {
+    if (!_isAuthenticated || _lastLoginTime == null) {
+      return false;
+    }
+    final diff = DateTime.now().difference(_lastLoginTime!);
+    return diff.inHours < 24;
+  }
+
+  Future<void> loadSavedSession() async {
+    try {
+      final sessionFile = File('siaka_manager_session.json');
+      if (await sessionFile.exists()) {
+        final content = await sessionFile.readAsString();
+        final data = jsonDecode(content) as Map<String, dynamic>;
+        final isLoggedIn = data['isLoggedIn'] as bool? ?? false;
+        final timestampStr = data['lastLoginTime'] as String?;
+        final email = data['email'] as String? ?? 'manager@siakaphones.com';
+        final name = data['name'] as String? ?? 'General Manager';
+
+        if (isLoggedIn && timestampStr != null) {
+          final timestamp = DateTime.tryParse(timestampStr);
+          if (timestamp != null) {
+            final diff = DateTime.now().difference(timestamp);
+            if (diff.inHours < 24) {
+              _isAuthenticated = true;
+              _lastLoginTime = timestamp;
+              _managerEmail = email;
+              _managerName = name;
+              notifyListeners();
+              return;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    _isAuthenticated = false;
+    _lastLoginTime = null;
+    notifyListeners();
+  }
+
+  Future<bool> login(String email, String password, {bool remember24Hours = true}) async {
+    final cleanEmail = email.trim();
+    if (cleanEmail.isEmpty || password.isEmpty) {
+      return false;
+    }
+    _isAuthenticated = true;
+    _lastLoginTime = DateTime.now();
+    _managerEmail = cleanEmail;
+    final prefix = cleanEmail.contains('@') ? cleanEmail.split('@').first : cleanEmail;
+    _managerName = prefix.isNotEmpty ? '${prefix[0].toUpperCase()}${prefix.substring(1)}' : 'General Manager';
+
+    if (remember24Hours) {
+      try {
+        final sessionFile = File('siaka_manager_session.json');
+        await sessionFile.writeAsString(jsonEncode({
+          'isLoggedIn': true,
+          'lastLoginTime': _lastLoginTime!.toIso8601String(),
+          'email': _managerEmail,
+          'name': _managerName,
+        }));
+      } catch (_) {}
+    }
+
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> logout() async {
+    _isAuthenticated = false;
+    _lastLoginTime = null;
+    try {
+      final sessionFile = File('siaka_manager_session.json');
+      if (await sessionFile.exists()) {
+        await sessionFile.delete();
+      }
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // Shipping Actions
+  void updateShippingStatus(
+    String shipmentId,
+    ShippingStatus status, {
+    String? locationUpdate,
+    String? notes,
+    String? courier,
+    String? riderPhone,
+  }) {
+    final idx = _shipments.indexWhere((s) => s.id == shipmentId);
+    if (idx != -1) {
+      final shipment = _shipments[idx];
+      shipment.status = status;
+      if (locationUpdate != null && locationUpdate.trim().isNotEmpty) {
+        shipment.lastLocationUpdate = locationUpdate.trim();
+      }
+      if (notes != null && notes.trim().isNotEmpty) {
+        shipment.managerNotes = notes.trim();
+      }
+      if (courier != null && courier.trim().isNotEmpty) {
+        shipment.courier = courier.trim();
+      }
+      if (riderPhone != null && riderPhone.trim().isNotEmpty) {
+        shipment.dispatchRiderPhone = riderPhone.trim();
+      }
+      if (status == ShippingStatus.delivered) {
+        shipment.deliveredAt = DateTime.now();
+      }
+
+      shipment.statusHistory.add(
+        ShippingCheckpoint(
+          timestamp: DateTime.now(),
+          location: shipment.lastLocationUpdate,
+          status: status,
+          note: notes ?? 'Status updated to ${status.label}',
+          updatedBy: 'Store Manager',
+        ),
+      );
+
+      addNotification(
+        ManagerNotification(
+          id: 'NOTIF-${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Shipment #${shipment.trackingNumber} Updated',
+          message: 'Status: ${status.label} for ${shipment.customerName} (${shipment.destinationCity})',
+          type: NotificationType.shipping,
+          severity: status == ShippingStatus.delivered
+              ? NotificationSeverity.success
+              : (status == ShippingStatus.failedDelivery
+                  ? NotificationSeverity.critical
+                  : NotificationSeverity.info),
+          timestamp: DateTime.now(),
+          referenceId: shipment.id,
+          actionRouteIndex: 11,
+        ),
+      );
+
+      // Keep linked customer order synchronized if updated from shipping
+      final orderIdx = _orders.indexWhere((o) => o.id == shipment.orderOrProcessId);
+      if (orderIdx != -1) {
+        if (status == ShippingStatus.delivered) {
+          _orders[orderIdx].status = OrderStatus.delivered;
+        } else if (status == ShippingStatus.inTransit || status == ShippingStatus.outForDelivery) {
+          _orders[orderIdx].status = OrderStatus.dispatched;
+        } else if (status == ShippingStatus.returned || status == ShippingStatus.failedDelivery) {
+          _orders[orderIdx].status = OrderStatus.cancelled;
+        } else if (status == ShippingStatus.pendingPickup) {
+          _orders[orderIdx].status = OrderStatus.confirmed;
+        }
+      }
+
+      notifyListeners();
+    }
+  }
+
+  void _syncOrdersWithShipments() {
+    for (final order in _orders) {
+      final exists = _shipments.any((s) => s.orderOrProcessId == order.id);
+      if (!exists) {
+        final shippingStatus = order.status == OrderStatus.delivered
+            ? ShippingStatus.delivered
+            : order.status == OrderStatus.dispatched
+                ? ShippingStatus.inTransit
+                : ShippingStatus.pendingPickup;
+
+        final cleanGps = order.gpsCode.replaceAll('-', '');
+        _shipments.add(
+          ManagerShippingItem(
+            id: 'SHIP-${order.id}',
+            trackingNumber: 'SP-GH-${order.id.replaceAll('ORD-', '')}-$cleanGps',
+            orderOrProcessId: order.id,
+            processType: ShippingProcessType.orderFulfillment,
+            customerName: order.customerName,
+            customerPhone: order.customerPhone,
+            customerEmail: order.customerEmail,
+            destinationAddress: order.deliveryAddress,
+            destinationCity: '${order.region} (${order.gpsCode})',
+            courier: 'Circle Express Logistics',
+            dispatchRiderPhone: '+233 24 555 7788',
+            status: shippingStatus,
+            itemsDescription: order.itemsSummary,
+            lastLocationUpdate: order.status == OrderStatus.delivered
+                ? 'Delivered to recipient at ${order.deliveryAddress}'
+                : order.status == OrderStatus.dispatched
+                    ? 'Dispatched with courier, in transit'
+                    : 'Order confirmed. Packaged at Circle Hub awaiting courier pickup.',
+            estimatedDelivery: order.date.add(const Duration(days: 1)),
+            dispatchedAt: order.status != OrderStatus.pending ? order.date : null,
+            deliveredAt: order.status == OrderStatus.delivered ? order.date.add(const Duration(hours: 4)) : null,
+            managerNotes: 'Standard customer order (${order.paymentMethod}). Total: GH₵ ${order.totalAmount.toStringAsFixed(2)}',
+            statusHistory: [
+              ShippingCheckpoint(
+                timestamp: order.date,
+                location: 'Circle Main Store',
+                status: ShippingStatus.pendingPickup,
+                note: 'Order confirmed and packed ready for dispatch.',
+              ),
+              if (order.status == OrderStatus.dispatched || order.status == OrderStatus.delivered)
+                ShippingCheckpoint(
+                  timestamp: order.date.add(const Duration(hours: 2)),
+                  location: 'Accra Logistics Hub',
+                  status: ShippingStatus.inTransit,
+                  note: 'Handed over to delivery courier.',
+                ),
+              if (order.status == OrderStatus.delivered)
+                ShippingCheckpoint(
+                  timestamp: order.date.add(const Duration(hours: 5)),
+                  location: order.deliveryAddress,
+                  status: ShippingStatus.delivered,
+                  note: 'Successfully delivered to customer.',
+                ),
+            ],
+          ),
+        );
+      }
+    }
+
+    // Sort all shipments with the newest records on top
+    _shipments.sort((a, b) {
+      final timeA = a.dispatchedAt ?? a.statusHistory.firstOrNull?.timestamp ?? a.estimatedDelivery;
+      final timeB = b.dispatchedAt ?? b.statusHistory.firstOrNull?.timestamp ?? b.estimatedDelivery;
+      return timeB.compareTo(timeA);
+    });
+  }
+
+  void addShippingRecord(ManagerShippingItem item) {
+    _shipments.insert(0, item);
+    addNotification(
+      ManagerNotification(
+        id: 'NOTIF-${DateTime.now().millisecondsSinceEpoch}',
+        title: 'New Dispatch Created',
+        message: 'Tracking #${item.trackingNumber} for ${item.customerName} (${item.itemsDescription})',
+        type: NotificationType.shipping,
+        severity: NotificationSeverity.info,
+        timestamp: DateTime.now(),
+        referenceId: item.id,
+        actionRouteIndex: 11,
+      ),
+    );
+    notifyListeners();
+  }
+
+  // Notification Actions
+  void markNotificationAsRead(String id) {
+    final idx = _notifications.indexWhere((n) => n.id == id);
+    if (idx != -1 && !_notifications[idx].isRead) {
+      _notifications[idx].isRead = true;
+      notifyListeners();
+    }
+  }
+
+  void markAllNotificationsAsRead() {
+    bool changed = false;
+    for (final n in _notifications) {
+      if (!n.isRead) {
+        n.isRead = true;
+        changed = true;
+      }
+    }
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  void clearNotifications() {
+    _notifications.clear();
+    notifyListeners();
+  }
+
+  void addNotification(ManagerNotification notif) {
+    _notifications.insert(0, notif);
+    notifyListeners();
+  }
+}

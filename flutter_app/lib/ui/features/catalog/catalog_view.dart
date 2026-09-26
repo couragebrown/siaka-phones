@@ -364,8 +364,10 @@ class _CatalogViewState extends State<CatalogView> {
           LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
-              final int crossAxisCount = width > 700 ? 4 : 3;
-              const double mainAxisExtent = 240;
+              final int crossAxisCount = width > 700 ? 4 : 2;
+              final double cardWidth =
+                  (width - 32 - (12 * (crossAxisCount - 1))) / crossAxisCount;
+              final double mainAxisExtent = cardWidth * 1.56;
 
               return GridView.builder(
                 shrinkWrap: true,
@@ -373,8 +375,8 @@ class _CatalogViewState extends State<CatalogView> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
                   mainAxisExtent: mainAxisExtent,
                 ),
                 itemCount: featuredProducts.length,
@@ -548,15 +550,17 @@ class _CatalogViewState extends State<CatalogView> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
-              final int crossAxisCount = width > 700 ? 4 : 3;
-              const double mainAxisExtent = 240;
+              final int crossAxisCount = width > 700 ? 4 : 2;
+              final double cardWidth =
+                  (width - 32 - (12 * (crossAxisCount - 1))) / crossAxisCount;
+              final double mainAxisExtent = cardWidth * 1.56;
 
               return GridView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
                   mainAxisExtent: mainAxisExtent,
                 ),
                 itemCount: products.length,

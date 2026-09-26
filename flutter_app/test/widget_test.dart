@@ -142,6 +142,107 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('featured phones section fits exactly 2 cards horizontally with proportional height',
+      (WidgetTester tester) async {
+    const screenWidth = 390.0;
+    tester.view.physicalSize = const Size(screenWidth, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final homeViewModel = HomeViewModel(
+      productRepository: ProductRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeView(
+          viewModel: homeViewModel,
+          onProductTap: (_) {},
+          onSeeAllCatalog: () {},
+          onTradeInTap: () {},
+          onRepairsTap: () {},
+          onOrdersTap: () {},
+          onLocationsTap: () {},
+          onSupportTap: () {},
+          onProfileTap: () {},
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Expected card width = (390 - 32 - 12) / 2 = 173.0
+    // Expected card height = 173.0 * 1.56 = 269.88
+    const expectedWidth = (screenWidth - 32.0 - 12.0) / 2;
+    const expectedHeight = expectedWidth * 1.56;
+
+    final firstCardFinder = find.ancestor(
+      of: find.text('iPhone 15 Pro Max'),
+      matching: find.byType(SizedBox),
+    );
+    expect(firstCardFinder, findsWidgets);
+
+    final cardSize = tester.getSize(find.text('iPhone 15 Pro Max'));
+    expect(cardSize.width, lessThanOrEqualTo(expectedWidth));
+
+    // Verify 2 cards fit across screen width horizontally (cardWidth * 2 + spacing + padding <= screenWidth)
+    expect((expectedWidth * 2) + 12.0 + 32.0, closeTo(screenWidth, 0.01));
+    expect(expectedHeight, closeTo(expectedWidth * 1.56, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Shop by Brand on home page allows sliding horizontally to see more brands',
+      (WidgetTester tester) async {
+    final homeViewModel = HomeViewModel(
+      productRepository: ProductRepository(),
+    );
+    String? selectedBrand;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeView(
+          viewModel: homeViewModel,
+          onProductTap: (_) {},
+          onSeeAllCatalog: () {},
+          onTradeInTap: () {},
+          onRepairsTap: () {},
+          onOrdersTap: () {},
+          onLocationsTap: () {},
+          onSupportTap: () {},
+          onProfileTap: () {},
+          onBrandTap: (brand) => selectedBrand = brand,
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // 1. Verify "Shop by Brand" header and initial brands are visible
+    expect(find.text('Shop by Brand'), findsOneWidget);
+    expect(find.text('Apple'), findsWidgets);
+    expect(find.text('Samsung'), findsWidgets);
+
+    // 2. Drag / slide horizontally to the left on the brand list
+    await tester.drag(find.text('Apple').first, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+
+    // 3. Verify brands further in the list (e.g. Honor) are revealed
+    expect(find.text('Honor'), findsOneWidget);
+
+    // 4. Slide further to the left to reach more brands (e.g. Infinix)
+    await tester.drag(find.text('Honor'), const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Infinix'), findsWidgets);
+
+    // 5. Tap on a revealed brand and verify onBrandTap callback
+    await tester.tap(find.text('Infinix').first);
+    await tester.pumpAndSettle();
+    expect(selectedBrand, equals('Infinix'));
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('menu slide displays well-arranged customer menu items and sign out works',
       (WidgetTester tester) async {
     final homeViewModel = HomeViewModel(
@@ -369,15 +470,16 @@ void main() {
     // Verify returns to initial featured phones banners
     expect(find.text('Featured Phones'), findsOneWidget);
     expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
-    // 6. Verify 3-column grid structure and card height 240
+    // 6. Verify 2-column grid structure and proportional card height
     final gridFinder = find.byType(GridView);
     expect(gridFinder, findsOneWidget);
     final grid = tester.widget<GridView>(gridFinder);
     final delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-    expect(delegate.crossAxisCount, anyOf(equals(3), equals(4)));
-    expect(delegate.mainAxisExtent, equals(240));
-    expect(delegate.crossAxisSpacing, equals(10));
-    expect(delegate.mainAxisSpacing, equals(10));
+    expect(delegate.crossAxisCount, anyOf(equals(2), equals(4)));
+    expect(delegate.crossAxisSpacing, equals(12));
+    expect(delegate.mainAxisSpacing, equals(12));
+    // Verify mainAxisExtent corresponds to cardWidth * 1.56
+    expect(delegate.mainAxisExtent, isNotNull);
 
     // Verify Buy Now button exists on the cards
     expect(find.text('Buy Now'), findsWidgets);
@@ -388,7 +490,7 @@ void main() {
   });
 
   testWidgets(
-      'search page 3-column featured layout renders on narrow 320px screen without overflow',
+      'search page 2-column featured layout renders on narrow 320px screen without overflow',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(320, 800);
     tester.view.devicePixelRatio = 1.0;
@@ -1922,6 +2024,8 @@ void main() {
     expect(find.text('Filter phones, laptops & gadgets in store'), findsOneWidget);
     expect(find.text('Smartphones'), findsOneWidget);
     expect(find.text('Flagship & 5G'), findsOneWidget);
+    expect(find.text('UK Used'), findsWidgets);
+    expect(find.text('Grade A+ Tested'), findsOneWidget);
     expect(find.text('Keypad Phones'), findsOneWidget);
     expect(find.text('Nokia & Itel'), findsOneWidget);
     expect(find.text('Laptops'), findsOneWidget);

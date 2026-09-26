@@ -30,7 +30,7 @@ class FeaturedPhoneCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
           boxShadow: [
             BoxShadow(
@@ -40,30 +40,22 @@ class FeaturedPhoneCard extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+        padding: const EdgeInsets.all(9),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: "New" badge (left) & Wishlist heart icon (right)
+            // Top Row: Condition badge (New, UK Used, Refurbished) & Wishlist heart icon
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C7BFF),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'New',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: _buildConditionBadge(product.condition),
                   ),
                 ),
+                const SizedBox(width: 4),
                 InkWell(
                   onTap: onWishlistTap,
                   borderRadius: BorderRadius.circular(12),
@@ -76,7 +68,7 @@ class FeaturedPhoneCard extends StatelessWidget {
                       color: isWishlisted
                           ? const Color(0xFFEF4444)
                           : const Color(0xFFCBD5E1),
-                      size: 16,
+                      size: 17,
                     ),
                   ),
                 ),
@@ -97,21 +89,21 @@ class FeaturedPhoneCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF111827),
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.1,
               ),
             ),
             const SizedBox(height: 2),
 
-            // Price ("From $1,099")
+            // Price ("From ₵1,099")
             Text(
               _formatFeaturedPrice(product.price),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF6B7280),
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -124,13 +116,13 @@ class FeaturedPhoneCard extends StatelessWidget {
               child: Row(
                 children: [
                   const Icon(Icons.star_rounded,
-                      size: 12, color: Color(0xFFFFA000)),
+                      size: 13, color: Color(0xFFFFA000)),
                   const SizedBox(width: 2),
                   Text(
                     product.rating.toStringAsFixed(1),
                     style: const TextStyle(
                       color: Color(0xFF111827),
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -139,7 +131,7 @@ class FeaturedPhoneCard extends StatelessWidget {
                     '(${product.reviewCount})',
                     style: const TextStyle(
                       color: Color(0xFF6B7280),
-                      fontSize: 9.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -151,7 +143,7 @@ class FeaturedPhoneCard extends StatelessWidget {
             // Action button: Full-width blue "Buy Now" button with cart icon
             SizedBox(
               width: double.infinity,
-              height: 30,
+              height: 32,
               child: ElevatedButton(
                 onPressed: onTap,
                 style: ElevatedButton.styleFrom(
@@ -170,7 +162,7 @@ class FeaturedPhoneCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.shopping_cart_outlined,
-                        size: 13,
+                        size: 14,
                         color: Colors.white,
                       ),
                       SizedBox(width: 4),
@@ -178,7 +170,7 @@ class FeaturedPhoneCard extends StatelessWidget {
                         'Buy Now',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -188,6 +180,43 @@ class FeaturedPhoneCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConditionBadge(String condition) {
+    final lower = condition.toLowerCase().trim();
+    final String label;
+    final Color badgeBg;
+    if (lower.contains('uk') || lower.contains('used')) {
+      label = 'UK Used';
+      badgeBg = const Color(0xFFEA580C);
+    } else if (lower.contains('refurb')) {
+      label = 'Refurbished';
+      badgeBg = const Color(0xFF059669);
+    } else if (lower.contains('open')) {
+      label = 'Open Box';
+      badgeBg = const Color(0xFF7C3AED);
+    } else {
+      label = 'New';
+      badgeBg = const Color(0xFF1C7BFF);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: badgeBg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -205,12 +234,12 @@ class ProductPhoneGraphic extends StatelessWidget {
       builder: (context, constraints) {
         final maxH = constraints.maxHeight.isFinite
             ? constraints.maxHeight
-            : 100.0;
+            : 120.0;
         final maxW = constraints.maxWidth.isFinite
             ? constraints.maxWidth
-            : 100.0;
-        final availableHeight = maxH.clamp(40.0, 140.0);
-        final availableWidth = maxW.clamp(40.0, 160.0);
+            : 160.0;
+        final availableHeight = maxH.clamp(40.0, 180.0);
+        final availableWidth = maxW.clamp(40.0, 180.0);
         return SizedBox(
           width: availableWidth,
           height: availableHeight,

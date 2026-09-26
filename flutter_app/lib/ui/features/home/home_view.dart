@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../../../domain/models/product.dart';
 import '../../../data/repositories/wishlist_repository.dart';
 import '../../core/widgets/brand_logo.dart';
+import '../brands/brands_view.dart';
 import '../notifications/notifications_view.dart';
 import 'home_view_model.dart';
 
@@ -326,6 +328,7 @@ class _HomeViewState extends State<HomeView> {
     final moreCategories = [
       (category: 'All Products', icon: Icons.grid_view_rounded),
       (category: 'Tablets', icon: Icons.tablet_mac_rounded),
+      (category: 'UK Used', icon: Icons.verified_rounded),
       (category: 'Wearables', icon: Icons.watch_rounded),
       (category: 'Foldables', icon: Icons.devices_fold_rounded),
     ];
@@ -948,34 +951,8 @@ class _HomeViewState extends State<HomeView> {
                 ),
               ),
             ),
-            InkWell(
-              key: const ValueKey('home_search_tune_button'),
-              borderRadius: BorderRadius.circular(10),
+            _GlowingCategoryTuneButton(
               onTap: _showCategoriesBottomSheet,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 6, left: 4, top: 4, bottom: 4),
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE6E8ED)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.tune_rounded,
-                    size: 18,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-              ),
             ),
           ],
         ),
@@ -996,6 +973,13 @@ class _HomeViewState extends State<HomeView> {
             subtitle: 'Flagship & 5G',
             color: const Color(0xFF2563EB),
             bgColor: const Color(0xFFEFF6FF),
+          ),
+          (
+            category: 'UK Used',
+            icon: Icons.verified_rounded,
+            subtitle: 'Grade A+ Tested',
+            color: const Color(0xFFEA580C),
+            bgColor: const Color(0xFFFFF7ED),
           ),
           (
             category: 'Keypad Phones',
@@ -1454,15 +1438,10 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildBrandRow() {
-    final brands = [
-      'Apple',
-      'Samsung',
-      'Google',
-      'OnePlus',
-      'Xiaomi',
-    ];
+    final brands = BrandsView.allBrands.map((b) => b.name).toList();
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1512,53 +1491,51 @@ class _HomeViewState extends State<HomeView> {
           ),
         ),
         const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 0.85,
-            ),
+        SizedBox(
+          height: 86,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: brands.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final brandName = brands[index];
-              return Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => widget.onBrandTap?.call(brandName),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
+              return SizedBox(
+                width: 72,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => widget.onBrandTap?.call(brandName),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           SizedBox(
-                            height: 26,
+                            height: 28,
                             child: Center(
                               child: BrandLogo(brand: brandName),
                             ),
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 6),
                           Text(
                             brandName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -1629,7 +1606,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   /// Groups featured products by brand and renders each group as a
-  /// horizontally-scrollable row with 3 cards visible at a time,
+  /// horizontally-scrollable row with 2 cards visible at a time,
   /// with the brand name shown as a label above each row.
   Widget _buildFeaturedByBrand() {
     final items = widget.viewModel.featuredProducts;
@@ -1690,20 +1667,22 @@ class _HomeViewState extends State<HomeView> {
                     ],
                   ),
                 ),
-                // Horizontal scroll list — 3 cards visible at a time
+                // Horizontal scroll list — 2 cards visible at a time
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    // Card width = screen width / 3 minus padding/spacing
+                    // Card width = (screen width - horizontal padding (32) - spacing between 2 cards (12)) / 2
                     final cardWidth =
-                        (constraints.maxWidth - 32 - 20) / 3;
+                        (constraints.maxWidth - 32 - 12) / 2;
+                    // Proportional height corresponding to horizontal size (1:1.56 aspect ratio)
+                    final cardHeight = cardWidth * 1.56;
                     return SizedBox(
-                      height: 240,
+                      height: cardHeight,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: products.length,
                         separatorBuilder: (_, __) =>
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                         itemBuilder: (context, i) {
                           return SizedBox(
                             width: cardWidth,
@@ -1723,7 +1702,7 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  /// Compact card for the 3-per-row horizontal brand sections.
+  /// Featured card for the 2-per-row horizontal brand sections.
   Widget _buildCompactFeaturedCard(Product product) {
     final isWishlisted = widget.wishlistRepo?.isWishlisted(product.id) ??
         _wishlistProductIds.contains(product.id);
@@ -1733,7 +1712,7 @@ class _HomeViewState extends State<HomeView> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
           boxShadow: [
             BoxShadow(
@@ -1743,7 +1722,7 @@ class _HomeViewState extends State<HomeView> {
             ),
           ],
         ),
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+        padding: const EdgeInsets.all(9),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1751,22 +1730,14 @@ class _HomeViewState extends State<HomeView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C7BFF),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'New',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: _buildConditionBadge(product.condition),
                   ),
                 ),
+                const SizedBox(width: 4),
                 InkWell(
                   onTap: () {
                     if (widget.wishlistRepo != null) {
@@ -1791,7 +1762,7 @@ class _HomeViewState extends State<HomeView> {
                       color: isWishlisted
                           ? const Color(0xFFEF4444)
                           : const Color(0xFFCBD5E1),
-                      size: 16,
+                      size: 17,
                     ),
                   ),
                 ),
@@ -1811,7 +1782,7 @@ class _HomeViewState extends State<HomeView> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF111827),
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.1,
               ),
@@ -1824,7 +1795,7 @@ class _HomeViewState extends State<HomeView> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF6B7280),
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1836,13 +1807,13 @@ class _HomeViewState extends State<HomeView> {
               child: Row(
                 children: [
                   const Icon(Icons.star_rounded,
-                      size: 12, color: Color(0xFFFFA000)),
+                      size: 13, color: Color(0xFFFFA000)),
                   const SizedBox(width: 2),
                   Text(
                     product.rating.toStringAsFixed(1),
                     style: const TextStyle(
                       color: Color(0xFF111827),
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1851,7 +1822,7 @@ class _HomeViewState extends State<HomeView> {
                     '(${product.reviewCount})',
                     style: const TextStyle(
                       color: Color(0xFF6B7280),
-                      fontSize: 9.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -1862,7 +1833,7 @@ class _HomeViewState extends State<HomeView> {
             // Buy Now button with cart icon
             SizedBox(
               width: double.infinity,
-              height: 30,
+              height: 32,
               child: ElevatedButton(
                 onPressed: () => widget.onProductTap(product),
                 style: ElevatedButton.styleFrom(
@@ -1881,7 +1852,7 @@ class _HomeViewState extends State<HomeView> {
                     children: [
                       Icon(
                         Icons.shopping_cart_outlined,
-                        size: 13,
+                        size: 14,
                         color: Colors.white,
                       ),
                       SizedBox(width: 4),
@@ -1889,7 +1860,7 @@ class _HomeViewState extends State<HomeView> {
                         'Buy Now',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1909,12 +1880,12 @@ class _HomeViewState extends State<HomeView> {
       builder: (context, constraints) {
         final maxH = constraints.maxHeight.isFinite
             ? constraints.maxHeight
-            : 100.0;
+            : 120.0;
         final maxW = constraints.maxWidth.isFinite
             ? constraints.maxWidth
-            : 100.0;
-        final availableHeight = maxH.clamp(40.0, 140.0);
-        final availableWidth = maxW.clamp(40.0, 160.0);
+            : 160.0;
+        final availableHeight = maxH.clamp(40.0, 180.0);
+        final availableWidth = maxW.clamp(40.0, 180.0);
         return SizedBox(
           width: availableWidth,
           height: availableHeight,
@@ -1926,6 +1897,43 @@ class _HomeViewState extends State<HomeView> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildConditionBadge(String condition) {
+    final lower = condition.toLowerCase().trim();
+    final String label;
+    final Color badgeBg;
+    if (lower.contains('uk') || lower.contains('used')) {
+      label = 'UK Used';
+      badgeBg = const Color(0xFFEA580C);
+    } else if (lower.contains('refurb')) {
+      label = 'Refurbished';
+      badgeBg = const Color(0xFF059669);
+    } else if (lower.contains('open')) {
+      label = 'Open Box';
+      badgeBg = const Color(0xFF7C3AED);
+    } else {
+      label = 'New';
+      badgeBg = const Color(0xFF1C7BFF);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: badgeBg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -2134,3 +2142,155 @@ class _PhoneMockupPainter extends CustomPainter {
     return oldDelegate.brand != brand || oldDelegate.name != name;
   }
 }
+
+class _GlowingCategoryTuneButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _GlowingCategoryTuneButton({
+    required this.onTap,
+  });
+
+  @override
+  State<_GlowingCategoryTuneButton> createState() =>
+      _GlowingCategoryTuneButtonState();
+}
+
+class _GlowingCategoryTuneButtonState extends State<_GlowingCategoryTuneButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    );
+
+    final isTest =
+        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    if (!isTest) {
+      _controller.repeat();
+    } else {
+      _controller.value = 0.5;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: const ValueKey('home_search_tune_button'),
+      borderRadius: BorderRadius.circular(10),
+      onTap: widget.onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 6, left: 4, top: 4, bottom: 4),
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _GlowingLightBorderPainter(progress: _controller.value),
+                child: child,
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.all(1.5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.tune_rounded,
+                size: 17,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlowingLightBorderPainter extends CustomPainter {
+  final double progress;
+
+  _GlowingLightBorderPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(1.0),
+      const Radius.circular(10),
+    );
+
+    // Subtle background border so the button outline remains crisp all around
+    final baseBorderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..color = const Color(0xFFE2E8F0);
+    canvas.drawRRect(rrect, baseBorderPaint);
+
+    final angle = progress * 2 * math.pi;
+    final sweepShader = SweepGradient(
+      center: Alignment.center,
+      transform: GradientRotation(angle),
+      colors: const [
+        Colors.transparent,
+        Colors.transparent,
+        Color(0x0000E5FF),
+        Color(0x6600E5FF),
+        Color(0xFF00E5FF), // Brilliant Cyan Head
+        Color(0xFF1C7BFF), // Vibrant Royal Blue
+        Color(0xFF8B5CF6), // Neon Purple Tail
+        Colors.transparent,
+      ],
+      stops: const [
+        0.0,
+        0.55,
+        0.70,
+        0.82,
+        0.91,
+        0.96,
+        0.985,
+        1.0,
+      ],
+    ).createShader(rect);
+
+    // 1. Radiant luminous glow aura
+    final glowAuraPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.0
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.2)
+      ..shader = sweepShader;
+    canvas.drawRRect(rrect, glowAuraPaint);
+
+    // 2. Focused razor-sharp beam running along border
+    final coreBeamPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..shader = sweepShader;
+    canvas.drawRRect(rrect, coreBeamPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _GlowingLightBorderPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+

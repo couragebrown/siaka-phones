@@ -355,6 +355,18 @@ class BrandLogo extends StatelessWidget {
           ),
         );
 
+      case 'oraimo':
+      case 'araimo':
+        return const Text(
+          'oraimo',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF00C853),
+            letterSpacing: -0.3,
+          ),
+        );
+
       case 'tcl':
         return const Text(
           'TCL',

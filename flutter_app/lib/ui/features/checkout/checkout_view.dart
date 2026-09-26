@@ -31,7 +31,7 @@ class _CheckoutViewState extends State<CheckoutView> {
   int _selectedShippingOptionIndex = 0;
   late Map<String, String> _address;
 
-  // Payment selection: 0 = Mobile Money, 1 = Card, 2 = Apple/Google Pay, 3 = Pay on Delivery
+  // Payment selection: 0 = Mobile Money, 1 = Card, 2 = Pay on Delivery
   int _selectedPaymentMethodIndex = 0;
   String _selectedMoMoCarrier = 'MTN MoMo';
   bool _saveCard = true;
@@ -974,14 +974,24 @@ class _CheckoutViewState extends State<CheckoutView> {
         _buildPaymentOptionCard(
           index: 0,
           title: 'Mobile Money (MoMo)',
-          subtitle: 'Instant push notification on your phone',
+          subtitle: 'Instant push prompt directly to your phone',
           icon: Icons.phone_android_rounded,
           badgeText: 'POPULAR',
+          trailingLogos: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildMtnMomoLogo(height: 17),
+              const SizedBox(width: 5),
+              _buildTelecelCashLogo(height: 17),
+              const SizedBox(width: 5),
+              _buildAtMoneyLogo(height: 17),
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-              // Carrier Selector: MTN, Telecel, AT
+              // Carrier Selector: MTN MoMo, Telecel Cash, AT Money
               Row(
                 children: ['MTN MoMo', 'Telecel Cash', 'AT Money'].map((carrier) {
                   final isCarrierSelected = _selectedMoMoCarrier == carrier;
@@ -993,7 +1003,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 2),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 7),
                         decoration: BoxDecoration(
                           color: isCarrierSelected
                               ? const Color(0xFFEFF6FF)
@@ -1006,19 +1016,32 @@ class _CheckoutViewState extends State<CheckoutView> {
                             width: isCarrierSelected ? 1.5 : 1,
                           ),
                         ),
-                        child: Center(
-                          child: Text(
-                            carrier,
-                            style: TextStyle(
-                              color: isCarrierSelected
-                                  ? const Color(0xFF1C7BFF)
-                                  : const Color(0xFF475569),
-                              fontSize: 11,
-                              fontWeight: isCarrierSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (carrier == 'MTN MoMo')
+                              _buildMtnMomoLogo(height: 22, compact: true),
+                            if (carrier == 'Telecel Cash')
+                              _buildTelecelCashLogo(height: 22, compact: true),
+                            if (carrier == 'AT Money')
+                              _buildAtMoneyLogo(height: 22, compact: true),
+                            const SizedBox(height: 3),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                carrier,
+                                style: TextStyle(
+                                  color: isCarrierSelected
+                                      ? const Color(0xFF1C7BFF)
+                                      : const Color(0xFF475569),
+                                  fontSize: 10.5,
+                                  fontWeight: isCarrierSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
@@ -1065,6 +1088,16 @@ class _CheckoutViewState extends State<CheckoutView> {
           title: 'Credit / Debit Card',
           subtitle: 'Visa, Mastercard, American Express',
           icon: Icons.credit_card_rounded,
+          trailingLogos: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildVisaLogo(height: 17),
+              const SizedBox(width: 5),
+              _buildMastercardLogo(height: 17),
+              const SizedBox(width: 5),
+              _buildAmexLogo(height: 17),
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1217,22 +1250,13 @@ class _CheckoutViewState extends State<CheckoutView> {
 
         const SizedBox(height: 10),
 
-        // Method 2: Apple Pay / Google Pay
+        // Method 2: Cash on Delivery / Pickup Hub
         _buildPaymentOptionCard(
           index: 2,
-          title: 'Apple Pay & Google Pay',
-          subtitle: 'Instant 1-tap checkout via device wallet',
-          icon: Icons.account_balance_wallet_rounded,
-        ),
-
-        const SizedBox(height: 10),
-
-        // Method 3: Pay on Delivery / Hub
-        _buildPaymentOptionCard(
-          index: 3,
           title: 'Cash on Delivery / Pickup Hub',
           subtitle: 'Inspect your device before paying cash or card',
           icon: Icons.handshake_rounded,
+          trailingLogos: _buildCashPickupLogos(height: 17),
         ),
 
         const SizedBox(height: 16),
@@ -1360,6 +1384,7 @@ class _CheckoutViewState extends State<CheckoutView> {
     required String subtitle,
     required IconData icon,
     String? badgeText,
+    Widget? trailingLogos,
     Widget? child,
   }) {
     final isSelected = _selectedPaymentMethodIndex == index;
@@ -1375,9 +1400,6 @@ class _CheckoutViewState extends State<CheckoutView> {
             widget.viewModel.selectPaymentMethod('Credit / Debit Card');
             break;
           case 2:
-            widget.viewModel.selectPaymentMethod('Apple / Google Pay');
-            break;
-          case 3:
             widget.viewModel.selectPaymentMethod('Cash on Delivery');
             break;
         }
@@ -1398,26 +1420,33 @@ class _CheckoutViewState extends State<CheckoutView> {
         child: Column(
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF1C7BFF)
-                          : const Color(0xFF94A3B8),
-                      width: isSelected ? 5.5 : 1.5,
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF1C7BFF)
+                            : const Color(0xFF94A3B8),
+                        width: isSelected ? 5.5 : 1.5,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
-                Icon(icon,
-                    size: 20,
-                    color: isSelected
-                        ? const Color(0xFF1C7BFF)
-                        : const Color(0xFF64748B)),
+                Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Icon(icon,
+                      size: 20,
+                      color: isSelected
+                          ? const Color(0xFF1C7BFF)
+                          : const Color(0xFF64748B)),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -1454,6 +1483,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                             ),
                         ],
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         subtitle,
                         style: const TextStyle(
@@ -1461,6 +1491,14 @@ class _CheckoutViewState extends State<CheckoutView> {
                           fontSize: 11,
                         ),
                       ),
+                      if (trailingLogos != null) ...[
+                        const SizedBox(height: 7),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: trailingLogos,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1470,6 +1508,249 @@ class _CheckoutViewState extends State<CheckoutView> {
           ],
         ),
       ),
+    );
+  }
+
+  // ===========================================================================
+  // AUTHENTIC PAYMENT LOGOS
+  // ===========================================================================
+  Widget _buildVisaLogo({double height = 17}) {
+    return Container(
+      height: height,
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: const Center(
+        child: Text(
+          'VISA',
+          style: TextStyle(
+            color: Color(0xFF1A1F71),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic,
+            letterSpacing: 0.4,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMastercardLogo({double height = 17}) {
+    return Container(
+      height: height,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 13,
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEB001B),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF79E1B).withValues(alpha: 0.9),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAmexLogo({double height = 17}) {
+    return Container(
+      height: height,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF006FCF),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: const Center(
+        child: Text(
+          'AMEX',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 8,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMtnMomoLogo({double height = 18, bool compact = false}) {
+    final effectiveHeight = compact ? 22.0 : height;
+    return Container(
+      height: effectiveHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: Image.asset(
+        'assets/images/momo_mtn_logo.png',
+        height: effectiveHeight - 3,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+      ),
+    );
+  }
+
+  Widget _buildTelecelCashLogo({double height = 18, bool compact = false}) {
+    final effectiveHeight = compact ? 22.0 : height;
+    return Container(
+      height: effectiveHeight,
+      padding: const EdgeInsets.all(1.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE52325),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFD61F21), width: 0.6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: Image.asset(
+          'assets/images/telecel_cash_logo.png',
+          height: effectiveHeight - 2,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAtMoneyLogo({double height = 18, bool compact = false}) {
+    final effectiveHeight = compact ? 22.0 : height;
+    return Container(
+      height: effectiveHeight,
+      padding: const EdgeInsets.all(1.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF183670),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFF0F2552), width: 0.6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: Image.asset(
+          'assets/images/airteltigo_logo.png',
+          height: effectiveHeight - 2,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCashPickupLogos({double height = 17}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: height,
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFECFDF5),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFFA7F3D0), width: 0.8),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.payments_outlined, size: 11, color: Color(0xFF059669)),
+              SizedBox(width: 3),
+              Text(
+                '₵ Cash',
+                style: TextStyle(
+                  color: Color(0xFF059669),
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 5),
+        Container(
+          height: height,
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFFCBD5E1), width: 0.8),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.storefront_outlined, size: 11, color: Color(0xFF475569)),
+              SizedBox(width: 3),
+              Text(
+                'Store Hub',
+                style: TextStyle(
+                  color: Color(0xFF475569),
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

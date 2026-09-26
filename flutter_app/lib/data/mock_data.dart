@@ -39,6 +39,7 @@ class MockData {
       isNewArrival: true,
       inStock: true,
       stockCount: 24,
+      condition: 'New',
     ),
     Product(
       id: 'phone-2',
@@ -69,6 +70,7 @@ class MockData {
       isNewArrival: true,
       inStock: true,
       stockCount: 18,
+      condition: 'UK Used',
     ),
     Product(
       id: 'phone-3',
@@ -99,6 +101,7 @@ class MockData {
       isNewArrival: true,
       inStock: true,
       stockCount: 30,
+      condition: 'Refurbished',
     ),
     Product(
       id: 'phone-4',
@@ -129,6 +132,7 @@ class MockData {
       isNewArrival: false,
       inStock: true,
       stockCount: 25,
+      condition: 'New',
     ),
     Product(
       id: 'phone-5',
@@ -159,6 +163,7 @@ class MockData {
       isNewArrival: false,
       inStock: true,
       stockCount: 20,
+      condition: 'UK Used',
     ),
     Product(
       id: 'phone-6',
@@ -215,6 +220,7 @@ class MockData {
       isNewArrival: true,
       inStock: true,
       stockCount: 44,
+      condition: 'Refurbished',
     ),
     Product(
       id: 'phone-8',
@@ -1078,6 +1084,62 @@ class MockData {
       isNewArrival: false,
       inStock: true,
       stockCount: 16,
+    ),
+    Product(
+      id: 'oraimo-1',
+      name: 'Oraimo FreePods 4 ANC Earbuds',
+      brand: 'Oraimo',
+      category: 'Accessories',
+      price: 380.0,
+      originalPrice: 450.0,
+      rating: 4.8,
+      reviewCount: 312,
+      description:
+          'Active Noise Cancelling True Wireless Earbuds with HavyBass technology, 35.5-hour total playtime, and Transparency Mode.',
+      images: [
+        'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=800&q=80',
+      ],
+      colors: ['Aurora Black', 'Moonlight White'],
+      storageOptions: ['Standard'],
+      specs: {
+        'Noise Cancellation': 'Up to 30dB Active Noise Cancellation',
+        'Playtime': 'Up to 35.5 Hours with Charging Case',
+        'Connectivity': 'Bluetooth 5.2 Low Latency',
+        'Water Resistance': 'IPX5 Splash & Sweat Proof',
+      },
+      isFeatured: true,
+      isNewArrival: true,
+      inStock: true,
+      stockCount: 40,
+      condition: 'New',
+    ),
+    Product(
+      id: 'oraimo-2',
+      name: 'Oraimo Watch 4 Plus Calling Smartwatch',
+      brand: 'Oraimo',
+      category: 'Smartwatches',
+      price: 520.0,
+      originalPrice: 600.0,
+      rating: 4.7,
+      reviewCount: 184,
+      description:
+          '2.01" High-Definition Large Screen Smartwatch with Bluetooth HD Calling, 100+ Sport Modes, 7-Day Battery Life, and IP68 Water Resistance.',
+      images: [
+        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
+      ],
+      colors: ['Jet Black', 'Space Gray'],
+      storageOptions: ['Standard'],
+      specs: {
+        'Display': '2.01" HD 240x282 Curved Display',
+        'Calling': 'Wireless Single-Chip Bluetooth Calling',
+        'Battery Life': 'Up to 7 Days Regular Usage',
+        'Water Resistance': 'IP68 Certified',
+      },
+      isFeatured: true,
+      isNewArrival: true,
+      inStock: true,
+      stockCount: 28,
+      condition: 'New',
     ),
   ];
 

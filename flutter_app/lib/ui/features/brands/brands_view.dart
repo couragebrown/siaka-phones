@@ -122,6 +122,11 @@ class BrandsView extends StatefulWidget {
       tagline: 'Phantom & Camon',
     ),
     BrandItem(
+      name: 'Oraimo',
+      icon: 'oraimo',
+      tagline: 'Smart Accessories',
+    ),
+    BrandItem(
       name: 'Nokia',
       icon: 'NOK',
       tagline: 'Reliable Pure Android',
@@ -206,6 +211,7 @@ class _BrandsViewState extends State<BrandsView> {
       filteredBrands = BrandsView.allBrands.where((b) {
         final name = b.name.toLowerCase();
         if (name.startsWith(q)) return true;
+        if (name == 'oraimo' && (q.startsWith('ara') || q.startsWith('araim'))) return true;
         final words = name.split(RegExp(r'[\s\-_]+'));
         return words.any((w) => w.startsWith(q));
       }).toList();

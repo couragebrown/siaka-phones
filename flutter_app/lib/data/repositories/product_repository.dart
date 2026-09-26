@@ -10,6 +10,11 @@ class ProductRepository {
 
     if (!hasQuery) {
       if (category != null && category != 'All' && category != 'All Products') {
+        if (category.toLowerCase() == 'uk used') {
+          return _products
+              .where((p) => p.condition.toLowerCase() == 'uk used')
+              .toList();
+        }
         return _products
             .where((p) => p.category.toLowerCase() == category.toLowerCase())
             .toList();
@@ -97,13 +102,15 @@ class ProductRepository {
       return tokens.every((t) => matchesToken(p, t));
     }
 
-    // Try within the active category pill first
     final inCategory = _products.where((p) {
       if (category != null &&
           category != 'All' &&
-          category != 'All Products' &&
-          p.category.toLowerCase() != category.toLowerCase()) {
-        return false;
+          category != 'All Products') {
+        if (category.toLowerCase() == 'uk used') {
+          if (p.condition.toLowerCase() != 'uk used') return false;
+        } else if (p.category.toLowerCase() != category.toLowerCase()) {
+          return false;
+        }
       }
       return matchesAllTokens(p);
     }).toList();
@@ -143,6 +150,7 @@ class ProductRepository {
     return [
       'All',
       'Smartphones',
+      'UK Used',
       'Keypad Phones',
       'Laptops',
       'Accessories',
