@@ -254,28 +254,55 @@ class _HomeViewState extends State<HomeView> {
             ),
             const SizedBox(width: 8),
             Container(
-              width: 26,
-              height: 26,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFFEDF1F6),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF8CD4FF),
+                    Color(0xFFC4E8FF),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(9.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8CD4FF).withValues(alpha: 0.45),
+                    blurRadius: 5,
+                    offset: const Offset(0, 1.5),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.phone_android_rounded,
-                  size: 18, color: Color(0xFF1F2937)),
+              child: const CustomPaint(
+                painter: _HeaderPhoneBadgePainter(),
+              ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             const Expanded(
-              child: Text(
-                'SiakaPhones',
+              child: Text.rich(
+                TextSpan(
+                  text: 'Siaka',
+                  style: TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.6,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: 'Phones',
+                      style: TextStyle(
+                        color: Color(0xFF1D70FE),
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.6,
+                      ),
+                    ),
+                  ],
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Color(0xFF1F2937),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.7,
-                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -3094,5 +3121,60 @@ class _SpeechBubbleTrianglePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+class _HeaderPhoneBadgePainter extends CustomPainter {
+  const _HeaderPhoneBadgePainter();
 
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Smartphone body (solid dark navy/black with rounded corners)
+    final bodyPaint = Paint()
+      ..color = const Color(0xFF0F172A)
+      ..style = PaintingStyle.fill;
 
+    const phoneWidth = 14.0;
+    const phoneHeight = 21.0;
+    final phoneLeft = (size.width - phoneWidth) / 2;
+    final phoneTop = (size.height - phoneHeight) / 2;
+
+    final bodyRRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(phoneLeft, phoneTop, phoneWidth, phoneHeight),
+      const Radius.circular(3.8),
+    );
+    canvas.drawRRect(bodyRRect, bodyPaint);
+
+    // Screen (light sky-blue matching header brand badge)
+    final screenPaint = Paint()
+      ..color = const Color(0xFFC0E5FF)
+      ..style = PaintingStyle.fill;
+
+    const screenWidth = 10.2;
+    const screenHeight = 13.2;
+    final screenLeft = (size.width - screenWidth) / 2;
+    final screenTop = phoneTop + 2.0;
+
+    final screenRRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(screenLeft, screenTop, screenWidth, screenHeight),
+      const Radius.circular(1.2),
+    );
+    canvas.drawRRect(screenRRect, screenPaint);
+
+    // Home button (small white button at bottom center)
+    final btnPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    const btnWidth = 2.6;
+    const btnHeight = 2.0;
+    final btnLeft = (size.width - btnWidth) / 2;
+    final btnTop = phoneTop + phoneHeight - 3.2;
+
+    final btnRRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(btnLeft, btnTop, btnWidth, btnHeight),
+      const Radius.circular(0.6),
+    );
+    canvas.drawRRect(btnRRect, btnPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
