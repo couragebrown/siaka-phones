@@ -7,6 +7,7 @@ import '../../../data/repositories/wishlist_repository.dart';
 import '../../core/widgets/brand_logo.dart';
 import '../../core/widgets/running_light_arrow.dart';
 import '../../core/widgets/banner_video_player.dart';
+import '../../core/widgets/flash_sale_promo_banner.dart';
 import '../brands/brands_view.dart';
 import '../notifications/notifications_view.dart';
 import 'home_view_model.dart';
@@ -2160,18 +2161,18 @@ class _HomeViewState extends State<HomeView> {
       byBrand.putIfAbsent(p.brand, () => []).add(p);
     }
 
+    final brandEntries = byBrand.entries.toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Section header with "Featured Phones" title + View all link
         _buildSectionHeader('Featured Phones', 'View all'),
         const SizedBox(height: 14),
-        // One horizontal-scroll row per brand
-        ...byBrand.entries.map((entry) {
-          final brand = entry.key;
-          final products = entry.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 20),
+        // One horizontal-scroll row per brand, followed by an alternating Flash Sale banner under each
+        for (int i = 0; i < brandEntries.length; i++) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2190,7 +2191,7 @@ class _HomeViewState extends State<HomeView> {
                       ),
                       const SizedBox(width: 7),
                       Text(
-                        brand,
+                        brandEntries[i].key,
                         style: const TextStyle(
                           color: Color(0xFF1E2432),
                           fontSize: 15,
@@ -2200,7 +2201,7 @@ class _HomeViewState extends State<HomeView> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${products.length} phones',
+                        '${brandEntries[i].value.length} phones',
                         style: const TextStyle(
                           color: Color(0xFF9CA3AF),
                           fontSize: 12,
@@ -2221,8 +2222,8 @@ class _HomeViewState extends State<HomeView> {
                     return SizedBox(
                       height: cardHeight,
                       child: _FeaturedBrandRow(
-                        brand: brand,
-                        products: products,
+                        brand: brandEntries[i].key,
+                        products: brandEntries[i].value,
                         cardWidth: cardWidth,
                         cardHeight: cardHeight,
                         buildCard: _buildCompactFeaturedCard,
@@ -2233,8 +2234,15 @@ class _HomeViewState extends State<HomeView> {
                 ),
               ],
             ),
-          );
-        }),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 22),
+            child: FlashSalePromoBanner(
+              isDark: i.isOdd,
+              onShopNowTap: () => widget.onCategoryTap?.call('Smartphones'),
+            ),
+          ),
+        ],
       ],
     );
   }
