@@ -234,6 +234,7 @@ class _HomeViewState extends State<HomeView> {
       backgroundColor: const Color(0xFFF3F4F6),
       elevation: 0,
       automaticallyImplyLeading: false,
+      toolbarHeight: 50,
       titleSpacing: 0,
       title: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -242,7 +243,7 @@ class _HomeViewState extends State<HomeView> {
             IconButton(
               tooltip: 'Open menu',
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
               onPressed: () {
                 if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
                   _closeMenuDrawer();
@@ -250,12 +251,12 @@ class _HomeViewState extends State<HomeView> {
                   _scaffoldKey.currentState?.openDrawer();
                 }
               },
-              icon: const Icon(Icons.menu, color: Color(0xFF1F2937), size: 28),
+              icon: const Icon(Icons.menu, color: Color(0xFF1F2937), size: 25),
             ),
             const SizedBox(width: 8),
             Container(
-              width: 32,
-              height: 32,
+              width: 27,
+              height: 27,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
@@ -265,12 +266,12 @@ class _HomeViewState extends State<HomeView> {
                     Color(0xFFC4E8FF),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(9.5),
+                borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8CD4FF).withValues(alpha: 0.45),
-                    blurRadius: 5,
-                    offset: const Offset(0, 1.5),
+                    color: const Color(0xFF8CD4FF).withValues(alpha: 0.35),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
@@ -278,25 +279,25 @@ class _HomeViewState extends State<HomeView> {
                 painter: _HeaderPhoneBadgePainter(),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 7),
             const Expanded(
               child: Text.rich(
                 TextSpan(
                   text: 'Siaka',
                   style: TextStyle(
                     color: Color(0xFF0F172A),
-                    fontSize: 21,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: -0.6,
+                    letterSpacing: -0.5,
                   ),
                   children: [
                     TextSpan(
                       text: 'Phones',
                       style: TextStyle(
                         color: Color(0xFF1D70FE),
-                        fontSize: 21,
+                        fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -0.6,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ],
@@ -316,13 +317,13 @@ class _HomeViewState extends State<HomeView> {
                 clipBehavior: Clip.none,
                 children: [
                   const Icon(Icons.notifications_none_rounded,
-                      color: Color(0xFF1F2937), size: 28),
+                      color: Color(0xFF1F2937), size: 25),
                   Positioned(
                     right: -2,
                     top: -2,
                     child: Container(
-                      width: 14,
-                      height: 14,
+                      width: 13,
+                      height: 13,
                       decoration: const BoxDecoration(
                         color: Color(0xFF1C7BFF),
                         shape: BoxShape.circle,
@@ -331,7 +332,7 @@ class _HomeViewState extends State<HomeView> {
                         child: Text('2',
                             style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 9,
+                                fontSize: 8.5,
                                 fontWeight: FontWeight.bold)),
                       ),
                     ),
@@ -3131,14 +3132,14 @@ class _HeaderPhoneBadgePainter extends CustomPainter {
       ..color = const Color(0xFF0F172A)
       ..style = PaintingStyle.fill;
 
-    const phoneWidth = 14.0;
-    const phoneHeight = 21.0;
+    final phoneWidth = size.width * 0.44;
+    final phoneHeight = size.height * 0.66;
     final phoneLeft = (size.width - phoneWidth) / 2;
     final phoneTop = (size.height - phoneHeight) / 2;
 
     final bodyRRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(phoneLeft, phoneTop, phoneWidth, phoneHeight),
-      const Radius.circular(3.8),
+      Radius.circular(phoneWidth * 0.26),
     );
     canvas.drawRRect(bodyRRect, bodyPaint);
 
@@ -3147,14 +3148,14 @@ class _HeaderPhoneBadgePainter extends CustomPainter {
       ..color = const Color(0xFFC0E5FF)
       ..style = PaintingStyle.fill;
 
-    const screenWidth = 10.2;
-    const screenHeight = 13.2;
+    final screenWidth = phoneWidth * 0.73;
+    final screenHeight = phoneHeight * 0.62;
     final screenLeft = (size.width - screenWidth) / 2;
-    final screenTop = phoneTop + 2.0;
+    final screenTop = phoneTop + phoneHeight * 0.10;
 
     final screenRRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(screenLeft, screenTop, screenWidth, screenHeight),
-      const Radius.circular(1.2),
+      const Radius.circular(1.0),
     );
     canvas.drawRRect(screenRRect, screenPaint);
 
@@ -3163,14 +3164,14 @@ class _HeaderPhoneBadgePainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.fill;
 
-    const btnWidth = 2.6;
-    const btnHeight = 2.0;
+    final btnWidth = phoneWidth * 0.20;
+    final btnHeight = phoneHeight * 0.10;
     final btnLeft = (size.width - btnWidth) / 2;
-    final btnTop = phoneTop + phoneHeight - 3.2;
+    final btnTop = phoneTop + phoneHeight - btnHeight - phoneHeight * 0.05;
 
     final btnRRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(btnLeft, btnTop, btnWidth, btnHeight),
-      const Radius.circular(0.6),
+      const Radius.circular(0.5),
     );
     canvas.drawRRect(btnRRect, btnPaint);
   }
