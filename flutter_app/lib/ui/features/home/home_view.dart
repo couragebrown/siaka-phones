@@ -1283,7 +1283,7 @@ class _HomeViewState extends State<HomeView> {
     return Column(
       children: [
         SizedBox(
-          height: 194,
+          height: 204,
           child: PageView.builder(
             controller: _heroPageController,
             itemCount: _heroPromotions.length,
@@ -1526,8 +1526,8 @@ class _HomeViewState extends State<HomeView> {
             right: -12,
             top: -4,
             child: Container(
-              width: 145,
-              height: 145,
+              width: 160,
+              height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
@@ -1655,7 +1655,7 @@ class _HomeViewState extends State<HomeView> {
               children: [
                 // Left Column: Texts, Benefits Row, CTA Button
                 Expanded(
-                  flex: 11,
+                  flex: 10,
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: FittedBox(
@@ -1760,15 +1760,15 @@ class _HomeViewState extends State<HomeView> {
 
                 // Right Column: Video inside smartphone mockup frame with Trending badge & Better Tech label
                 Expanded(
-                  flex: 11,
+                  flex: 12,
                   child: Align(
                     alignment: Alignment.center,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.center,
                       child: SizedBox(
-                        width: 175,
-                        height: 175,
+                        width: 196,
+                        height: 186,
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
@@ -1777,7 +1777,7 @@ class _HomeViewState extends State<HomeView> {
                               child: Transform.rotate(
                                 angle: -0.065,
                                 child: Container(
-                                  width: 155,
+                                  width: 176,
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF1E222A),
                                     borderRadius: BorderRadius.circular(15),
@@ -1809,8 +1809,8 @@ class _HomeViewState extends State<HomeView> {
 
                             // 🔥 Trending Badge with speech tail at top-right
                             Positioned(
-                              top: 2,
-                              right: 6,
+                              top: 10,
+                              right: 12,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
@@ -1873,8 +1873,8 @@ class _HomeViewState extends State<HomeView> {
 
                             // "Better Tech Brighter Tomorrow" with curved doodle arrow at bottom-right
                             Positioned(
-                              bottom: 0,
-                              right: -2,
+                              bottom: 4,
+                              right: 4,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 mainAxisSize: MainAxisSize.min,
