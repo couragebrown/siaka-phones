@@ -168,7 +168,7 @@ class _CatalogViewState extends State<CatalogView> {
             children: [
               // Search bar with typed text color matching the login page
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
                 child: Container(
                   height: 44,
                   decoration: BoxDecoration(
@@ -288,7 +288,7 @@ class _CatalogViewState extends State<CatalogView> {
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
 
               // Main body: Featured Banners initially vs Search Results when typing
               Expanded(
@@ -600,7 +600,7 @@ class _CatalogViewState extends State<CatalogView> {
     return Column(
       children: [
         SizedBox(
-          height: 180,
+          height: 215,
           child: PageView.builder(
             controller: _heroPageController,
             itemCount: _heroPromotions.length,
@@ -645,7 +645,7 @@ class _CatalogViewState extends State<CatalogView> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
       decoration: BoxDecoration(
         color: promotion.backgroundColor,
         borderRadius: BorderRadius.circular(18),
@@ -663,30 +663,30 @@ class _CatalogViewState extends State<CatalogView> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF1B1F2A),
-                    fontSize: 17,
+                    fontSize: 18.5,
                     fontWeight: FontWeight.w800,
                     height: 1.15,
                     letterSpacing: -0.4,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Text(
                   promotion.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF485569),
-                    fontSize: 12,
+                    fontSize: 12.5,
                     height: 1.3,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Expanded(
                   child: Align(
                     alignment: Alignment.bottomLeft,
                     child: SizedBox(
-                      height: 34,
+                      height: 36,
                       child: ElevatedButton(
                         onPressed: (primaryProduct == null || widget.onProductTap == null)
                             ? null
@@ -698,12 +698,12 @@ class _CatalogViewState extends State<CatalogView> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
                         child: Text(
                           promotion.primaryAction,
                           style: const TextStyle(
-                            fontSize: 12.5,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -722,9 +722,9 @@ class _CatalogViewState extends State<CatalogView> {
                 padding: const EdgeInsets.only(right: 2),
                 child: _buildHeroProductImage(
                   primaryProduct,
-                  96,
-                  126,
-                  14,
+                  114,
+                  152,
+                  16,
                 ),
               ),
             ),

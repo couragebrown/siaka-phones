@@ -262,7 +262,147 @@ class _DashboardViewState extends State<DashboardView> {
               ],
             ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
+
+          // Active Advertisements & Customer Home Ads quick strip
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompactStrip = constraints.maxWidth < 680;
+
+              final infoColumn = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      const Text(
+                        'Mobile Home Video Advertisements',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                        ),
+                        child: Text(
+                          '${widget.repository.activeAdvertisementsCount} LIVE CAMPAIGNS',
+                          style: const TextStyle(
+                            color: Color(0xFF34D399),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Keep video links updated for promotional banners playing on the customer app home screen.',
+                    style: TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              );
+
+              final actionButton = ElevatedButton.icon(
+                onPressed: () => widget.onNavigate(13),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                label: const Text('Manage Ad Links'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1C7BFF),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+              );
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.3)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: isCompactStrip
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0EA5E9).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFF0EA5E9).withValues(alpha: 0.3)),
+                                ),
+                                child: const Icon(
+                                  Icons.campaign_rounded,
+                                  color: Color(0xFF38BDF8),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(child: infoColumn),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: actionButton,
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0EA5E9).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF0EA5E9).withValues(alpha: 0.3)),
+                            ),
+                            child: const Icon(
+                              Icons.campaign_rounded,
+                              color: Color(0xFF38BDF8),
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(child: infoColumn),
+                          const SizedBox(width: 12),
+                          actionButton,
+                        ],
+                      ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 20),
 
           // Recent Customer Orders - extended to the right across the full width
           _buildRecentOrdersCard(context),

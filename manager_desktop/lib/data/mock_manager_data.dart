@@ -8,6 +8,7 @@ import '../../domain/models/manager_repair.dart';
 import '../../domain/models/manager_shipping.dart';
 import '../../domain/models/manager_swap.dart';
 import '../../domain/models/service_ticket.dart';
+import '../../domain/models/advertisement_banner.dart';
 
 class MockManagerData {
   static List<ManagerProduct> getInitialProducts() {
@@ -1208,6 +1209,57 @@ class MockManagerData {
         isRead: true,
         referenceId: 'SRV-2026-005',
         actionRouteIndex: 9,
+      ),
+    ];
+  }
+
+  static List<AdvertisementBanner> getInitialAdvertisements() {
+    final now = DateTime.now();
+    return [
+      AdvertisementBanner(
+        id: 'AD-2026-001',
+        title: 'New Flagship Arrivals',
+        description: 'iPhone 16 Pro Max & Galaxy S24 Ultra now in stock with 1-year warranty.',
+        videoUrl: 'assets/videos/phone_promo.mp4',
+        backupAsset: 'assets/videos/phone_promo.mp4',
+        badgeText: 'HOT DEAL',
+        callToActionText: 'Shop Flagships',
+        targetCategoryOrProduct: 'Smartphones',
+        isActive: true,
+        displayOrder: 1,
+        impressionsCount: 2450,
+        clicksCount: 480,
+        createdAt: now.subtract(const Duration(days: 4)),
+      ),
+      AdvertisementBanner(
+        id: 'AD-2026-002',
+        title: 'Instant Device Trade-in & Swap',
+        description: 'Exchange your old phone for instant cash or credit towards a new device.',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        backupAsset: 'assets/videos/phone_promo.mp4',
+        badgeText: 'SWAP NOW',
+        callToActionText: 'Value My Phone',
+        targetCategoryOrProduct: 'TradeIn',
+        isActive: true,
+        displayOrder: 2,
+        impressionsCount: 1680,
+        clicksCount: 320,
+        createdAt: now.subtract(const Duration(days: 6)),
+      ),
+      AdvertisementBanner(
+        id: 'AD-2026-003',
+        title: 'Buy Now Pay Later Promo',
+        description: 'Take your phone home today with 0% interest flexible installment plans.',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        backupAsset: 'assets/videos/phone_promo.mp4',
+        badgeText: 'BNPL 0%',
+        callToActionText: 'Apply in 2 Mins',
+        targetCategoryOrProduct: 'BNPL',
+        isActive: true,
+        displayOrder: 3,
+        impressionsCount: 1120,
+        clicksCount: 215,
+        createdAt: now.subtract(const Duration(days: 9)),
       ),
     ];
   }

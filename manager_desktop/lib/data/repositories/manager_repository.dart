@@ -13,11 +13,13 @@ import '../../domain/models/manager_repair.dart';
 import '../../domain/models/manager_shipping.dart';
 import '../../domain/models/manager_swap.dart';
 import '../../domain/models/service_ticket.dart';
+import '../../domain/models/advertisement_banner.dart';
 import '../mock_manager_data.dart';
 
 class ManagerRepository extends ChangeNotifier {
   List<ManagerProduct> _products = [];
   List<ManagerOrder> _orders = [];
+  List<AdvertisementBanner> _advertisements = [];
   List<ManagerBnpl> _bnplApplications = [];
   List<ManagerRepair> _repairs = [];
   List<ManagerSwap> _swaps = [];
@@ -63,6 +65,7 @@ class ManagerRepository extends ChangeNotifier {
     _shipments = MockManagerData.getInitialShipments();
     _syncOrdersWithShipments();
     _notifications = MockManagerData.getInitialNotifications();
+    _advertisements = MockManagerData.getInitialAdvertisements();
     _brandModels = {
       'Apple': [
         'iPhone 16 Pro Max',
@@ -162,6 +165,7 @@ class ManagerRepository extends ChangeNotifier {
   List<ServiceTicket> get serviceTickets => List.unmodifiable(_serviceTickets);
   List<ManagerShippingItem> get shipments => List.unmodifiable(_shipments);
   List<ManagerNotification> get notifications => List.unmodifiable(_notifications);
+  List<AdvertisementBanner> get advertisements => List.unmodifiable(_advertisements);
   Map<String, List<String>> get brandModels => _brandModels;
   List<String> get categories => List.unmodifiable(_categories);
   String get currentBranch => _currentBranch;
@@ -182,6 +186,15 @@ class ManagerRepository extends ChangeNotifier {
       s.status == ShippingStatus.inTransit ||
       s.status == ShippingStatus.outForDelivery ||
       s.status == ShippingStatus.pendingPickup).length;
+
+  int get activeAdvertisementsCount =>
+      _advertisements.where((a) => a.isActive).length;
+
+  int get totalAdImpressions =>
+      _advertisements.fold(0, (sum, a) => sum + a.impressionsCount);
+
+  int get totalAdClicks =>
+      _advertisements.fold(0, (sum, a) => sum + a.clicksCount);
 
   void selectBranch(String branch) {
     _currentBranch = branch;
@@ -808,6 +821,46 @@ class ManagerRepository extends ChangeNotifier {
 
   void addNotification(ManagerNotification notif) {
     _notifications.insert(0, notif);
+    notifyListeners();
+  }
+
+  // Advertisement Banner Operations
+  void addAdvertisement(AdvertisementBanner ad) {
+    _advertisements.add(ad);
+    notifyListeners();
+  }
+
+  void updateAdvertisement(AdvertisementBanner ad) {
+    final index = _advertisements.indexWhere((a) => a.id == ad.id);
+    if (index != -1) {
+      _advertisements[index] = ad;
+      notifyListeners();
+    }
+  }
+
+  void deleteAdvertisement(String id) {
+    _advertisements.removeWhere((a) => a.id == id);
+    notifyListeners();
+  }
+
+  void toggleAdvertisementStatus(String id) {
+    final index = _advertisements.indexWhere((a) => a.id == id);
+    if (index != -1) {
+      final current = _advertisements[index];
+      _advertisements[index] = current.copyWith(isActive: !current.isActive);
+      notifyListeners();
+    }
+  }
+
+  void reorderAdvertisement(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _advertisements.length || newIndex < 0 || newIndex >= _advertisements.length) {
+      return;
+    }
+    final item = _advertisements.removeAt(oldIndex);
+    _advertisements.insert(newIndex, item);
+    for (int i = 0; i < _advertisements.length; i++) {
+      _advertisements[i] = _advertisements[i].copyWith(displayOrder: i + 1);
+    }
     notifyListeners();
   }
 }

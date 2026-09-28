@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../domain/models/product.dart';
 import '../../../data/repositories/wishlist_repository.dart';
 import '../../core/widgets/brand_logo.dart';
+import '../../core/widgets/running_light_arrow.dart';
+import '../../core/widgets/banner_video_player.dart';
 import '../brands/brands_view.dart';
 import '../notifications/notifications_view.dart';
 import 'home_view_model.dart';
@@ -135,7 +137,11 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     _heroPageController = PageController();
     widget.viewModel.loadData();
-    _heroTimer = Timer.periodic(_heroSlideInterval, (_) => _advanceHero());
+    // First banner (index 0) has a promotional video; it advances when the video ends.
+    // If starting on a non-video banner, start the 5-second timer.
+    if (_activeHeroIndex != 0) {
+      _heroTimer = Timer(_heroSlideInterval, _advanceHero);
+    }
   }
 
   @override
@@ -143,6 +149,21 @@ class _HomeViewState extends State<HomeView> {
     _heroTimer?.cancel();
     _heroPageController.dispose();
     super.dispose();
+  }
+
+  void _onHeroPageChanged(int index) {
+    setState(() => _activeHeroIndex = index);
+    _heroTimer?.cancel();
+    if (index != 0) {
+      // Banners 1, 2, 3 advance on standard 5-second interval
+      _heroTimer = Timer(_heroSlideInterval, _advanceHero);
+    }
+    // Banner 0 holds until video completion triggers _onBannerVideoCompleted
+  }
+
+  void _onBannerVideoCompleted() {
+    if (!mounted || _activeHeroIndex != 0) return;
+    _advanceHero();
   }
 
   void _advanceHero() {
@@ -1051,8 +1072,8 @@ class _HomeViewState extends State<HomeView> {
               // Drag handle
               Center(
                 child: Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 4),
-                  width: 38,
+                  margin: const EdgeInsets.only(top: 8, bottom: 2),
+                  width: 36,
                   height: 4,
                   decoration: BoxDecoration(
                     color: const Color(0xFFCBD5E1),
@@ -1063,20 +1084,20 @@ class _HomeViewState extends State<HomeView> {
 
               // Header
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 12, 10),
+                padding: const EdgeInsets.fromLTRB(16, 4, 12, 6),
                 child: Row(
                   children: [
                     Container(
-                      width: 34,
-                      height: 34,
+                      width: 32,
+                      height: 32,
                       decoration: BoxDecoration(
                         color: const Color(0xFF1C7BFF).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(9),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
                         Icons.tune_rounded,
                         color: Color(0xFF1C7BFF),
-                        size: 18,
+                        size: 17,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1087,7 +1108,7 @@ class _HomeViewState extends State<HomeView> {
                           Text(
                             'Select Category',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15.5,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF0F172A),
                               letterSpacing: -0.2,
@@ -1107,7 +1128,7 @@ class _HomeViewState extends State<HomeView> {
                       tooltip: 'Close',
                       iconSize: 20,
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                      constraints: const BoxConstraints.tightFor(width: 30, height: 30),
                       onPressed: () => Navigator.of(ctx).pop(),
                       icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
                     ),
@@ -1116,15 +1137,11 @@ class _HomeViewState extends State<HomeView> {
               ),
 
               const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
 
               // 2-column Grid of categories
               Padding(
-                padding: EdgeInsets.only(
-                  left: 12,
-                  right: 12,
-                  bottom: bottomInset + 48,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1132,18 +1149,29 @@ class _HomeViewState extends State<HomeView> {
                       Row(
                         children: [
                           Expanded(child: _buildCategorySheetCard(ctx, categories[i])),
-                          const SizedBox(width: 8),
-                          if (i + 1 < categories.length)
-                            Expanded(child: _buildCategorySheetCard(ctx, categories[i + 1]))
-                          else
-                            const Spacer(),
+                          if (i + 1 < categories.length) ...[
+                            const SizedBox(width: 9),
+                            Expanded(child: _buildCategorySheetCard(ctx, categories[i + 1])),
+                          ],
                         ],
                       ),
-                      if (i + 2 < categories.length) const SizedBox(height: 10),
+                      if (i + 2 < categories.length) const SizedBox(height: 9),
                     ],
                   ],
                 ),
               ),
+
+              // Horizontal divider and generous space under All Products to move contents up significantly
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE2E8F0),
+                ),
+              ),
+              SizedBox(height: bottomInset + 125),
             ],
           ),
         );
@@ -1178,21 +1206,21 @@ class _HomeViewState extends State<HomeView> {
           widget.onSeeAllCatalog();
         }
       },
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(13),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10.5),
         decoration: BoxDecoration(
           color: isSelected ? item.bgColor : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(13),
           border: Border.all(
             color: isSelected ? item.color : const Color(0xFFE2E8F0),
             width: isSelected ? 1.6 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
+              color: Colors.black.withValues(alpha: 0.025),
+              blurRadius: 4,
+              offset: const Offset(0, 1.5),
             ),
           ],
         ),
@@ -1207,7 +1235,7 @@ class _HomeViewState extends State<HomeView> {
               ),
               child: Icon(item.icon, size: 21, color: item.color),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 9),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1221,7 +1249,7 @@ class _HomeViewState extends State<HomeView> {
                       maxLines: 1,
                       style: TextStyle(
                         color: const Color(0xFF1E293B),
-                        fontSize: 13.5,
+                        fontSize: 14,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                         letterSpacing: -0.2,
                       ),
@@ -1236,7 +1264,7 @@ class _HomeViewState extends State<HomeView> {
                       maxLines: 1,
                       style: const TextStyle(
                         color: Color(0xFF94A3B8),
-                        fontSize: 11,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -1255,11 +1283,11 @@ class _HomeViewState extends State<HomeView> {
     return Column(
       children: [
         SizedBox(
-          height: 160,
+          height: 178,
           child: PageView.builder(
             controller: _heroPageController,
             itemCount: _heroPromotions.length,
-            onPageChanged: (index) => setState(() => _activeHeroIndex = index),
+            onPageChanged: _onHeroPageChanged,
             itemBuilder: (context, index) => _buildHeroSlide(
               _heroPromotions[index],
               products,
@@ -1310,7 +1338,7 @@ class _HomeViewState extends State<HomeView> {
       child: Row(
         children: [
           Expanded(
-            flex: 11,
+            flex: index == 0 ? 10 : 11,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1373,33 +1401,41 @@ class _HomeViewState extends State<HomeView> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            flex: 9,
-            child: Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                if (secondaryProduct != null)
-                  Positioned(
-                    left: 4,
-                    bottom: 4,
-                    child: _buildHeroProductImage(
-                      secondaryProduct,
-                      70,
-                      96,
-                      10,
+            flex: index == 0 ? 11 : 9,
+            child: index == 0
+                ? Center(
+                    child: BannerVideoPlayer(
+                      isActive: _activeHeroIndex == 0,
+                      onVideoCompleted: _onBannerVideoCompleted,
+                      aspectRatio: 16 / 10,
                     ),
+                  )
+                : Stack(
+                    alignment: Alignment.centerRight,
+                    children: [
+                      if (secondaryProduct != null)
+                        Positioned(
+                          left: 4,
+                          bottom: 4,
+                          child: _buildHeroProductImage(
+                            secondaryProduct,
+                            76,
+                            104,
+                            11,
+                          ),
+                        ),
+                      if (primaryProduct != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 2),
+                          child: _buildHeroProductImage(
+                            primaryProduct,
+                            104,
+                            138,
+                            15,
+                          ),
+                        ),
+                    ],
                   ),
-                if (primaryProduct != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 2),
-                    child: _buildHeroProductImage(
-                      primaryProduct,
-                      96,
-                      126,
-                      14,
-                    ),
-                  ),
-              ],
-            ),
           ),
         ],
       ),
@@ -1677,19 +1713,13 @@ class _HomeViewState extends State<HomeView> {
                     final cardHeight = cardWidth * 1.56;
                     return SizedBox(
                       height: cardHeight,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: products.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(width: 12),
-                        itemBuilder: (context, i) {
-                          return SizedBox(
-                            width: cardWidth,
-                            child: _buildCompactFeaturedCard(
-                                products[i]),
-                          );
-                        },
+                      child: _FeaturedBrandRow(
+                        brand: brand,
+                        products: products,
+                        cardWidth: cardWidth,
+                        cardHeight: cardHeight,
+                        buildCard: _buildCompactFeaturedCard,
+                        onBrandTap: widget.onBrandTap,
                       ),
                     );
                   },
@@ -2297,4 +2327,206 @@ class _GlowingLightBorderPainter extends CustomPainter {
   bool shouldRepaint(covariant _GlowingLightBorderPainter oldDelegate) =>
       oldDelegate.progress != progress;
 }
+
+/// Horizontal scroll row for each featured brand that features an animated
+/// running-light arrow indicator at the right edge ("in the middle way ending")
+/// to indicate that more featured phones exist on the right, plus an end-of-list
+/// card with the matching arrow to view all brand models.
+class _FeaturedBrandRow extends StatefulWidget {
+  final String brand;
+  final List<Product> products;
+  final double cardWidth;
+  final double cardHeight;
+  final Widget Function(Product) buildCard;
+  final ValueChanged<String>? onBrandTap;
+
+  const _FeaturedBrandRow({
+    required this.brand,
+    required this.products,
+    required this.cardWidth,
+    required this.cardHeight,
+    required this.buildCard,
+    this.onBrandTap,
+  });
+
+  @override
+  State<_FeaturedBrandRow> createState() => _FeaturedBrandRowState();
+}
+
+class _FeaturedBrandRowState extends State<_FeaturedBrandRow> {
+  late final ScrollController _scrollController;
+  bool _hasMoreOnRight = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+    _hasMoreOnRight = widget.products.length > 2;
+  }
+
+  @override
+  void didUpdateWidget(_FeaturedBrandRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.products.length != widget.products.length) {
+      _hasMoreOnRight = widget.products.length > 2;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final max = _scrollController.position.maxScrollExtent;
+    final current = _scrollController.offset;
+    final hasMore = (max - current) > 16.0;
+    if (hasMore != _hasMoreOnRight) {
+      setState(() {
+        _hasMoreOnRight = hasMore;
+      });
+    }
+  }
+
+  void _scrollRight() {
+    if (!_scrollController.hasClients) return;
+    final max = _scrollController.position.maxScrollExtent;
+    final current = _scrollController.offset;
+    if (current >= max - 16.0) {
+      widget.onBrandTap?.call(widget.brand);
+    } else {
+      final target = (current + widget.cardWidth + 12.0).clamp(0.0, max);
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final showIndicator = widget.products.length > 2;
+
+    return Stack(
+      children: [
+        // Horizontal list of cards
+        ListView.separated(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: widget.products.length + (showIndicator ? 1 : 0),
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (context, i) {
+            if (i < widget.products.length) {
+              return SizedBox(
+                width: widget.cardWidth,
+                child: widget.buildCard(widget.products[i]),
+              );
+            }
+
+            // End card: View all [Brand] with arrow
+            return SizedBox(
+              width: widget.cardWidth * 0.76,
+              child: GestureDetector(
+                onTap: () => widget.onBrandTap?.call(widget.brand),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFE5E7EB),
+                      width: 1.0,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      RunningLightArrowButton(
+                        onTap: () => widget.onBrandTap?.call(widget.brand),
+                        size: 40.0,
+                        tooltip: 'View all ${widget.brand} phones',
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'View All',
+                        style: TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${widget.brand} Phones',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        // Indicator at the end of each row in the middle ("in the middle way ending")
+        if (showIndicator)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              ignoring: !_hasMoreOnRight,
+              child: AnimatedOpacity(
+                opacity: _hasMoreOnRight ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 250),
+                child: Container(
+                  padding: const EdgeInsets.only(right: 6, left: 20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.0),
+                        Colors.white.withValues(alpha: 0.88),
+                      ],
+                    ),
+                  ),
+                  child: Center(
+                    child: RunningLightArrowButton(
+                      onTap: _scrollRight,
+                      tooltip: 'More ${widget.brand} phones',
+                      size: 38.0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 

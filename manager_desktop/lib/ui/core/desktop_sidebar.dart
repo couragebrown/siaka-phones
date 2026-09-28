@@ -9,6 +9,7 @@ class DesktopSidebar extends StatelessWidget {
   final int unreadServiceTickets;
   final int activeShipments;
   final int unreadNotifications;
+  final int activeAds;
   final VoidCallback? onLogout;
 
   const DesktopSidebar({
@@ -21,6 +22,7 @@ class DesktopSidebar extends StatelessWidget {
     this.unreadServiceTickets = 0,
     this.activeShipments = 0,
     this.unreadNotifications = 0,
+    this.activeAds = 0,
     this.onLogout,
   });
 
@@ -144,6 +146,14 @@ class DesktopSidebar extends StatelessWidget {
                   label: 'Inventory',
                 ),
                 _buildNavItem(
+                  index: 13,
+                  icon: Icons.campaign_outlined,
+                  activeIcon: Icons.campaign_rounded,
+                  label: 'Advertisements',
+                  badgeCount: activeAds,
+                  badgeColor: const Color(0xFF0EA5E9),
+                ),
+                _buildNavItem(
                   index: 3,
                   icon: Icons.credit_card_outlined,
                   activeIcon: Icons.credit_card_rounded,
@@ -251,6 +261,7 @@ class DesktopSidebar extends StatelessWidget {
                   label: 'Log Out',
                   isLogout: true,
                 ),
+                const SizedBox(height: 32),
               ],
             ),
           ),
@@ -326,6 +337,7 @@ class DesktopSidebar extends StatelessWidget {
     required IconData activeIcon,
     required String label,
     int badgeCount = 0,
+    Color? badgeColor,
     bool isLogout = false,
   }) {
     final isSelected = !isLogout && selectedIndex == index;
@@ -373,13 +385,17 @@ class DesktopSidebar extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.white : const Color(0xFFEF4444),
+                      color: isSelected
+                          ? Colors.white
+                          : (badgeColor ?? const Color(0xFFEF4444)),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '$badgeCount',
                       style: TextStyle(
-                        color: isSelected ? const Color(0xFF1C7BFF) : Colors.white,
+                        color: isSelected
+                            ? (badgeColor ?? const Color(0xFF1C7BFF))
+                            : Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),

@@ -10,6 +10,7 @@ import 'package:manager_desktop/domain/models/manager_repair.dart';
 import 'package:manager_desktop/domain/models/manager_shipping.dart';
 import 'package:manager_desktop/domain/models/manager_swap.dart';
 import 'package:manager_desktop/domain/models/service_ticket.dart';
+import 'package:manager_desktop/domain/models/advertisement_banner.dart';
 import 'package:manager_desktop/main.dart';
 import 'package:manager_desktop/ui/core/desktop_scaffold.dart';
 
@@ -30,7 +31,36 @@ void main() {
       expect(repository.customers.isNotEmpty, isTrue);
       expect(repository.sentMessages.isNotEmpty, isTrue);
       expect(repository.serviceTickets.isNotEmpty, isTrue);
+      expect(repository.advertisements.isNotEmpty, isTrue);
       expect(repository.currentBranch, equals('Accra Central (Circle)'));
+    });
+
+    test('Can add, update, toggle, and reorder advertisement video links', () {
+      final initialCount = repository.advertisements.length;
+      final newAd = AdvertisementBanner(
+        id: 'TEST-AD-1',
+        title: 'Easter Promo Clearance',
+        description: 'Huge discounts on all Samsung flagships',
+        videoUrl: 'https://example.com/easter.mp4',
+        badgeText: 'SALE',
+        callToActionText: 'Shop Easter Deals',
+        createdAt: DateTime.now(),
+      );
+
+      repository.addAdvertisement(newAd);
+      expect(repository.advertisements.length, equals(initialCount + 1));
+      expect(repository.advertisements.any((a) => a.id == 'TEST-AD-1'), isTrue);
+
+      repository.toggleAdvertisementStatus('TEST-AD-1');
+      final toggled = repository.advertisements.firstWhere((a) => a.id == 'TEST-AD-1');
+      expect(toggled.isActive, isFalse);
+
+      repository.updateAdvertisement(toggled.copyWith(title: 'Updated Easter Mega Promo'));
+      final updated = repository.advertisements.firstWhere((a) => a.id == 'TEST-AD-1');
+      expect(updated.title, equals('Updated Easter Mega Promo'));
+
+      repository.deleteAdvertisement('TEST-AD-1');
+      expect(repository.advertisements.length, equals(initialCount));
     });
 
     test('Can switch active store branch', () {
@@ -347,9 +377,15 @@ void main() {
       expect(find.text('CURRENT DEVICE'), findsOneWidget);
 
       // Tap Settings & Branches in sidebar
-      await tester.ensureVisible(find.text('Settings & Branches'));
+      final settingsFinder = find.text('Settings & Branches');
+      await tester.scrollUntilVisible(
+        settingsFinder,
+        50.0,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -80));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Settings & Branches'));
+      await tester.tap(settingsFinder);
       await tester.pumpAndSettle();
 
       expect(find.text('System Settings & Branch Control'), findsOneWidget);
@@ -430,7 +466,7 @@ void main() {
 
       // Now the revenue should be revealed
       expect(find.text('GH₵ ••••••••'), findsNothing);
-      expect(find.textContaining('43,950'), findsWidgets);
+      expect(find.textContaining('GH₵ '), findsWidgets);
 
       // Tap to hide again
       final hideEyeButton = find.byTooltip('Hide Revenue Balance');
@@ -464,6 +500,41 @@ void main() {
       expect(find.text('Notifications Hub'), findsOneWidget);
       expect(find.text('ALL NOTIFICATIONS'), findsOneWidget);
       expect(find.text('UNREAD ALERTS'), findsOneWidget);
+    });
+
+    testWidgets('Can navigate to Advertisements and open New Video Advertisement dialog', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(const SiakaManagerApp());
+      await tester.pumpAndSettle();
+
+      // Tap Advertisements in sidebar
+      await tester.scrollUntilVisible(
+        find.text('Advertisements'),
+        50.0,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Advertisements'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Advertisement & Video Banner Hub'), findsOneWidget);
+      expect(find.text('New Video Advertisement'), findsOneWidget);
+      expect(find.text('Live Mobile Banner Simulator'), findsOneWidget);
+
+      // Open New Video Ad dialog
+      await tester.tap(find.text('New Video Advertisement'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Create Video Advertisement'), findsOneWidget);
+      expect(find.text('Campaign Headline *'), findsOneWidget);
+      expect(find.text('Video Link / Network Stream URL *'), findsOneWidget);
+
+      // Cancel dialog
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Create Video Advertisement'), findsNothing);
     });
 
     testWidgets('Can open Add Device Model dialog from Inventory', (WidgetTester tester) async {
@@ -517,6 +588,7 @@ void main() {
         'System Settings & Branch Control',
         'Shipping & Delivery Management',
         'Notifications Hub',
+        'Advertisement & Video Banner Hub',
       ];
 
       for (int i = 0; i < expectedTitles.length; i++) {

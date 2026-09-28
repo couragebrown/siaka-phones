@@ -44,6 +44,8 @@ import 'package:siaka_phones_flutter/ui/features/tradein/devices_swapped_view.da
 import 'package:siaka_phones_flutter/ui/features/splash/splash_view.dart';
 import 'package:siaka_phones_flutter/ui/features/orders/orders_view.dart';
 import 'package:siaka_phones_flutter/ui/features/orders/orders_view_model.dart';
+import 'package:siaka_phones_flutter/ui/core/widgets/running_light_arrow.dart';
+import 'package:siaka_phones_flutter/ui/core/widgets/banner_video_player.dart';
 
 
 
@@ -2165,6 +2167,237 @@ void main() {
     await tester.tap(find.text('VIDEO'), warnIfMissed: false);
     await tester.pumpAndSettle();
 
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'RunningLightArrowButton renders and executes custom painter phases without error',
+      (tester) async {
+    bool tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: RunningLightArrowButton(
+              size: 38,
+              onTap: () {
+                tapped = true;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RunningLightArrowButton), findsOneWidget);
+    expect(find.byType(CustomPaint), findsWidgets);
+
+    // Tap the button
+    await tester.tap(find.byType(RunningLightArrowButton));
+    await tester.pumpAndSettle();
+    expect(tapped, isTrue);
+
+    // Test painter across all 3 running light phases
+    for (final progress in [0.2, 0.65, 0.95]) {
+      final painter = RunningLightArrowPainter(
+        progress: progress,
+        baseColor: Colors.black,
+        glowColor: Colors.blueAccent,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: CustomPaint(
+              size: const Size(38, 38),
+              painter: painter,
+            ),
+          ),
+        ),
+      );
+      expect(painter.shouldRepaint(RunningLightArrowPainter(progress: progress + 0.05)), isTrue);
+    }
+  });
+
+  testWidgets(
+      'HomeView renders running light arrow at the end of featured brand rows and tapping scrolls row',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final homeViewModel = HomeViewModel(
+      productRepository: ProductRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeView(
+          viewModel: homeViewModel,
+          onProductTap: (_) {},
+          onSeeAllCatalog: () {},
+          onTradeInTap: () {},
+          onRepairsTap: () {},
+          onOrdersTap: () {},
+          onLocationsTap: () {},
+          onSupportTap: () {},
+          onProfileTap: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify arrow indicators exist for featured rows
+    final arrowFinder = find.byType(RunningLightArrowButton);
+    expect(arrowFinder, findsWidgets);
+
+    // Tap first arrow button to scroll right
+    await tester.tap(arrowFinder.first);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'home page first banner renders video player on one side and advances when completed',
+      (WidgetTester tester) async {
+    final homeViewModel = HomeViewModel(
+      productRepository: ProductRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeView(
+          viewModel: homeViewModel,
+          onProductTap: (_) {},
+          onSeeAllCatalog: () {},
+          onTradeInTap: () {},
+          onRepairsTap: () {},
+          onOrdersTap: () {},
+          onLocationsTap: () {},
+          onSupportTap: () {},
+          onProfileTap: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify first banner is displayed
+    expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
+
+    // Verify BannerVideoPlayer is rendered in the first hero banner on one side
+    expect(find.byType(BannerVideoPlayer), findsOneWidget);
+    expect(find.text('PROMO'), findsOneWidget);
+
+    // At 5 seconds (video/fallback ended, but post-video delay is waiting), banner has not advanced yet
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
+
+    // After post-video delay (4s fallback + 3s post-video delay = 7s+), it advances to next banner
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    // Verify advances to second banner
+    expect(find.text('Save up to 20%\non flagship phones'), findsOneWidget);
+  });
+
+  testWidgets('BannerVideoPlayer renders in rectangular format with play/pause and maximize controls', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 160,
+              child: BannerVideoPlayer(
+                isActive: true,
+                aspectRatio: 16 / 10,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Verify PROMO badge and BannerVideoPlayer exist
+    expect(find.byType(BannerVideoPlayer), findsOneWidget);
+    expect(find.text('PROMO'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('BannerVideoPlayer supports playlist of multiple video links / sources sequentially', (WidgetTester tester) async {
+    bool allCompleted = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 160,
+              child: BannerVideoPlayer(
+                isActive: true,
+                videoSources: const [
+                  'assets/videos/phone_promo.mp4',
+                  'https://example.com/videos/promo2.mp4',
+                ],
+                onVideoCompleted: () {
+                  allCompleted = true;
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Verify first video in playlist shows PROMO 1/2
+    expect(find.byType(BannerVideoPlayer), findsOneWidget);
+    expect(find.text('PROMO 1/2'), findsOneWidget);
+
+    // Skip / next buttons exist for playlist
+    expect(find.byIcon(Icons.skip_next_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.skip_previous_rounded), findsOneWidget);
+
+    // Tap next video to advance in playlist
+    await tester.tap(find.byIcon(Icons.skip_next_rounded));
+    await tester.pump();
+
+    // Verify playlist advances to PROMO 2/2
+    expect(find.text('PROMO 2/2'), findsOneWidget);
+    expect(allCompleted, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('BannerVideoPlayer respects postVideoDelay before invoking onVideoCompleted', (WidgetTester tester) async {
+    bool videoCompletedCalled = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 160,
+              child: BannerVideoPlayer(
+                isActive: true,
+                postVideoDelay: const Duration(seconds: 3),
+                videoSources: const [
+                  'assets/videos/phone_promo.mp4',
+                ],
+                onVideoCompleted: () {
+                  videoCompletedCalled = true;
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Verify player is built
+    expect(find.byType(BannerVideoPlayer), findsOneWidget);
+    expect(videoCompletedCalled, isFalse);
     expect(tester.takeException(), isNull);
   });
 }

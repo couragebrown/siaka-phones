@@ -20,14 +20,16 @@ import 'ui/features/shipping/shipping_view.dart';
 import 'ui/features/swaps/tradein_desk_view.dart';
 import 'ui/features/auth/manager_splash_view.dart';
 import 'ui/features/auth/manager_login_view.dart';
+import 'ui/features/advertisements/advertisements_management_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const SiakaManagerApp());
+  runApp(const SiakaManagerApp(showSplash: true));
 }
 
 class SiakaManagerApp extends StatefulWidget {
-  const SiakaManagerApp({super.key});
+  final bool showSplash;
+  const SiakaManagerApp({super.key, this.showSplash = false});
 
   @override
   State<SiakaManagerApp> createState() => _SiakaManagerAppState();
@@ -36,14 +38,17 @@ class SiakaManagerApp extends StatefulWidget {
 class _SiakaManagerAppState extends State<SiakaManagerApp> {
   late final ManagerRepository _repository;
   int _selectedIndex = 0;
-  bool _showSplash = true;
+  late bool _showSplash;
 
   @override
   void initState() {
     super.initState();
+    _showSplash = widget.showSplash;
     _repository = ManagerRepository();
     // Start by checking if we have a valid session
-    _initSession();
+    if (_showSplash) {
+      _initSession();
+    }
   }
 
   Future<void> _initSession() async {
@@ -143,6 +148,10 @@ class _SiakaManagerAppState extends State<SiakaManagerApp> {
         return NotificationsView(
           repository: _repository,
           onNavigate: (index) => setState(() => _selectedIndex = index),
+        );
+      case 13:
+        return AdvertisementsManagementView(
+          repository: _repository,
         );
       default:
         return DashboardView(

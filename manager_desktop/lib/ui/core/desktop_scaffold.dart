@@ -52,6 +52,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
       unreadServiceTickets: widget.repository.unreadServiceTicketsCount,
       activeShipments: widget.repository.activeShipmentsCount,
       unreadNotifications: widget.repository.unreadNotificationsCount,
+      activeAds: widget.repository.activeAdvertisementsCount,
       onLogout: widget.repository.logout,
     );
 
