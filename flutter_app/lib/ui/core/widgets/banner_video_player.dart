@@ -20,6 +20,8 @@ class BannerVideoPlayer extends StatefulWidget {
   final List<String>? videoSources;
   final double aspectRatio;
   final Duration postVideoDelay;
+  final bool autoReplay;
+  final Duration replayDelay;
 
   const BannerVideoPlayer({
     super.key,
@@ -30,6 +32,8 @@ class BannerVideoPlayer extends StatefulWidget {
     this.videoSources,
     this.aspectRatio = 16 / 10,
     this.postVideoDelay = const Duration(seconds: 3),
+    this.autoReplay = false,
+    this.replayDelay = const Duration(seconds: 3),
   });
 
   /// Default bundled high-definition phone promo video asset
@@ -163,15 +167,45 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
           });
           _initializeCurrentVideo();
         } else {
-          // Pause/wait for a few seconds before moving to next banner
+          // Pause/wait for a few seconds before moving to next banner or replaying
           _endDelayTimer?.cancel();
-          _endDelayTimer = Timer(widget.postVideoDelay, () {
+          final delay = widget.autoReplay ? widget.replayDelay : widget.postVideoDelay;
+          _endDelayTimer = Timer(delay, () {
             if (mounted && !_isDisposed && widget.isActive) {
-              widget.onVideoCompleted?.call();
+              if (widget.autoReplay) {
+                _restartPlaylist();
+              } else {
+                widget.onVideoCompleted?.call();
+              }
             }
           });
         }
       });
+    }
+  }
+
+  void _restartPlaylist() {
+    if (!mounted || _isDisposed || !widget.isActive) return;
+    final playlist = _playlist;
+    if (playlist.length > 1) {
+      setState(() {
+        _hasEnded = false;
+        _currentSourceIndex = 0;
+      });
+      _initializeCurrentVideo();
+    } else {
+      final controller = _controller;
+      if (controller != null && _isInitialized && !_isDisposed) {
+        setState(() {
+          _hasEnded = false;
+        });
+        controller.seekTo(Duration.zero).then((_) {
+          if (mounted && !_isDisposed && widget.isActive) {
+            controller.play();
+            setState(() => _isPlaying = true);
+          }
+        });
+      }
     }
   }
 
@@ -198,11 +232,16 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
           // All videos in playlist finished!
           _hasEnded = true;
           _isPlaying = false;
-          // Hold for a few seconds on the ended video before moving to the next banner
+          // Hold for a few seconds on the ended video before moving to the next banner or replaying
           _endDelayTimer?.cancel();
-          _endDelayTimer = Timer(widget.postVideoDelay, () {
+          final delay = widget.autoReplay ? widget.replayDelay : widget.postVideoDelay;
+          _endDelayTimer = Timer(delay, () {
             if (mounted && !_isDisposed && widget.isActive && _hasEnded) {
-              widget.onVideoCompleted?.call();
+              if (widget.autoReplay) {
+                _restartPlaylist();
+              } else {
+                widget.onVideoCompleted?.call();
+              }
             }
           });
         }
@@ -259,6 +298,7 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
     if (controller == null || !_isInitialized || _isDisposed) return;
 
     if (controller.value.isPlaying) {
+      _endDelayTimer?.cancel();
       controller.pause();
       setState(() => _isPlaying = false);
     } else {

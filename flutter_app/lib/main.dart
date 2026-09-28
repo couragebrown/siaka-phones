@@ -523,6 +523,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             onSearchFocused: () {
               _autoFocusSearch = false;
             },
+            onRepairsTap: _navigateToRepairs,
           ),
           CartView(
             viewModel: widget.cartVM,

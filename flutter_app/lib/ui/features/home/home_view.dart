@@ -102,8 +102,8 @@ class _HomeViewState extends State<HomeView> {
     ),
     _HeroPromotion(
       title: 'Save up to 20%\non flagship phones',
-      description: 'Limited-time prices on the\ndevices you want most.',
-      primaryAction: 'View Offers',
+      description: 'Shop flagship devices at\nunbeatable prices.',
+      primaryAction: 'Explore Deals',
       backgroundColor: Color(0xFFE9E4FA),
     ),
     _HeroPromotion(
@@ -1329,16 +1329,28 @@ class _HomeViewState extends State<HomeView> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             _heroPromotions.length,
-            (index) => AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 2.5),
-              width: _activeHeroIndex == index ? 14 : 5,
-              height: 5,
-              decoration: BoxDecoration(
-                color: _activeHeroIndex == index
-                    ? const Color(0xFF1C7BFF)
-                    : const Color(0xFFB8C0CC),
-                borderRadius: BorderRadius.circular(3),
+            (index) => GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                _heroPageController.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeInOut,
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 4),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: _activeHeroIndex == index ? 14 : 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: _activeHeroIndex == index
+                        ? const Color(0xFF1C7BFF)
+                        : const Color(0xFFB8C0CC),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
               ),
             ),
           ),
@@ -1402,109 +1414,15 @@ class _HomeViewState extends State<HomeView> {
       return _buildVideoHeroSlide(promotion, primaryProduct);
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: promotion.backgroundColor,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 11,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  promotion.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF1B1F2A),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  promotion.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF485569),
-                    fontSize: 12,
-                    height: 1.3,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: SizedBox(
-                      height: 34,
-                      child: ElevatedButton(
-                        onPressed: primaryProduct == null
-                            ? null
-                            : () => widget.onProductTap(primaryProduct),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1C7BFF),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                        ),
-                        child: Text(
-                          promotion.primaryAction,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 9,
-            child: Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                if (secondaryProduct != null)
-                  Positioned(
-                    left: 4,
-                    bottom: 4,
-                    child: _buildHeroProductImage(
-                      secondaryProduct,
-                      76,
-                      104,
-                      11,
-                    ),
-                  ),
-                if (primaryProduct != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 2),
-                    child: _buildHeroProductImage(
-                      primaryProduct,
-                      104,
-                      138,
-                      15,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    final tertiaryProduct = products.length < 3
+        ? null
+        : products[(index + 2) % products.length];
+    return _buildGraphicHeroSlide(
+      promotion,
+      primaryProduct,
+      secondaryProduct,
+      tertiaryProduct,
+      index,
     );
   }
 
@@ -1934,6 +1852,601 @@ class _HomeViewState extends State<HomeView> {
                                     ),
                                   ),
                                 ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGraphicHeroSlide(
+    _HeroPromotion promotion,
+    Product? primaryProduct,
+    Product? secondaryProduct,
+    Product? tertiaryProduct,
+    int index,
+  ) {
+    final List<Color> gradientColors;
+    final String tagText;
+    final Color tagColor;
+    final Color leftBlobColor;
+    final Color glowHaloColor;
+    final Color dotColor1;
+    final Color dotColor2;
+    final Color bottomDotColor;
+    final Color scriptColor;
+    final Color arrowColor;
+    final List<Color> badgeGradient;
+    final String badgeTopText;
+    final String badgeMidText;
+    final String badgeBottomText;
+    final List<({IconData icon, String line1, String line2})> benefits;
+
+    if (index == 2) {
+      // Banner 3: Trade in & Upgrade (Mint Green theme from app banner)
+      gradientColors = const [
+        Color(0xFFD6F5E3),
+        Color(0xFFEFFCF4),
+        Color(0xFFCEF1DD),
+      ];
+      tagText = 'TRADE-IN DEALS';
+      tagColor = const Color(0xFF059669);
+      leftBlobColor = const Color(0xFFA7F3D0).withValues(alpha: 0.45);
+      glowHaloColor = const Color(0xFFBBF7D0);
+      dotColor1 = const Color(0xFF10B981);
+      dotColor2 = const Color(0xFF38BDF8);
+      bottomDotColor = const Color(0xFF34D399).withValues(alpha: 0.7);
+      scriptColor = const Color(0xFF047857);
+      arrowColor = const Color(0xFF0D9488);
+      badgeGradient = const [Color(0xFFFF6536), Color(0xFFFF3018)];
+      badgeTopText = 'UP TO';
+      badgeMidText = '50%';
+      badgeBottomText = 'OFF';
+      benefits = const [
+        (icon: Icons.sync_alt_rounded, line1: 'Instant', line2: 'Credit'),
+        (icon: Icons.speed_rounded, line1: 'Quick', line2: 'Inspect'),
+        (icon: Icons.local_offer_outlined, line1: 'Best', line2: 'Value'),
+      ];
+    } else if (index == 3) {
+      // Banner 4: Premium Care (Warm Peach theme from app banner)
+      gradientColors = const [
+        Color(0xFFFFE4D6),
+        Color(0xFFFFF5EE),
+        Color(0xFFFFDBCD),
+      ];
+      tagText = 'PREMIUM CARE';
+      tagColor = const Color(0xFFD97706);
+      leftBlobColor = const Color(0xFFFED7AA).withValues(alpha: 0.45);
+      glowHaloColor = const Color(0xFFFFEDD5);
+      dotColor1 = const Color(0xFFF97316);
+      dotColor2 = const Color(0xFFA855F7);
+      bottomDotColor = const Color(0xFFFB923C).withValues(alpha: 0.7);
+      scriptColor = const Color(0xFFC2410C);
+      arrowColor = const Color(0xFFEA580C);
+      badgeGradient = const [Color(0xFFFF5722), Color(0xFFE64A19)];
+      badgeTopText = 'UP TO';
+      badgeMidText = '40%';
+      badgeBottomText = 'OFF';
+      benefits = const [
+        (icon: Icons.shield_outlined, line1: 'Screen', line2: 'Protect'),
+        (icon: Icons.build_circle_outlined, line1: 'OEM', line2: 'Parts'),
+        (icon: Icons.verified_user_outlined, line1: '1 Year', line2: 'Warranty'),
+      ];
+    } else {
+      // Banner 2: Flagship Phones (Lavender theme from app banner)
+      gradientColors = const [
+        Color(0xFFE8DCFA),
+        Color(0xFFF7F0FF),
+        Color(0xFFE2D4F8),
+      ];
+      tagText = 'NEW ARRIVALS';
+      tagColor = const Color(0xFF6D28D9);
+      leftBlobColor = const Color(0xFFC4B5FD).withValues(alpha: 0.40);
+      glowHaloColor = const Color(0xFFDDD6FE);
+      dotColor1 = const Color(0xFF8B5CF6);
+      dotColor2 = const Color(0xFFF472B6);
+      bottomDotColor = const Color(0xFFA78BFA).withValues(alpha: 0.7);
+      scriptColor = const Color(0xFF6366F1);
+      arrowColor = const Color(0xFF06B6D4);
+      badgeGradient = const [Color(0xFFFF6536), Color(0xFFFF3018)];
+      badgeTopText = 'UP TO';
+      badgeMidText = '40%';
+      badgeBottomText = 'OFF';
+      benefits = const [
+        (icon: Icons.local_shipping_outlined, line1: 'Free', line2: 'Shipping'),
+        (icon: Icons.verified_user_outlined, line1: '1 Year', line2: 'Warranty'),
+        (icon: Icons.local_offer_outlined, line1: 'Best', line2: 'Prices'),
+      ];
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // 1. Protruding soft circle on far left
+          Positioned(
+            left: -22,
+            top: 60,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: leftBlobColor,
+              ),
+            ),
+          ),
+
+          // 2. Soft pastel glow halo behind the phones on the right
+          Positioned(
+            right: -14,
+            top: -6,
+            child: Container(
+              width: 175,
+              height: 175,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    glowHaloColor.withValues(alpha: 0.75),
+                    glowHaloColor.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 3. 2x3 colorful dot grid near top-middle
+          Positioned(
+            top: 14,
+            left: 146,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildDot(dotColor1),
+                    const SizedBox(width: 4),
+                    _buildDot(dotColor2),
+                    const SizedBox(width: 4),
+                    _buildDot(dotColor1),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildDot(dotColor2),
+                    const SizedBox(width: 4),
+                    _buildDot(dotColor1),
+                    const SizedBox(width: 4),
+                    _buildDot(dotColor2),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // 4. Yellow sparkle star near top
+          const Positioned(
+            top: 12,
+            left: 178,
+            child: SizedBox(
+              width: 13,
+              height: 13,
+              child: CustomPaint(
+                painter: _SparkleStarPainter(
+                  color: Color(0xFFFACC15),
+                ),
+              ),
+            ),
+          ),
+
+          // 5. Floating tilted yellow capsule sprinkles
+          Positioned(
+            top: 76,
+            left: 144,
+            child: Transform.rotate(
+              angle: 0.4,
+              child: Container(
+                width: 15,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDE047).withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 68,
+            right: 14,
+            child: Transform.rotate(
+              angle: -0.6,
+              child: Container(
+                width: 17,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDE047).withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+
+          // 6. Yellow sparkle star near bottom
+          const Positioned(
+            bottom: 12,
+            left: 136,
+            child: SizedBox(
+              width: 12,
+              height: 12,
+              child: CustomPaint(
+                painter: _SparkleStarPainter(
+                  color: Color(0xFFFACC15),
+                ),
+              ),
+            ),
+          ),
+
+          // 7. Soft circular dot at bottom
+          Positioned(
+            bottom: 6,
+            left: 162,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: bottomDotColor,
+              ),
+            ),
+          ),
+
+          // Main Layout Content Row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+            child: Row(
+              children: [
+                // Left Column: Tag, Title, Subtitle, Benefits Row, CTA Button
+                Expanded(
+                  flex: 10,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tagText,
+                            style: TextStyle(
+                              color: tagColor,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            promotion.title,
+                            style: const TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w800,
+                              height: 1.15,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            promotion.description,
+                            style: const TextStyle(
+                              color: Color(0xFF475467),
+                              fontSize: 11,
+                              height: 1.25,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildBenefitPill(
+                                benefits[0].icon,
+                                benefits[0].line1,
+                                benefits[0].line2,
+                              ),
+                              const SizedBox(width: 5),
+                              _buildBenefitPill(
+                                benefits[1].icon,
+                                benefits[1].line1,
+                                benefits[1].line2,
+                              ),
+                              const SizedBox(width: 5),
+                              _buildBenefitPill(
+                                benefits[2].icon,
+                                benefits[2].line1,
+                                benefits[2].line2,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 7),
+                          GestureDetector(
+                            onTap: () {
+                              if (index == 2) {
+                                widget.onTradeInTap();
+                              } else if (index == 3) {
+                                widget.onRepairsTap();
+                              } else if (primaryProduct != null) {
+                                widget.onProductTap(primaryProduct);
+                              }
+                            },
+                            child: Container(
+                              height: 31,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D62FE),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF0D62FE)
+                                        .withValues(alpha: 0.35),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    promotion.primaryAction,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: Colors.white,
+                                    size: 15,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 4),
+
+                // Right Column: Phones cascade matching app design, UP TO 40% OFF badge, Smarter Tech Brighter Days
+                Expanded(
+                  flex: 12,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.center,
+                      child: SizedBox(
+                        width: 196,
+                        height: 186,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            // Phones cascade keeping the phone images and design from the app banner
+                            if (tertiaryProduct != null)
+                              Positioned(
+                                left: 6,
+                                bottom: 18,
+                                child: Transform.rotate(
+                                  angle: -0.06,
+                                  child: _buildHeroProductImage(
+                                    tertiaryProduct,
+                                    66,
+                                    102,
+                                    10,
+                                  ),
+                                ),
+                              ),
+                            if (secondaryProduct != null)
+                              Positioned(
+                                left: tertiaryProduct != null ? 44 : 14,
+                                bottom: 14,
+                                child: Transform.rotate(
+                                  angle: 0.02,
+                                  child: _buildHeroProductImage(
+                                    secondaryProduct,
+                                    74,
+                                    116,
+                                    12,
+                                  ),
+                                ),
+                              ),
+                            if (primaryProduct != null)
+                              Positioned(
+                                left: tertiaryProduct != null ? 80 : 68,
+                                bottom: 10,
+                                child: Transform.rotate(
+                                  angle: 0.07,
+                                  child: _buildHeroProductImage(
+                                    primaryProduct,
+                                    86,
+                                    130,
+                                    14,
+                                  ),
+                                ),
+                              ),
+
+                            // Floating badge with tail pointing to phone
+                            Positioned(
+                              top: 6,
+                              right: 20,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: badgeGradient,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: badgeGradient.first
+                                              .withValues(alpha: 0.45),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                      border: Border.all(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.85),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          badgeTopText,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 7.5,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.4,
+                                            height: 1.0,
+                                          ),
+                                        ),
+                                        Text(
+                                          badgeMidText,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -0.5,
+                                            height: 1.05,
+                                          ),
+                                        ),
+                                        Text(
+                                          badgeBottomText,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 7.5,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.4,
+                                            height: 1.0,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 6),
+                                    child: SizedBox(
+                                      width: 8,
+                                      height: 5,
+                                      child: CustomPaint(
+                                        painter: _SpeechBubbleTrianglePainter(
+                                          color: badgeGradient.last,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // "Smarter Tech Brighter Days" with curved doodle arrow / squiggle at bottom-right
+                            Positioned(
+                              bottom: 4,
+                              right: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Transform.rotate(
+                                    angle: -0.07,
+                                    child: Text(
+                                      'Smarter\nTech\nBrighter\nDays',
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(
+                                        color: scriptColor,
+                                        fontStyle: FontStyle.italic,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 8.5,
+                                        height: 1.05,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  SizedBox(
+                                    width: 22,
+                                    height: 10,
+                                    child: CustomPaint(
+                                      painter: _CurvedDoodleArrowPainter(
+                                        color: arrowColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Sparkle star near Smarter Tech
+                            const Positioned(
+                              top: 48,
+                              right: 4,
+                              child: SizedBox(
+                                width: 11,
+                                height: 11,
+                                child: CustomPaint(
+                                  painter: _SparkleStarPainter(
+                                    color: Color(0xFFFACC15),
+                                  ),
+                                ),
                               ),
                             ),
                           ],

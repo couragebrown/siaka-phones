@@ -440,7 +440,7 @@ void main() {
 
     // 1. Verify initially displayed elements before an item is searched
     expect(find.text('Search Devices'), findsOneWidget);
-    expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
+    expect(find.text('Premium care.\nMade simple.'), findsOneWidget);
     expect(find.text('Featured Phones'), findsOneWidget);
     expect(find.textContaining('iPhone 15 Pro Max'), findsOneWidget);
 
@@ -471,7 +471,7 @@ void main() {
 
     // Verify returns to initial featured phones banners
     expect(find.text('Featured Phones'), findsOneWidget);
-    expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
+    expect(find.text('Premium care.\nMade simple.'), findsOneWidget);
     // 6. Verify 2-column grid structure and proportional card height
     final gridFinder = find.byType(GridView);
     expect(gridFinder, findsOneWidget);
@@ -2398,6 +2398,33 @@ void main() {
     // Verify player is built
     expect(find.byType(BannerVideoPlayer), findsOneWidget);
     expect(videoCompletedCalled, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('BannerVideoPlayer supports autoReplay with replayDelay', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 160,
+              child: BannerVideoPlayer(
+                isActive: true,
+                autoReplay: true,
+                replayDelay: Duration(seconds: 3),
+                videoSources: [
+                  'assets/videos/phone_promo.mp4',
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Verify player is built cleanly with autoReplay enabled
+    expect(find.byType(BannerVideoPlayer), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
