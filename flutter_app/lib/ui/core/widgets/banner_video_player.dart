@@ -56,6 +56,7 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
   bool _isDisposed = false;
   Timer? _fallbackTimer;
   Timer? _endDelayTimer;
+  int _lastRenderedSecond = -1;
 
   @override
   bool get wantKeepAlive => true;
@@ -196,13 +197,14 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
     } else {
       final controller = _controller;
       if (controller != null && _isInitialized && !_isDisposed) {
+        _lastRenderedSecond = -1;
         setState(() {
           _hasEnded = false;
+          _isPlaying = true;
         });
         controller.seekTo(Duration.zero).then((_) {
           if (mounted && !_isDisposed && widget.isActive) {
             controller.play();
-            setState(() => _isPlaying = true);
           }
         });
       }
@@ -214,13 +216,19 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
     if (controller == null || !mounted || _isDisposed || !_isInitialized) return;
 
     final value = controller.value;
-    final currentlyPlaying = value.isPlaying;
-    if (currentlyPlaying != _isPlaying) {
-      _isPlaying = currentlyPlaying;
-    }
+    final isPlaying = value.isPlaying;
+    final position = value.position;
+    final duration = value.duration;
 
-    if (value.duration > Duration.zero && value.position >= value.duration) {
+    // Check if video reached the end (with 150ms buffer to prevent EOS jitter/oscillation)
+    if (duration > Duration.zero &&
+        position >= (duration - const Duration(milliseconds: 150))) {
       if (!_hasEnded) {
+        _hasEnded = true;
+        _isPlaying = false;
+        // Pause controller to prevent continuous EOS buffer looping
+        controller.pause();
+
         final playlist = _playlist;
         if (_currentSourceIndex + 1 < playlist.length) {
           // Play next video in the playlist
@@ -230,11 +238,9 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
           _initializeCurrentVideo();
         } else {
           // All videos in playlist finished!
-          _hasEnded = true;
-          _isPlaying = false;
-          // Hold for a few seconds on the ended video before moving to the next banner or replaying
           _endDelayTimer?.cancel();
-          final delay = widget.autoReplay ? widget.replayDelay : widget.postVideoDelay;
+          final delay =
+              widget.autoReplay ? widget.replayDelay : widget.postVideoDelay;
           _endDelayTimer = Timer(delay, () {
             if (mounted && !_isDisposed && widget.isActive && _hasEnded) {
               if (widget.autoReplay) {
@@ -245,15 +251,27 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
             }
           });
         }
+        if (mounted && !_isDisposed) {
+          setState(() {});
+        }
       }
-    } else if (value.position < value.duration) {
-      if (_hasEnded) {
-        _endDelayTimer?.cancel();
-        _hasEnded = false;
-      }
+      return;
     }
 
-    if (mounted && !_isDisposed) {
+    // Video is in progress: throttle rebuilds so the Flutter UI thread stays silky smooth
+    bool needsUpdate = false;
+    if (isPlaying != _isPlaying) {
+      _isPlaying = isPlaying;
+      needsUpdate = true;
+    }
+
+    final currentSec = position.inSeconds;
+    if (currentSec != _lastRenderedSecond) {
+      _lastRenderedSecond = currentSec;
+      needsUpdate = true;
+    }
+
+    if (needsUpdate && mounted && !_isDisposed) {
       setState(() {});
     }
   }
@@ -267,12 +285,25 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
       if (controller != null && _isInitialized && !_isDisposed) {
         if (widget.isActive) {
           _endDelayTimer?.cancel();
-          if (_hasEnded || (controller.value.duration > Duration.zero &&
-              controller.value.position >= controller.value.duration)) {
+          if (_hasEnded ||
+              (controller.value.duration > Duration.zero &&
+                  controller.value.position >=
+                      (controller.value.duration -
+                          const Duration(milliseconds: 150)))) {
             _hasEnded = false;
-            // Restart playlist from beginning if it had completed
-            _currentSourceIndex = 0;
-            _initializeCurrentVideo();
+            final playlist = _playlist;
+            if (playlist.length > 1) {
+              _currentSourceIndex = 0;
+              _initializeCurrentVideo();
+            } else {
+              _lastRenderedSecond = -1;
+              controller.seekTo(Duration.zero).then((_) {
+                if (mounted && !_isDisposed && widget.isActive) {
+                  controller.play();
+                  setState(() => _isPlaying = true);
+                }
+              });
+            }
           } else {
             controller.play();
             setState(() => _isPlaying = true);
@@ -303,9 +334,13 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
       setState(() => _isPlaying = false);
     } else {
       _endDelayTimer?.cancel();
-      if (_hasEnded || (controller.value.duration > Duration.zero &&
-          controller.value.position >= controller.value.duration)) {
+      if (_hasEnded ||
+          (controller.value.duration > Duration.zero &&
+              controller.value.position >=
+                  (controller.value.duration -
+                      const Duration(milliseconds: 150)))) {
         _hasEnded = false;
+        _lastRenderedSecond = -1;
         controller.seekTo(Duration.zero).then((_) {
           if (mounted && !_isDisposed) {
             controller.play();

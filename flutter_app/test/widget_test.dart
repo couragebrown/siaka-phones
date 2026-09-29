@@ -46,6 +46,7 @@ import 'package:siaka_phones_flutter/ui/features/orders/orders_view.dart';
 import 'package:siaka_phones_flutter/ui/features/orders/orders_view_model.dart';
 import 'package:siaka_phones_flutter/ui/core/widgets/running_light_arrow.dart';
 import 'package:siaka_phones_flutter/ui/core/widgets/banner_video_player.dart';
+import 'package:siaka_phones_flutter/ui/core/widgets/ai_customer_service_pill.dart';
 
 
 
@@ -2425,6 +2426,72 @@ void main() {
 
     // Verify player is built cleanly with autoReplay enabled
     expect(find.byType(BannerVideoPlayer), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('AiCustomerServicePill renders Need Help?, Ask our AI, and triggers onTap', (WidgetTester tester) async {
+    bool tapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: AiCustomerServicePill(
+              isVisible: true,
+              onTap: () {
+                tapped = true;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Need Help?'), findsOneWidget);
+    expect(find.text('Ask our AI'), findsOneWidget);
+    expect(find.text('😊'), findsOneWidget);
+
+    await tester.tap(find.byType(AiCustomerServicePill));
+    await tester.pump();
+
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('HomeView contains AiCustomerServicePill and triggers support on tap', (WidgetTester tester) async {
+    bool supportTapped = false;
+    final homeVM = HomeViewModel(
+      productRepository: ProductRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeView(
+            viewModel: homeVM,
+            onProductTap: (_) {},
+            onSeeAllCatalog: () {},
+            onTradeInTap: () {},
+            onRepairsTap: () {},
+            onOrdersTap: () {},
+            onLocationsTap: () {},
+            onProfileTap: () {},
+            onSupportTap: () {
+              supportTapped = true;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(AiCustomerServicePill), findsOneWidget);
+
+    // Tapping the pill triggers support
+    await tester.tap(find.byType(AiCustomerServicePill));
+    await tester.pump();
+
+    expect(supportTapped, isTrue);
     expect(tester.takeException(), isNull);
   });
 }

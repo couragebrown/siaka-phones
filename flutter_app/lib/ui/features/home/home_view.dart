@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import '../../../domain/models/product.dart';
 import '../../../data/repositories/wishlist_repository.dart';
 import '../../core/widgets/brand_logo.dart';
 import '../../core/widgets/running_light_arrow.dart';
 import '../../core/widgets/banner_video_player.dart';
 import '../../core/widgets/flash_sale_promo_banner.dart';
+import '../../core/widgets/ai_customer_service_pill.dart';
 import '../brands/brands_view.dart';
 import '../notifications/notifications_view.dart';
 import 'home_view_model.dart';
@@ -72,6 +74,24 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   static const _heroSlideInterval = Duration(seconds: 5);
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isAiHelpVisible = false;
+  Timer? _aiHelpHideTimer;
+
+  void _triggerAiHelpVisibility() {
+    if (!_isAiHelpVisible) {
+      setState(() {
+        _isAiHelpVisible = true;
+      });
+    }
+    _aiHelpHideTimer?.cancel();
+    _aiHelpHideTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() {
+          _isAiHelpVisible = false;
+        });
+      }
+    });
+  }
 
   void _closeMenuDrawer() {
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
@@ -84,6 +104,8 @@ class _HomeViewState extends State<HomeView> {
     super.didUpdateWidget(oldWidget);
     if (!widget.isCurrentTab && oldWidget.isCurrentTab) {
       _closeMenuDrawer();
+      _aiHelpHideTimer?.cancel();
+      _isAiHelpVisible = false;
     } else if (widget.isCurrentTab && !oldWidget.isCurrentTab) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && (_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
@@ -149,6 +171,7 @@ class _HomeViewState extends State<HomeView> {
   void dispose() {
     _heroTimer?.cancel();
     _heroPageController.dispose();
+    _aiHelpHideTimer?.cancel();
     super.dispose();
   }
 
@@ -203,26 +226,55 @@ class _HomeViewState extends State<HomeView> {
           backgroundColor: const Color(0xFFF3F4F6),
           appBar: _buildAppBar(),
           drawer: _buildMenuDrawer(),
-          body: RefreshIndicator(
-            color: const Color(0xFF1C7BFF),
-            backgroundColor: Colors.white,
-            onRefresh: () => widget.viewModel.loadData(),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 6),
-                  _buildSearchBar(),
-                  const SizedBox(height: 16),
-                  _buildHeroBanner(),
-                  const SizedBox(height: 18),
-                  _buildBrandRow(),
-                  const SizedBox(height: 24),
-                  _buildFeaturedByBrand(),
-                ],
-              ),
+          body: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is UserScrollNotification) {
+                if (notification.direction == ScrollDirection.forward) {
+                  _triggerAiHelpVisibility();
+                }
+              } else if (notification is ScrollUpdateNotification) {
+                final delta = notification.scrollDelta ?? 0;
+                if (delta < -6.0 && !_isAiHelpVisible) {
+                  _triggerAiHelpVisibility();
+                }
+              }
+              return false;
+            },
+            child: Stack(
+              children: [
+                RefreshIndicator(
+                  color: const Color(0xFF1C7BFF),
+                  backgroundColor: Colors.white,
+                  onRefresh: () => widget.viewModel.loadData(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 6),
+                        _buildSearchBar(),
+                        const SizedBox(height: 16),
+                        _buildHeroBanner(),
+                        const SizedBox(height: 18),
+                        _buildBrandRow(),
+                        const SizedBox(height: 24),
+                        _buildFeaturedByBrand(),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Floating Customer Service AI Pill on the bottom right
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: AiCustomerServicePill(
+                    isVisible: _isAiHelpVisible,
+                    onTap: widget.onSupportTap,
+                  ),
+                ),
+              ],
             ),
           ),
         );
