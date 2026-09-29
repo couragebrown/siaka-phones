@@ -79,16 +79,20 @@ class AiCustomerServicePill extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // White circular avatar with AI bot face
+                      // Circular avatar with AI bot face
                       Container(
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white,
+                          color: const Color(0xFFE8EDF2),
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 1.5,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.10),
+                              color: Colors.black.withValues(alpha: 0.12),
                               blurRadius: 4,
                               offset: const Offset(0, 1),
                             ),
@@ -178,31 +182,66 @@ class _AiBotAvatarPainter extends CustomPainter {
       height: 19,
     );
 
+    // Outline paint for crisp definition against background
+    final outlinePaint = Paint()
+      ..color = const Color(0xFF7E8EA1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    // Soft subtle shadow under robot head for depth and visibility
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(headRect.shift(const Offset(0, 1)), const Radius.circular(9)),
+      Paint()
+        ..color = const Color(0xFF0F172A).withValues(alpha: 0.12)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+    );
+
+    // Collar / lower body curve
+    final collarRect = Rect.fromCenter(
+      center: Offset(cx, cy + 10.5),
+      width: 13,
+      height: 4.5,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(collarRect, const Radius.circular(2.5)),
+      Paint()..color = const Color(0xFFCBD5E1),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(collarRect, const Radius.circular(2.5)),
+      outlinePaint,
+    );
+
     // Side headphones / ears
-    final earPaint = Paint()..color = const Color(0xFFE2E8F0);
+    final earFill = Paint()..color = const Color(0xFFE2E8F0);
+    final leftEarRect = Rect.fromCenter(
+      center: Offset(cx - 10.5, cy + 0.5),
+      width: 3.5,
+      height: 8.5,
+    );
+    final rightEarRect = Rect.fromCenter(
+      center: Offset(cx + 10.5, cy + 0.5),
+      width: 3.5,
+      height: 8.5,
+    );
+
     // Left ear
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(cx - 10.5, cy + 0.5),
-          width: 3.5,
-          height: 8.5,
-        ),
-        const Radius.circular(2),
-      ),
-      earPaint,
+      RRect.fromRectAndRadius(leftEarRect, const Radius.circular(2)),
+      earFill,
     );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(leftEarRect, const Radius.circular(2)),
+      outlinePaint,
+    );
+
     // Right ear
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(cx + 10.5, cy + 0.5),
-          width: 3.5,
-          height: 8.5,
-        ),
-        const Radius.circular(2),
-      ),
-      earPaint,
+      RRect.fromRectAndRadius(rightEarRect, const Radius.circular(2)),
+      earFill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rightEarRect, const Radius.circular(2)),
+      outlinePaint,
     );
 
     // Robot White Head
@@ -220,6 +259,10 @@ class _AiBotAvatarPainter extends CustomPainter {
       RRect.fromRectAndRadius(headRect, const Radius.circular(9)),
       headPaint,
     );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(headRect, const Radius.circular(9)),
+      outlinePaint,
+    );
 
     // Dark Visor / Screen Face
     final visorRect = Rect.fromCenter(
@@ -231,6 +274,13 @@ class _AiBotAvatarPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(visorRect, const Radius.circular(5.5)),
       visorPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(visorRect, const Radius.circular(5.5)),
+      Paint()
+        ..color = const Color(0xFF334155)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8,
     );
 
     // Glowing Cyan Eyes
