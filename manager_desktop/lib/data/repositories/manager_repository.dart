@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +19,7 @@ import '../mock_manager_data.dart';
 import '../services/supabase_service.dart';
 
 class ManagerRepository extends ChangeNotifier {
+  Timer? _syncPollTimer;
   List<ManagerProduct> _products = [];
   List<ManagerOrder> _orders = [];
   List<AdvertisementBanner> _advertisements = [];
@@ -627,10 +629,10 @@ class ManagerRepository extends ChangeNotifier {
   }
 
   // Analytics
-  // Total Revenue: calculated dynamically from completed (delivered) orders.
-  // When an order is completed, its amount is calculated and added to the previous revenue balance.
+  // Total Revenue: calculated dynamically from all customer purchases in the app.
+  // Every purchase made by a user (unless cancelled) is immediately calculated and added to the overview revenue balance.
   double get totalRevenue =>
-      _orders.where((o) => o.status == OrderStatus.delivered).fold(0.0, (acc, o) => acc + o.totalAmount);
+      _orders.where((o) => o.status != OrderStatus.cancelled).fold(0.0, (acc, o) => acc + o.totalAmount);
 
   int get todayOrdersCount {
     final now = DateTime.now();
@@ -643,7 +645,7 @@ class ManagerRepository extends ChangeNotifier {
   double get todayRevenue {
     final now = DateTime.now();
     return _orders.where((o) =>
-        o.status == OrderStatus.delivered &&
+        o.status != OrderStatus.cancelled &&
         o.date.year == now.year &&
         o.date.month == now.month &&
         o.date.day == now.day).fold(0.0, (acc, o) => acc + o.totalAmount);
@@ -782,6 +784,17 @@ class ManagerRepository extends ChangeNotifier {
         }
       }, onError: (e) {
         debugPrint('Supabase products stream error: $e');
+      });
+
+      // Continuous 3-second auto-poll guarantees live purchases in customer app are immediately fetched
+      _syncPollTimer?.cancel();
+      _syncPollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+        try {
+          final live = await _supabase.fetchProducts();
+          if (live != null && live.isNotEmpty) {
+            _applyRemoteData(live);
+          }
+        } catch (_) {}
       });
     } catch (e) {
       debugPrint('ℹ️ Supabase sync deferred: $e');
