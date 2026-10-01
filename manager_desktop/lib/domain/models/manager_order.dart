@@ -16,6 +16,9 @@ class OrderItem {
   final String title;
   final String brand;
   final double price;
+  final double retailPrice;
+  final double wholesalePrice;
+  final double profit;
   final int quantity;
   final String specs;
 
@@ -23,6 +26,9 @@ class OrderItem {
     required this.title,
     required this.brand,
     required this.price,
+    this.retailPrice = 0.0,
+    this.wholesalePrice = 0.0,
+    this.profit = 0.0,
     required this.quantity,
     this.specs = '',
   });
@@ -41,6 +47,7 @@ class ManagerOrder {
   final DateTime date;
   final List<OrderItem> items;
   final double totalAmount;
+  final double profit;
   final String paymentMethod;
   OrderStatus status;
 
@@ -55,6 +62,7 @@ class ManagerOrder {
     required this.date,
     required this.items,
     required this.totalAmount,
+    this.profit = 0.0,
     required this.paymentMethod,
     this.status = OrderStatus.pending,
   });

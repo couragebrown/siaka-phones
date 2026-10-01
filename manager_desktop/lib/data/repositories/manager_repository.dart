@@ -166,6 +166,7 @@ class ManagerRepository extends ChangeNotifier {
           if (data['orders'] is List) {
             _orders = (data['orders'] as List)
                 .map((m) => _orderFromMap(Map<String, dynamic>.from(m)))
+                .where((o) => !o.id.startsWith('SP-88'))
                 .toList();
           }
           if (data['bnpl'] is List) {
@@ -198,10 +199,14 @@ class ManagerRepository extends ChangeNotifier {
       'title': i.title,
       'brand': i.brand,
       'price': i.price,
+      'retailPrice': i.retailPrice,
+      'wholesalePrice': i.wholesalePrice,
+      'profit': i.profit,
       'quantity': i.quantity,
       'specs': i.specs,
     }).toList(),
     'totalAmount': o.totalAmount,
+    'profit': o.profit,
     'paymentMethod': o.paymentMethod,
     'status': o.status.name,
   };
@@ -211,6 +216,9 @@ class ManagerRepository extends ChangeNotifier {
       title: i['title']?.toString() ?? '',
       brand: i['brand']?.toString() ?? '',
       price: (i['price'] as num?)?.toDouble() ?? 0.0,
+      retailPrice: (i['retailPrice'] as num?)?.toDouble() ?? 0.0,
+      wholesalePrice: (i['wholesalePrice'] as num?)?.toDouble() ?? 0.0,
+      profit: (i['profit'] as num?)?.toDouble() ?? 0.0,
       quantity: (i['quantity'] as num?)?.toInt() ?? 1,
       specs: i['specs']?.toString() ?? '',
     )).toList();
@@ -224,6 +232,14 @@ class ManagerRepository extends ChangeNotifier {
       }
     }
 
+    final totalAmt = (m['totalAmount'] as num?)?.toDouble() ?? 0.0;
+    double profitVal = (m['profit'] as num?)?.toDouble() ?? 0.0;
+    if (profitVal <= 0) {
+      for (final it in itemsList) {
+        profitVal += it.profit;
+      }
+    }
+
     return ManagerOrder(
       id: m['id']?.toString() ?? '',
       customerName: m['customerName']?.toString() ?? '',
@@ -232,9 +248,10 @@ class ManagerRepository extends ChangeNotifier {
       deliveryAddress: m['deliveryAddress']?.toString() ?? '',
       region: m['region']?.toString() ?? 'Greater Accra',
       gpsCode: m['gpsCode']?.toString() ?? '',
-      date: DateTime.tryParse(m['date']?.toString() ?? '') ?? DateTime.now(),
+      date: DateTime.tryParse(m['date']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
       items: itemsList,
-      totalAmount: (m['totalAmount'] as num?)?.toDouble() ?? 0.0,
+      totalAmount: totalAmt,
+      profit: profitVal,
       paymentMethod: m['paymentMethod']?.toString() ?? 'Mobile Money',
       status: status,
     );
@@ -334,11 +351,45 @@ class ManagerRepository extends ChangeNotifier {
 
     final List itemsJson = extra['items'] as List? ?? [];
     final items = itemsJson.map((item) {
+      final title = item['title']?.toString() ?? p.name;
+      final price = (item['price'] as num?)?.toDouble() ?? p.price;
+      final retail = (item['retailPrice'] as num?)?.toDouble() ??
+          (item['retail_price'] as num?)?.toDouble() ??
+          0.0;
+      final wholesale = (item['wholesalePrice'] as num?)?.toDouble() ??
+          (item['wholesale_price'] as num?)?.toDouble() ??
+          0.0;
+      final qty = (item['quantity'] as num?)?.toInt() ?? 1;
+
+      double itemProfit = (item['profit'] as num?)?.toDouble() ?? 0.0;
+      if (itemProfit <= 0) {
+        // Find product in catalog to get retail vs wholesale
+        final catalogProd = _products.cast<ManagerProduct?>().firstWhere(
+          (cp) => cp != null && cp.isMerchandise && (
+            cp.name.trim().toLowerCase() == title.trim().toLowerCase() ||
+            cp.name.toLowerCase().contains(title.toLowerCase()) ||
+            title.toLowerCase().contains(cp.name.toLowerCase())
+          ),
+          orElse: () => null,
+        );
+        if (catalogProd != null) {
+          final diff = (catalogProd.retailPrice - catalogProd.wholesalePrice).abs();
+          if (diff > 0) {
+            itemProfit = diff * qty;
+          }
+        } else if (retail > 0 && wholesale > 0) {
+          itemProfit = (retail - wholesale).abs() * qty;
+        }
+      }
+
       return OrderItem(
-        title: item['title']?.toString() ?? p.name,
+        title: title,
         brand: item['brand']?.toString() ?? 'Siaka Devices',
-        price: (item['price'] as num?)?.toDouble() ?? p.price,
-        quantity: (item['quantity'] as num?)?.toInt() ?? 1,
+        price: price,
+        retailPrice: retail,
+        wholesalePrice: wholesale,
+        profit: itemProfit,
+        quantity: qty,
         specs: item['specs']?.toString() ?? '',
       );
     }).toList();
@@ -362,6 +413,32 @@ class ManagerRepository extends ChangeNotifier {
         ? p.price
         : items.fold(0.0, (acc, item) => acc + (item.price * item.quantity));
 
+    // Calculate overall order profit from items or wholesale vs retail
+    double totalOrderProfit = (extra['totalProfit'] as num?)?.toDouble() ?? 0.0;
+    if (totalOrderProfit <= 0) {
+      for (final it in items) {
+        totalOrderProfit += it.profit;
+      }
+    }
+    if (totalOrderProfit <= 0) {
+      final catalogProd = _products.cast<ManagerProduct?>().firstWhere(
+        (cp) => cp != null && cp.isMerchandise && (
+          cp.name.trim().toLowerCase() == p.name.trim().toLowerCase() ||
+          cp.name.toLowerCase().contains(p.name.toLowerCase()) ||
+          p.name.toLowerCase().contains(cp.name.toLowerCase())
+        ),
+        orElse: () => null,
+      );
+      if (catalogProd != null) {
+        final diff = (catalogProd.retailPrice - catalogProd.wholesalePrice).abs();
+        if (diff > 0) {
+          totalOrderProfit = diff * (p.stock > 0 ? p.stock : 1);
+        }
+      } else if (p.originalPrice > 0 && p.price > 0 && (p.originalPrice - p.price).abs() > 0) {
+        totalOrderProfit = (p.originalPrice - p.price).abs();
+      }
+    }
+
     return ManagerOrder(
       id: orderId,
       customerName: extra['customerName']?.toString() ?? (p.name.isNotEmpty ? p.name : 'Customer'),
@@ -376,10 +453,12 @@ class ManagerRepository extends ChangeNotifier {
           title: p.name,
           brand: p.brand,
           price: totalAmount,
+          profit: totalOrderProfit,
           quantity: p.stock > 0 ? p.stock : 1,
         ),
       ],
       totalAmount: totalAmount,
+      profit: totalOrderProfit,
       paymentMethod: p.brand.isNotEmpty && p.brand != 'ORDER_RECORD' ? p.brand : 'Mobile Money',
       status: status,
     );
@@ -478,9 +557,7 @@ class ManagerRepository extends ChangeNotifier {
       _isLoading = true;
       _loadCachedProducts();
       _loadCachedManagerState();
-      if (_orders.isEmpty) {
-        _orders = MockManagerData.getInitialOrders();
-      }
+      // Initial balance is 0.0 — orders start empty until real customer purchases are made/synced
       if (_bnplApplications.isEmpty) {
         _bnplApplications = MockManagerData.getInitialBnplApplications();
       }
@@ -637,9 +714,14 @@ class ManagerRepository extends ChangeNotifier {
   }
 
   // Analytics
-  // Total Revenue: calculated dynamically from all customer purchases in the app.
-  // Every purchase made by a user (unless cancelled) is immediately calculated and added to the overview revenue balance.
+  // Total Revenue: calculated dynamically from customer purchases.
+  // Initial balance is 0.0. When a customer purchases an item, wholesale minus retail is calculated to get the profit,
+  // which is directly added to the overview revenue balance.
   double get totalRevenue =>
+      _orders.where((o) => o.status != OrderStatus.cancelled).fold(0.0, (acc, o) => acc + o.profit);
+
+  // Total Gross Sales (total amount paid by customers)
+  double get totalGrossSales =>
       _orders.where((o) => o.status != OrderStatus.cancelled).fold(0.0, (acc, o) => acc + o.totalAmount);
 
   int get todayOrdersCount {
@@ -656,12 +738,12 @@ class ManagerRepository extends ChangeNotifier {
       if (o.status == OrderStatus.cancelled) return false;
       final d = o.date.toLocal();
       return d.year == now.year && d.month == now.month && d.day == now.day;
-    }).fold(0.0, (acc, o) => acc + o.totalAmount);
+    }).fold(0.0, (acc, o) => acc + o.profit);
   }
 
-  double get todayProfit => todayRevenue * 0.225;
+  double get todayProfit => todayRevenue;
 
-  double get totalProfitEarned => totalRevenue * 0.225;
+  double get totalProfitEarned => totalRevenue;
 
   int get onlineCustomersCount =>
       _customers.where((c) => c.isOnline || DateTime.now().difference(c.lastLogin).inMinutes < 45).length;

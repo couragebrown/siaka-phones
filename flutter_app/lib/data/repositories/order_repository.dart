@@ -132,13 +132,23 @@ class OrderRepository extends ChangeNotifier {
     notifyListeners();
 
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-      final itemsList = newOrder.items.map((i) => {
-        'title': i.product.name,
-        'brand': i.product.brand,
-        'price': i.product.price,
-        'quantity': i.quantity,
-        'specs': '${i.selectedStorage} • ${i.selectedColor}',
+      final itemsList = newOrder.items.map((i) {
+        final wholesale = i.product.price;
+        final retail = i.product.originalPrice > 0 ? i.product.originalPrice : i.product.price;
+        final profitPerUnit = (retail - wholesale).abs();
+        return {
+          'title': i.product.name,
+          'brand': i.product.brand,
+          'price': i.product.price,
+          'retailPrice': retail,
+          'wholesalePrice': wholesale,
+          'profit': profitPerUnit * i.quantity,
+          'quantity': i.quantity,
+          'specs': '${i.selectedStorage} • ${i.selectedColor}',
+        };
       }).toList();
+
+      final totalProfit = itemsList.fold(0.0, (acc, item) => acc + ((item['profit'] as num?)?.toDouble() ?? 0.0));
 
       final orderMap = {
         'id': 'ORDER_${newOrder.orderId}',
@@ -156,6 +166,7 @@ class OrderRepository extends ChangeNotifier {
           'region': 'Greater Accra',
           'gpsCode': 'GA-183-9021',
           'trackingNumber': newOrder.trackingNumber,
+          'totalProfit': totalProfit,
           'items': itemsList,
         }),
         'condition': newOrder.status.name,
