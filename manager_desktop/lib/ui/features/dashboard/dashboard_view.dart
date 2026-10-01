@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../data/repositories/manager_repository.dart';
 import '../../../domain/models/customer_message.dart';
+import '../../../domain/models/manager_order.dart';
 import '../../core/kpi_card.dart';
 import '../../core/status_chip.dart';
 
@@ -498,12 +499,17 @@ class _DashboardViewState extends State<DashboardView> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              order.id,
-                              style: const TextStyle(
-                                color: Color(0xFF1C7BFF),
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
+                            child: InkWell(
+                              onTap: () => _showOrderDetailsDialog(context, order),
+                              borderRadius: BorderRadius.circular(4),
+                              child: Text(
+                                order.id,
+                                style: const TextStyle(
+                                  color: Color(0xFF1C7BFF),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  decoration: TextDecoration.underline,
+                                ),
                               ),
                             ),
                           ),
@@ -555,10 +561,14 @@ class _DashboardViewState extends State<DashboardView> {
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: StatusChip(
-                              label: order.status.label,
-                              textColor: Color(order.status.textColor),
-                              bgColor: Color(order.status.bgColor),
+                            child: InkWell(
+                              onTap: () => _showOrderDetailsDialog(context, order),
+                              borderRadius: BorderRadius.circular(12),
+                              child: StatusChip(
+                                label: order.status.label,
+                                textColor: Color(order.status.textColor),
+                                bgColor: Color(order.status.bgColor),
+                              ),
                             ),
                           ),
                           Padding(
@@ -763,6 +773,210 @@ class _DashboardViewState extends State<DashboardView> {
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  void _showOrderDetailsDialog(BuildContext context, ManagerOrder order) {
+    final currencyFormat = NumberFormat.currency(symbol: 'GH₵ ', decimalDigits: 2);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Container(
+            width: 650,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Modal Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              order.id,
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1C7BFF)),
+                            ),
+                            const SizedBox(width: 10),
+                            StatusChip(
+                              label: order.status.label,
+                              textColor: Color(order.status.textColor),
+                              bgColor: Color(order.status.bgColor),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormat('EEEE, MMMM d, y • HH:mm').format(order.date),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+
+                const Divider(height: 24, color: Color(0xFFE2E8F0)),
+
+                // Customer & Delivery Details
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Customer Card
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.person_outline, size: 16, color: Color(0xFF1C7BFF)),
+                                SizedBox(width: 6),
+                                Text('Customer Contact', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF1E293B))),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(order.customerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                            Text(order.customerPhone, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                            Text(order.customerEmail, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    // Delivery Card
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF10B981)),
+                                SizedBox(width: 6),
+                                Text('Delivery Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF1E293B))),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(order.deliveryAddress, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                            Text('${order.region} • GPS: ${order.gpsCode}', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                            Text('Payment: ${order.paymentMethod}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Items Purchased
+                const Text('Items in Order', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF1E293B))),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: order.items.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    itemBuilder: (ctx, i) {
+                      final item = order.items[i];
+                      return ListTile(
+                        dense: true,
+                        title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        subtitle: Text('${item.brand} • ${item.specs}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                        trailing: Text(
+                          '${item.quantity} × ${currencyFormat.format(item.price)} = ${currencyFormat.format(item.subtotal)}',
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF0F172A)),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Total Summary
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    const Text('Total Amount: ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                    Text(
+                      currencyFormat.format(order.totalAmount),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                    ),
+                  ],
+                ),
+
+                const Divider(height: 24, color: Color(0xFFE2E8F0)),
+
+                // Action Bar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Update Status:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF475569))),
+                    Wrap(
+                      spacing: 8,
+                      children: OrderStatus.values.map((status) {
+                        final isCurrent = order.status == status;
+                        return OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: isCurrent ? Color(status.bgColor) : Colors.transparent,
+                            side: BorderSide(color: Color(status.textColor)),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          ),
+                          onPressed: () {
+                            widget.repository.updateOrderStatus(order.id, status);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                          child: Text(
+                            status.label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                              color: Color(status.textColor),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
