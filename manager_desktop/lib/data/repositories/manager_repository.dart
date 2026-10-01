@@ -89,17 +89,19 @@ class ManagerRepository extends ChangeNotifier {
           final List decoded = jsonDecode(content);
           final items = decoded
               .map((item) => SupabaseService.productFromMap(Map<String, dynamic>.from(item)))
-              .where((p) => !p.id.startsWith('CAT_'))
+              .where((p) => p.isMerchandise)
               .toList();
           if (items.isNotEmpty) {
             _sortProductsList(items);
             _products = items;
             for (final p in items) {
-              if (p.category.trim().isNotEmpty) {
+              if (p.category.trim().isNotEmpty && p.isMerchandise) {
                 addCategory(p.category, syncRemote: false);
               }
             }
           }
+          // Overwrite cache to purge any leaked ORDER_RECORD or non-merchandise items
+          _saveCachedProducts(items);
         }
       }
     } catch (e) {
@@ -111,7 +113,8 @@ class ManagerRepository extends ChangeNotifier {
     try {
       final file = _getCacheFile();
       if (file != null) {
-        final list = products.map((p) => SupabaseService.productToMap(p)).toList();
+        final clean = products.where((p) => p.isMerchandise).toList();
+        final list = clean.map((p) => SupabaseService.productToMap(p)).toList();
         file.writeAsStringSync(jsonEncode(list));
       }
     } catch (e) {
@@ -354,7 +357,11 @@ class ManagerRepository extends ChangeNotifier {
       status = OrderStatus.pending;
     }
 
-    final orderId = p.id.replaceFirst('ORDER_', '');
+    final orderId = p.id.startsWith('ORDER_') ? p.id.substring(6) : p.id;
+    final totalAmount = p.price > 0
+        ? p.price
+        : items.fold(0.0, (acc, item) => acc + (item.price * item.quantity));
+
     return ManagerOrder(
       id: orderId,
       customerName: extra['customerName']?.toString() ?? (p.name.isNotEmpty ? p.name : 'Customer'),
@@ -363,17 +370,17 @@ class ManagerRepository extends ChangeNotifier {
       deliveryAddress: extra['deliveryAddress']?.toString() ?? 'Accra, Ghana',
       region: extra['region']?.toString() ?? 'Greater Accra',
       gpsCode: extra['gpsCode']?.toString() ?? 'GA-183-9021',
-      date: p.createdAt ?? DateTime.now(),
+      date: (p.createdAt ?? DateTime.now()).toLocal(),
       items: items.isNotEmpty ? items : [
         OrderItem(
           title: p.name,
           brand: p.brand,
-          price: p.price,
+          price: totalAmount,
           quantity: p.stock > 0 ? p.stock : 1,
         ),
       ],
-      totalAmount: p.price,
-      paymentMethod: p.brand.isNotEmpty ? p.brand : 'Mobile Money',
+      totalAmount: totalAmount,
+      paymentMethod: p.brand.isNotEmpty && p.brand != 'ORDER_RECORD' ? p.brand : 'Mobile Money',
       status: status,
     );
   }
@@ -582,7 +589,8 @@ class ManagerRepository extends ChangeNotifier {
   }
 
   // Getters
-  List<ManagerProduct> get products => List.unmodifiable(_products);
+  List<ManagerProduct> get products =>
+      List.unmodifiable(_products.where((p) => p.isMerchandise));
   List<ManagerOrder> get orders => List.unmodifiable(_orders);
   List<ManagerBnpl> get bnplApplications => List.unmodifiable(_bnplApplications);
   List<ManagerRepair> get repairs => List.unmodifiable(_repairs);
@@ -636,19 +644,19 @@ class ManagerRepository extends ChangeNotifier {
 
   int get todayOrdersCount {
     final now = DateTime.now();
-    return _orders.where((o) =>
-        o.date.year == now.year &&
-        o.date.month == now.month &&
-        o.date.day == now.day).length;
+    return _orders.where((o) {
+      final d = o.date.toLocal();
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    }).length;
   }
 
   double get todayRevenue {
     final now = DateTime.now();
-    return _orders.where((o) =>
-        o.status != OrderStatus.cancelled &&
-        o.date.year == now.year &&
-        o.date.month == now.month &&
-        o.date.day == now.day).fold(0.0, (acc, o) => acc + o.totalAmount);
+    return _orders.where((o) {
+      if (o.status == OrderStatus.cancelled) return false;
+      final d = o.date.toLocal();
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    }).fold(0.0, (acc, o) => acc + o.totalAmount);
   }
 
   double get todayProfit => todayRevenue * 0.225;
@@ -808,25 +816,20 @@ class ManagerRepository extends ChangeNotifier {
     if (list.isEmpty) return;
 
     for (final p in list) {
-      if (!p.id.startsWith('CAT_') &&
-          !p.id.startsWith('ORDER_') &&
-          !p.id.startsWith('BNPL_') &&
-          !p.id.startsWith('REPAIR_') &&
-          p.category.trim().isNotEmpty) {
+      if (p.isMerchandise && p.category.trim().isNotEmpty) {
         addCategory(p.category, syncRemote: false);
       }
     }
 
-    final items = list.where((p) =>
-        !p.id.startsWith('CAT_') &&
-        !p.id.startsWith('ORDER_') &&
-        !p.id.startsWith('BNPL_') &&
-        !p.id.startsWith('REPAIR_')).toList();
+    final items = list.where((p) => p.isMerchandise).toList();
     _sortProductsList(items);
     _products = items;
     _saveCachedProducts(items);
 
-    final remoteOrderProducts = list.where((p) => p.id.startsWith('ORDER_')).toList();
+    final remoteOrderProducts = list.where((p) =>
+        p.id.startsWith('ORDER_') ||
+        p.category.toUpperCase() == 'ORDER_RECORD' ||
+        p.id.startsWith('SP-')).toList();
     if (remoteOrderProducts.isNotEmpty) {
       for (final p in remoteOrderProducts) {
         final parsedOrder = _orderFromSupabase(p);
@@ -841,7 +844,9 @@ class ManagerRepository extends ChangeNotifier {
       _syncOrdersWithShipments();
     }
 
-    final remoteBnplProducts = list.where((p) => p.id.startsWith('BNPL_')).toList();
+    final remoteBnplProducts = list.where((p) =>
+        p.id.startsWith('BNPL_') ||
+        p.category.toUpperCase() == 'BNPL_RECORD').toList();
     if (remoteBnplProducts.isNotEmpty) {
       for (final p in remoteBnplProducts) {
         final parsedBnpl = _bnplFromSupabase(p);
@@ -855,7 +860,9 @@ class ManagerRepository extends ChangeNotifier {
       _bnplApplications.sort((a, b) => b.applicationDate.compareTo(a.applicationDate));
     }
 
-    final remoteRepairProducts = list.where((p) => p.id.startsWith('REPAIR_')).toList();
+    final remoteRepairProducts = list.where((p) =>
+        p.id.startsWith('REPAIR_') ||
+        p.category.toUpperCase() == 'REPAIR_RECORD').toList();
     if (remoteRepairProducts.isNotEmpty) {
       for (final p in remoteRepairProducts) {
         final parsedRepair = _repairFromSupabase(p);
@@ -1107,6 +1114,17 @@ class ManagerRepository extends ChangeNotifier {
   void addCategory(String category, {bool syncRemote = true}) {
     final clean = category.trim();
     if (clean.isEmpty) return;
+    final upper = clean.toUpperCase();
+    if (upper == 'ORDER_RECORD' ||
+        upper == 'BNPL_RECORD' ||
+        upper == 'REPAIR_RECORD' ||
+        upper == 'SWAP_RECORD' ||
+        upper == 'CATEGORY' ||
+        upper.startsWith('ORDER_') ||
+        upper.startsWith('BNPL_') ||
+        upper.startsWith('REPAIR_')) {
+      return;
+    }
     if (!_categories.any((c) => c.toLowerCase() == clean.toLowerCase())) {
       _categories.add(clean);
       notifyListeners();

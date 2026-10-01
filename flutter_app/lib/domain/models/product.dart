@@ -41,6 +41,30 @@ class Product {
     this.condition = 'New',
   });
 
+  bool get isMerchandise {
+    if (id.startsWith('CAT_') ||
+        id.startsWith('ORDER_') ||
+        id.startsWith('BNPL_') ||
+        id.startsWith('REPAIR_') ||
+        id.startsWith('SWAP_') ||
+        id.startsWith('SP-') ||
+        id.startsWith('TRK-')) {
+      return false;
+    }
+    final catUpper = category.trim().toUpperCase();
+    if (catUpper == 'ORDER_RECORD' ||
+        catUpper == 'BNPL_RECORD' ||
+        catUpper == 'REPAIR_RECORD' ||
+        catUpper == 'SWAP_RECORD' ||
+        catUpper == 'CATEGORY' ||
+        catUpper.startsWith('ORDER_') ||
+        catUpper.startsWith('BNPL_') ||
+        catUpper.startsWith('REPAIR_')) {
+      return false;
+    }
+    return true;
+  }
+
   List<String> get effectiveHighlights {
     if (highlights.isNotEmpty) {
       return highlights;

@@ -56,6 +56,30 @@ class ManagerProduct {
   bool get inStock => stock > 0;
   bool get lowStock => stock > 0 && stock <= 5;
 
+  bool get isMerchandise {
+    if (id.startsWith('CAT_') ||
+        id.startsWith('ORDER_') ||
+        id.startsWith('BNPL_') ||
+        id.startsWith('REPAIR_') ||
+        id.startsWith('SWAP_') ||
+        id.startsWith('SP-') ||
+        id.startsWith('TRK-')) {
+      return false;
+    }
+    final catUpper = category.trim().toUpperCase();
+    if (catUpper == 'ORDER_RECORD' ||
+        catUpper == 'BNPL_RECORD' ||
+        catUpper == 'REPAIR_RECORD' ||
+        catUpper == 'SWAP_RECORD' ||
+        catUpper == 'CATEGORY' ||
+        catUpper.startsWith('ORDER_') ||
+        catUpper.startsWith('BNPL_') ||
+        catUpper.startsWith('REPAIR_')) {
+      return false;
+    }
+    return true;
+  }
+
   static List<String> _parseSpecs(String specsStr) {
     if (specsStr.trim().isEmpty) return [];
     if (specsStr.contains(' • ')) {

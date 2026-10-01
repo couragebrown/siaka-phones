@@ -143,11 +143,7 @@ class SupabaseService {
       final List<dynamic> data = response as List<dynamic>;
       return data
           .map((item) => productFromMap(item as Map<String, dynamic>))
-          .where((p) =>
-              !p.id.startsWith('CAT_') &&
-              !p.id.startsWith('ORDER_') &&
-              !p.id.startsWith('BNPL_') &&
-              !p.id.startsWith('REPAIR_'))
+          .where((p) => p.isMerchandise)
           .toList();
     } catch (e) {
       debugPrint('ℹ️ Mobile fetchProducts note: $e');
@@ -170,11 +166,7 @@ class SupabaseService {
             });
             return sorted
                 .map((map) => productFromMap(map))
-                .where((p) =>
-                    !p.id.startsWith('CAT_') &&
-                    !p.id.startsWith('ORDER_') &&
-                    !p.id.startsWith('BNPL_') &&
-                    !p.id.startsWith('REPAIR_'))
+                .where((p) => p.isMerchandise)
                 .toList();
           });
     } catch (e) {

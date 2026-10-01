@@ -30,6 +30,17 @@ class _InventoryViewState extends State<InventoryView> {
   List<String> get _categories {
     final list = <String>['All'];
     for (final c in widget.repository.categories) {
+      final upper = c.trim().toUpperCase();
+      if (upper == 'ORDER_RECORD' ||
+          upper == 'BNPL_RECORD' ||
+          upper == 'REPAIR_RECORD' ||
+          upper == 'SWAP_RECORD' ||
+          upper == 'CATEGORY' ||
+          upper.startsWith('ORDER_') ||
+          upper.startsWith('BNPL_') ||
+          upper.startsWith('REPAIR_')) {
+        continue;
+      }
       if (!list.contains(c)) list.add(c);
     }
     return list;
@@ -103,7 +114,7 @@ class _InventoryViewState extends State<InventoryView> {
 
   List<ManagerProduct> _getFilteredProducts() {
     final list = widget.repository.products.where((product) {
-      if (product.id.startsWith('CAT_')) {
+      if (!product.isMerchandise) {
         return false;
       }
       if (_onlyLowStock && !product.lowStock && product.stock > 0) {
