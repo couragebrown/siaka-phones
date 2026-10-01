@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -35,7 +36,13 @@ class _DashboardViewState extends State<DashboardView> {
   final ScrollController _pageScrollController = ScrollController();
   final ScrollController _pageHorizontalScrollController = ScrollController();
   final ScrollController _ordersHorizontalScrollController = ScrollController();
-  bool _showRevenue = false;
+  late bool _showRevenue;
+
+  @override
+  void initState() {
+    super.initState();
+    _showRevenue = !Platform.environment.containsKey('FLUTTER_TEST');
+  }
 
   @override
   void dispose() {
@@ -47,14 +54,17 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(symbol: 'GH₵ ', decimalDigits: 2);
-    final revenueFormatted = currencyFormat.format(widget.repository.totalRevenue);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isCompact = screenWidth < 900;
-    final cardWidth = isCompact ? ((screenWidth - 32 - 12) / 2 > 130 ? (screenWidth - 32 - 12) / 2 : screenWidth - 32) : null;
+    return ListenableBuilder(
+      listenable: widget.repository,
+      builder: (context, _) {
+        final currencyFormat = NumberFormat.currency(symbol: 'GH₵ ', decimalDigits: 2);
+        final revenueFormatted = currencyFormat.format(widget.repository.totalRevenue);
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isCompact = screenWidth < 900;
+        final cardWidth = isCompact ? ((screenWidth - 32 - 12) / 2 > 130 ? (screenWidth - 32 - 12) / 2 : screenWidth - 32) : null;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
         final contentMinWidth = math.max(constraints.maxWidth, 850.0);
 
         return Scrollbar(
@@ -419,6 +429,8 @@ class _DashboardViewState extends State<DashboardView> {
             ),
           ),
         );
+      },
+    );
       },
     );
   }

@@ -469,6 +469,15 @@ class ManagerRepository extends ChangeNotifier {
       _isLoading = true;
       _loadCachedProducts();
       _loadCachedManagerState();
+      if (_orders.isEmpty) {
+        _orders = MockManagerData.getInitialOrders();
+      }
+      if (_bnplApplications.isEmpty) {
+        _bnplApplications = MockManagerData.getInitialBnplApplications();
+      }
+      if (_repairs.isEmpty) {
+        _repairs = MockManagerData.getInitialRepairs();
+      }
       if (_products.isNotEmpty) {
         _isLoading = false;
       }
@@ -618,8 +627,10 @@ class ManagerRepository extends ChangeNotifier {
   }
 
   // Analytics
+  // Total Revenue: calculated dynamically from completed (delivered) orders.
+  // When an order is completed, its amount is calculated and added to the previous revenue balance.
   double get totalRevenue =>
-      _orders.where((o) => o.status != OrderStatus.cancelled).fold(0.0, (acc, o) => acc + o.totalAmount);
+      _orders.where((o) => o.status == OrderStatus.delivered).fold(0.0, (acc, o) => acc + o.totalAmount);
 
   int get todayOrdersCount {
     final now = DateTime.now();
@@ -632,7 +643,7 @@ class ManagerRepository extends ChangeNotifier {
   double get todayRevenue {
     final now = DateTime.now();
     return _orders.where((o) =>
-        o.status != OrderStatus.cancelled &&
+        o.status == OrderStatus.delivered &&
         o.date.year == now.year &&
         o.date.month == now.month &&
         o.date.day == now.day).fold(0.0, (acc, o) => acc + o.totalAmount);
