@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 enum ShippingStatus {
-  pendingPickup('Pending Pickup', 0xFFD97706, 0xFFFEF3C7),
-  inTransit('In Transit', 0xFF2563EB, 0xFFDBEAFE),
-  outForDelivery('Out for Delivery', 0xFF7C3AED, 0xFFF3E8FF),
-  delivered('Delivered', 0xFF059669, 0xFFD1FAE5),
-  failedDelivery('Failed Delivery', 0xFFDC2626, 0xFFFEE2E2),
+  placed('Order Placed', 0xFFD97706, 0xFFFEF3C7),
+  processing('Processed & Packed', 0xFF2563EB, 0xFFDBEAFE),
+  dispatched('Dispatched with Courier', 0xFF7C3AED, 0xFFEDE9FE),
+  outForDelivery('Out for Delivery', 0xFF0284C7, 0xFFE0F2FE),
+  delivered('Delivered to Destination', 0xFF059669, 0xFFD1FAE5),
+  cancelled('Cancelled', 0xFFDC2626, 0xFFFEE2E2),
   returned('Returned to Store', 0xFF64748B, 0xFFF1F5F9);
 
   final String label;
@@ -13,6 +14,46 @@ enum ShippingStatus {
   final int bgColor;
 
   const ShippingStatus(this.label, this.textColor, this.bgColor);
+
+  static const ShippingStatus pendingPickup = ShippingStatus.placed;
+  static const ShippingStatus inTransit = ShippingStatus.dispatched;
+  static const ShippingStatus failedDelivery = ShippingStatus.cancelled;
+
+  String get dbCondition {
+    switch (this) {
+      case ShippingStatus.placed:
+        return 'placed';
+      case ShippingStatus.processing:
+        return 'processing';
+      case ShippingStatus.dispatched:
+        return 'shipped';
+      case ShippingStatus.outForDelivery:
+        return 'outForDelivery';
+      case ShippingStatus.delivered:
+        return 'delivered';
+      case ShippingStatus.cancelled:
+      case ShippingStatus.returned:
+        return 'cancelled';
+    }
+  }
+
+  String get defaultLocationHint {
+    switch (this) {
+      case ShippingStatus.placed:
+        return 'Siaka Online Store • Order Placed & Confirmed';
+      case ShippingStatus.processing:
+        return 'Siaka Accra Hub • Quality Checked & Packaged';
+      case ShippingStatus.dispatched:
+        return 'Circle Main Hub • Dispatched with Courier En Route';
+      case ShippingStatus.outForDelivery:
+        return 'Out for Delivery • Courier Rider En Route to Recipient';
+      case ShippingStatus.delivered:
+        return 'Delivered and Verified with Customer';
+      case ShippingStatus.cancelled:
+      case ShippingStatus.returned:
+        return 'Returned to Store / Cancelled';
+    }
+  }
 }
 
 enum ShippingProcessType {

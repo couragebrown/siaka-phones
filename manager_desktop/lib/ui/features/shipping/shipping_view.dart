@@ -38,11 +38,12 @@ class _ShippingViewState extends State<ShippingView> {
 
   final List<String> _statusFilters = [
     'All',
-    'Delivered (Done)',
-    'In Transit',
+    'Order Placed',
+    'Processed & Packed',
+    'Dispatched with Courier',
     'Out for Delivery',
-    'Pending Pickup',
-    'Failed / Returned',
+    'Delivered to Destination',
+    'Cancelled / Returned',
   ];
 
   final List<String> _processFilters = [
@@ -66,15 +67,13 @@ class _ShippingViewState extends State<ShippingView> {
     return widget.repository.shipments.where((item) {
       // Status filter
       if (_selectedStatus != 'All') {
-        if ((_selectedStatus == 'Delivered' || _selectedStatus == 'Delivered (Done)') &&
-            item.status != ShippingStatus.delivered) {
-          return false;
-        }
-        if (_selectedStatus == 'In Transit' && item.status != ShippingStatus.inTransit) return false;
+        if (_selectedStatus == 'Order Placed' && item.status != ShippingStatus.placed) return false;
+        if (_selectedStatus == 'Processed & Packed' && item.status != ShippingStatus.processing) return false;
+        if (_selectedStatus == 'Dispatched with Courier' && item.status != ShippingStatus.dispatched) return false;
         if (_selectedStatus == 'Out for Delivery' && item.status != ShippingStatus.outForDelivery) return false;
-        if (_selectedStatus == 'Pending Pickup' && item.status != ShippingStatus.pendingPickup) return false;
-        if (_selectedStatus == 'Failed / Returned' &&
-            item.status != ShippingStatus.failedDelivery &&
+        if (_selectedStatus == 'Delivered to Destination' && item.status != ShippingStatus.delivered) return false;
+        if (_selectedStatus == 'Cancelled / Returned' &&
+            item.status != ShippingStatus.cancelled &&
             item.status != ShippingStatus.returned) {
           return false;
         }
@@ -114,10 +113,11 @@ class _ShippingViewState extends State<ShippingView> {
         final screenWidth = MediaQuery.of(context).size.width;
         final isCompact = screenWidth < 900;
 
-        final inTransitCount = widget.repository.shipments.where((s) => s.status == ShippingStatus.inTransit).length;
+        final placedCount = widget.repository.shipments.where((s) => s.status == ShippingStatus.placed).length;
+        final processingCount = widget.repository.shipments.where((s) => s.status == ShippingStatus.processing).length;
+        final dispatchedCount = widget.repository.shipments.where((s) => s.status == ShippingStatus.dispatched).length;
         final outForDeliveryCount = widget.repository.shipments.where((s) => s.status == ShippingStatus.outForDelivery).length;
         final deliveredCount = widget.repository.shipments.where((s) => s.status == ShippingStatus.delivered).length;
-        final pendingCount = widget.repository.shipments.where((s) => s.status == ShippingStatus.pendingPickup).length;
 
         final header = Wrap(
           alignment: WrapAlignment.spaceBetween,
@@ -141,7 +141,7 @@ class _ShippingViewState extends State<ShippingView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Track dispatches, rider checkpoints, and delivery logs',
+                    'Track customer order dispatches, delivery checkpoints, and status updates',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey.shade600,
@@ -171,17 +171,27 @@ class _ShippingViewState extends State<ShippingView> {
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 200,
+                      width: 210,
                       child: _buildMetric(
-                        label: 'IN TRANSIT',
-                        value: '$inTransitCount',
+                        label: 'ORDER PLACED / PACKING',
+                        value: '${placedCount + processingCount}',
+                        icon: Icons.inventory_2_rounded,
+                        color: const Color(0xFFD97706),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 210,
+                      child: _buildMetric(
+                        label: 'DISPATCHED COURIER',
+                        value: '$dispatchedCount',
                         icon: Icons.local_shipping_rounded,
                         color: const Color(0xFF2563EB),
                       ),
                     ),
                     const SizedBox(width: 12),
                     SizedBox(
-                      width: 200,
+                      width: 210,
                       child: _buildMetric(
                         label: 'OUT FOR DELIVERY',
                         value: '$outForDeliveryCount',
@@ -191,22 +201,12 @@ class _ShippingViewState extends State<ShippingView> {
                     ),
                     const SizedBox(width: 12),
                     SizedBox(
-                      width: 200,
+                      width: 210,
                       child: _buildMetric(
-                        label: 'DELIVERED (DONE)',
+                        label: 'DELIVERED TO DESTINATION',
                         value: '$deliveredCount',
                         icon: Icons.check_circle_rounded,
                         color: const Color(0xFF059669),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 200,
-                      child: _buildMetric(
-                        label: 'PENDING PICKUP',
-                        value: '$pendingCount',
-                        icon: Icons.access_time_rounded,
-                        color: const Color(0xFFD97706),
                       ),
                     ),
                   ],
@@ -216,8 +216,17 @@ class _ShippingViewState extends State<ShippingView> {
                 children: [
                   Expanded(
                     child: _buildMetric(
-                      label: 'IN TRANSIT',
-                      value: '$inTransitCount',
+                      label: 'ORDER PLACED / PACKING',
+                      value: '${placedCount + processingCount}',
+                      icon: Icons.inventory_2_rounded,
+                      color: const Color(0xFFD97706),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildMetric(
+                      label: 'DISPATCHED COURIER',
+                      value: '$dispatchedCount',
                       icon: Icons.local_shipping_rounded,
                       color: const Color(0xFF2563EB),
                     ),
@@ -234,19 +243,10 @@ class _ShippingViewState extends State<ShippingView> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildMetric(
-                      label: 'DELIVERED (DONE)',
+                      label: 'DELIVERED TO DESTINATION',
                       value: '$deliveredCount',
                       icon: Icons.check_circle_rounded,
                       color: const Color(0xFF059669),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMetric(
-                      label: 'PENDING PICKUP',
-                      value: '$pendingCount',
-                      icon: Icons.access_time_rounded,
-                      color: const Color(0xFFD97706),
                     ),
                   ),
                 ],
@@ -854,7 +854,14 @@ class _ShippingViewState extends State<ShippingView> {
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
-                      items: ShippingStatus.values.map((st) {
+                      items: [
+                        ShippingStatus.placed,
+                        ShippingStatus.processing,
+                        ShippingStatus.dispatched,
+                        ShippingStatus.outForDelivery,
+                        ShippingStatus.delivered,
+                        ShippingStatus.cancelled,
+                      ].map((st) {
                         return DropdownMenuItem(
                           value: st,
                           child: Row(
@@ -868,14 +875,17 @@ class _ShippingViewState extends State<ShippingView> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(st.label),
+                              Text(st.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                             ],
                           ),
                         );
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) {
-                          setDialogState(() => selectedStatus = val);
+                          setDialogState(() {
+                            selectedStatus = val;
+                            locationCtrl.text = val.defaultLocationHint;
+                          });
                         }
                       },
                     ),

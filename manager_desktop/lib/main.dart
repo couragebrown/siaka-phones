@@ -114,6 +114,7 @@ class _SiakaManagerAppState extends State<SiakaManagerApp> {
         return OrdersManagementView(
           repository: _repository,
           onMessageCustomer: _handleMessageCustomer,
+          onNavigate: (index) => setState(() => _selectedIndex = index),
         );
       case 2:
         return InventoryView(repository: _repository);

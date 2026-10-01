@@ -1,8 +1,9 @@
 enum OrderStatus {
-  pending('Pending', 0xFFD97706, 0xFFFEF3C7),
-  confirmed('Confirmed', 0xFF2563EB, 0xFFDBEAFE),
-  dispatched('Dispatched', 0xFF7C3AED, 0xFFEDE9FE),
-  delivered('Delivered', 0xFF059669, 0xFFD1FAE5),
+  placed('Order Placed', 0xFFD97706, 0xFFFEF3C7),
+  processing('Processed & Packed', 0xFF2563EB, 0xFFDBEAFE),
+  shipped('Dispatched with Courier', 0xFF7C3AED, 0xFFEDE9FE),
+  outForDelivery('Out for Delivery', 0xFF0284C7, 0xFFE0F2FE),
+  delivered('Delivered to Destination', 0xFF059669, 0xFFD1FAE5),
   cancelled('Cancelled', 0xFFDC2626, 0xFFFEE2E2);
 
   final String label;
@@ -10,6 +11,10 @@ enum OrderStatus {
   final int bgColor;
 
   const OrderStatus(this.label, this.textColor, this.bgColor);
+
+  static const OrderStatus pending = OrderStatus.placed;
+  static const OrderStatus confirmed = OrderStatus.processing;
+  static const OrderStatus dispatched = OrderStatus.shipped;
 }
 
 class OrderItem {
@@ -64,7 +69,7 @@ class ManagerOrder {
     required this.totalAmount,
     this.profit = 0.0,
     required this.paymentMethod,
-    this.status = OrderStatus.pending,
+    this.status = OrderStatus.placed,
   });
 
   String get itemsSummary => items.map((i) => '${i.quantity}x ${i.title}').join(', ');

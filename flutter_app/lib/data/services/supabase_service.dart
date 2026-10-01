@@ -189,4 +189,46 @@ class SupabaseService {
       return false;
     }
   }
+
+  Future<List<Map<String, dynamic>>?> fetchOrderRecords() async {
+    if (!_isInitialized || client == null) {
+      await initialize();
+    }
+    if (!_isInitialized || client == null) return null;
+    try {
+      final response = await client!
+          .from('products')
+          .select()
+          .order('created_at', ascending: false);
+      final List<dynamic> data = response as List<dynamic>;
+      return data
+          .map((item) => item as Map<String, dynamic>)
+          .where((m) {
+            final cat = m['category']?.toString().toUpperCase() ?? '';
+            final id = m['id']?.toString().toUpperCase() ?? '';
+            return cat == 'ORDER_RECORD' || cat.contains('ORDER') || id.startsWith('ORDER_');
+          })
+          .toList();
+    } catch (e) {
+      debugPrint('ℹ️ Mobile fetchOrderRecords error: $e');
+      return null;
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>>? streamOrderRecords() {
+    if (!_isInitialized || client == null) return null;
+    try {
+      return client!
+          .from('products')
+          .stream(primaryKey: ['id'])
+          .map((data) => List<Map<String, dynamic>>.from(data).where((m) {
+                final cat = m['category']?.toString().toUpperCase() ?? '';
+                final id = m['id']?.toString().toUpperCase() ?? '';
+                return cat == 'ORDER_RECORD' || cat.contains('ORDER') || id.startsWith('ORDER_');
+              }).toList());
+    } catch (e) {
+      debugPrint('⚠️ Mobile streamOrderRecords error: $e');
+      return null;
+    }
+  }
 }

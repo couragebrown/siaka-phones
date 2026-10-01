@@ -34,13 +34,13 @@ class OrderModel {
       case OrderStatus.placed:
         return 'Order Placed';
       case OrderStatus.processing:
-        return 'Processing';
+        return 'Processed & Packed';
       case OrderStatus.shipped:
-        return 'Shipped';
+        return 'Dispatched with Courier';
       case OrderStatus.outForDelivery:
         return 'Out for Delivery';
       case OrderStatus.delivered:
-        return 'Delivered';
+        return 'Delivered to Destination';
       case OrderStatus.cancelled:
         return 'Cancelled';
     }

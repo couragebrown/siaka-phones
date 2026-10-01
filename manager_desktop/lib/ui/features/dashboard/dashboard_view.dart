@@ -956,33 +956,29 @@ class _DashboardViewState extends State<DashboardView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Update Status:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF475569))),
-                    Wrap(
-                      spacing: 8,
-                      children: OrderStatus.values.map((status) {
-                        final isCurrent = order.status == status;
-                        return OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: isCurrent ? Color(status.bgColor) : Colors.transparent,
-                            side: BorderSide(color: Color(status.textColor)),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                          onPressed: () {
-                            widget.repository.updateOrderStatus(order.id, status);
-                            setDialogState(() {});
-                            setState(() {});
-                          },
-                          child: Text(
-                            status.label,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                              color: Color(status.textColor),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                    const Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: Color(0xFF64748B)),
+                        SizedBox(width: 6),
+                        Text(
+                          'Delivery status can strictly only be updated in the Shipping Hub.',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1C7BFF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.local_shipping_rounded, size: 16),
+                      label: const Text('Manage in Shipping Hub'),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        widget.onNavigate(11);
+                      },
                     ),
                   ],
                 ),

@@ -368,18 +368,20 @@ class ManagerRepository extends ChangeNotifier {
       );
     }).toList();
 
-    OrderStatus status = OrderStatus.pending;
-    final cond = p.condition.toLowerCase();
-    if (cond == 'confirmed' || cond == 'processing') {
-      status = OrderStatus.confirmed;
-    } else if (cond == 'dispatched' || cond == 'shipped' || cond == 'outfordelivery') {
-      status = OrderStatus.dispatched;
-    } else if (cond == 'delivered') {
+    OrderStatus status = OrderStatus.placed;
+    final cond = p.condition.toLowerCase().replaceAll(' ', '').replaceAll('_', '').replaceAll('&', '').replaceAll('-', '');
+    if (cond.contains('deliv')) {
       status = OrderStatus.delivered;
-    } else if (cond == 'cancelled') {
+    } else if (cond.contains('outfor')) {
+      status = OrderStatus.outForDelivery;
+    } else if (cond.contains('dispatch') || cond.contains('courier') || cond.contains('ship') || cond.contains('transit')) {
+      status = OrderStatus.shipped;
+    } else if (cond.contains('process') || cond.contains('pack') || cond.contains('confirm')) {
+      status = OrderStatus.processing;
+    } else if (cond.contains('cancel')) {
       status = OrderStatus.cancelled;
     } else {
-      status = OrderStatus.pending;
+      status = OrderStatus.placed;
     }
 
     final orderId = p.id.startsWith('ORDER_') ? p.id.substring(6) : p.id;
@@ -738,29 +740,42 @@ class ManagerRepository extends ChangeNotifier {
       _orders[idx].status = newStatus;
 
       // Keep linked shipment in _shipments synchronized
-      final shipIdx = _shipments.indexWhere((s) => s.orderOrProcessId == orderId);
+      final cleanOrderId = orderId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
+      final shipIdx = _shipments.indexWhere((s) {
+        final sClean = s.orderOrProcessId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
+        return sClean == cleanOrderId || s.id == 'SHIP-$cleanOrderId' || s.id == 'SHIP-$orderId';
+      });
+
       if (shipIdx != -1) {
         final shipment = _shipments[shipIdx];
-        if (newStatus == OrderStatus.delivered) {
-          shipment.status = ShippingStatus.delivered;
-          shipment.deliveredAt = DateTime.now();
-          shipment.lastLocationUpdate = 'Delivered to ${shipment.destinationAddress}';
-        } else if (newStatus == OrderStatus.dispatched) {
-          shipment.status = ShippingStatus.inTransit;
-          shipment.dispatchedAt ??= DateTime.now();
-          shipment.lastLocationUpdate = 'Dispatched with courier, en route to recipient';
-        } else if (newStatus == OrderStatus.cancelled) {
-          shipment.status = ShippingStatus.returned;
-          shipment.lastLocationUpdate = 'Order cancelled - returned to stock';
-        } else if (newStatus == OrderStatus.confirmed) {
-          shipment.status = ShippingStatus.pendingPickup;
-          shipment.lastLocationUpdate = 'Order confirmed. Packaged at Circle Hub awaiting courier dispatch.';
+        switch (newStatus) {
+          case OrderStatus.placed:
+            shipment.status = ShippingStatus.placed;
+            break;
+          case OrderStatus.processing:
+            shipment.status = ShippingStatus.processing;
+            break;
+          case OrderStatus.shipped:
+            shipment.status = ShippingStatus.dispatched;
+            shipment.dispatchedAt ??= DateTime.now();
+            break;
+          case OrderStatus.outForDelivery:
+            shipment.status = ShippingStatus.outForDelivery;
+            break;
+          case OrderStatus.delivered:
+            shipment.status = ShippingStatus.delivered;
+            shipment.deliveredAt = DateTime.now();
+            break;
+          case OrderStatus.cancelled:
+            shipment.status = ShippingStatus.cancelled;
+            break;
         }
+        shipment.lastLocationUpdate = shipment.status.defaultLocationHint;
       }
       _saveCachedManagerState();
       notifyListeners();
       if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-        _supabase.updateRecordCondition('ORDER_$orderId', newStatus.name);
+        _supabase.updateRecordCondition('ORDER_$cleanOrderId', newStatus.name);
       }
     }
   }
@@ -1327,6 +1342,8 @@ class ManagerRepository extends ChangeNotifier {
       shipment.status = status;
       if (locationUpdate != null && locationUpdate.trim().isNotEmpty) {
         shipment.lastLocationUpdate = locationUpdate.trim();
+      } else {
+        shipment.lastLocationUpdate = status.defaultLocationHint;
       }
       if (notes != null && notes.trim().isNotEmpty) {
         shipment.managerNotes = notes.trim();
@@ -1339,6 +1356,8 @@ class ManagerRepository extends ChangeNotifier {
       }
       if (status == ShippingStatus.delivered) {
         shipment.deliveredAt = DateTime.now();
+      } else if (status == ShippingStatus.dispatched) {
+        shipment.dispatchedAt ??= DateTime.now();
       }
 
       shipment.statusHistory.add(
@@ -1359,7 +1378,7 @@ class ManagerRepository extends ChangeNotifier {
           type: NotificationType.shipping,
           severity: status == ShippingStatus.delivered
               ? NotificationSeverity.success
-              : (status == ShippingStatus.failedDelivery
+              : (status == ShippingStatus.cancelled || status == ShippingStatus.failedDelivery
                   ? NotificationSeverity.critical
                   : NotificationSeverity.info),
           timestamp: DateTime.now(),
@@ -1369,38 +1388,90 @@ class ManagerRepository extends ChangeNotifier {
       );
 
       // Keep linked customer order synchronized if updated from shipping
-      final orderIdx = _orders.indexWhere((o) => o.id == shipment.orderOrProcessId);
-      if (orderIdx != -1) {
-        if (status == ShippingStatus.delivered) {
-          _orders[orderIdx].status = OrderStatus.delivered;
-        } else if (status == ShippingStatus.inTransit || status == ShippingStatus.outForDelivery) {
-          _orders[orderIdx].status = OrderStatus.dispatched;
-        } else if (status == ShippingStatus.returned || status == ShippingStatus.failedDelivery) {
-          _orders[orderIdx].status = OrderStatus.cancelled;
-        } else if (status == ShippingStatus.pendingPickup) {
-          _orders[orderIdx].status = OrderStatus.confirmed;
-        }
+      final cleanShipmentOrderId = shipment.orderOrProcessId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
+      final orderIdx = _orders.indexWhere((o) {
+        final cleanO = o.id.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
+        return cleanO == cleanShipmentOrderId;
+      });
+
+      OrderStatus mappedOrderStatus = OrderStatus.placed;
+      switch (status) {
+        case ShippingStatus.placed:
+          mappedOrderStatus = OrderStatus.placed;
+          break;
+        case ShippingStatus.processing:
+          mappedOrderStatus = OrderStatus.processing;
+          break;
+        case ShippingStatus.dispatched:
+          mappedOrderStatus = OrderStatus.shipped;
+          break;
+        case ShippingStatus.outForDelivery:
+          mappedOrderStatus = OrderStatus.outForDelivery;
+          break;
+        case ShippingStatus.delivered:
+          mappedOrderStatus = OrderStatus.delivered;
+          break;
+        case ShippingStatus.cancelled:
+        case ShippingStatus.returned:
+          mappedOrderStatus = OrderStatus.cancelled;
+          break;
       }
 
+      if (orderIdx != -1) {
+        _orders[orderIdx].status = mappedOrderStatus;
+      }
+
+      _saveCachedManagerState();
       notifyListeners();
+
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        final orderDocId = 'ORDER_$cleanShipmentOrderId';
+        _supabase.updateRecordCondition(orderDocId, status.dbCondition);
+        if (shipment.orderOrProcessId != cleanShipmentOrderId) {
+          _supabase.updateRecordCondition('ORDER_${shipment.orderOrProcessId}', status.dbCondition);
+        }
+      }
     }
   }
 
   void _syncOrdersWithShipments() {
     for (final order in _orders) {
-      final exists = _shipments.any((s) => s.orderOrProcessId == order.id);
-      if (!exists) {
-        final shippingStatus = order.status == OrderStatus.delivered
-            ? ShippingStatus.delivered
-            : order.status == OrderStatus.dispatched
-                ? ShippingStatus.inTransit
-                : ShippingStatus.pendingPickup;
+      final cleanOrderId = order.id.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
+      final idx = _shipments.indexWhere((s) {
+        final sClean = s.orderOrProcessId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
+        return sClean == cleanOrderId || s.id == 'SHIP-$cleanOrderId' || s.id == 'SHIP-${order.id}';
+      });
 
+      ShippingStatus shippingStatus = ShippingStatus.placed;
+      switch (order.status) {
+        case OrderStatus.placed:
+          shippingStatus = ShippingStatus.placed;
+          break;
+        case OrderStatus.processing:
+          shippingStatus = ShippingStatus.processing;
+          break;
+        case OrderStatus.shipped:
+          shippingStatus = ShippingStatus.dispatched;
+          break;
+        case OrderStatus.outForDelivery:
+          shippingStatus = ShippingStatus.outForDelivery;
+          break;
+        case OrderStatus.delivered:
+          shippingStatus = ShippingStatus.delivered;
+          break;
+        case OrderStatus.cancelled:
+          shippingStatus = ShippingStatus.cancelled;
+          break;
+      }
+
+      if (idx != -1) {
+        _shipments[idx].status = shippingStatus;
+      } else {
         final cleanGps = order.gpsCode.replaceAll('-', '');
         _shipments.add(
           ManagerShippingItem(
             id: 'SHIP-${order.id}',
-            trackingNumber: 'SP-GH-${order.id.replaceAll('ORD-', '')}-$cleanGps',
+            trackingNumber: 'SP-GH-$cleanOrderId-$cleanGps',
             orderOrProcessId: order.id,
             processType: ShippingProcessType.orderFulfillment,
             customerName: order.customerName,
@@ -1412,32 +1483,42 @@ class ManagerRepository extends ChangeNotifier {
             dispatchRiderPhone: '+233 24 555 7788',
             status: shippingStatus,
             itemsDescription: order.itemsSummary,
-            lastLocationUpdate: order.status == OrderStatus.delivered
-                ? 'Delivered to recipient at ${order.deliveryAddress}'
-                : order.status == OrderStatus.dispatched
-                    ? 'Dispatched with courier, in transit'
-                    : 'Order confirmed. Packaged at Circle Hub awaiting courier pickup.',
-            estimatedDelivery: order.date.add(const Duration(days: 1)),
-            dispatchedAt: order.status != OrderStatus.pending ? order.date : null,
+            lastLocationUpdate: shippingStatus.defaultLocationHint,
+            estimatedDelivery: order.date.add(const Duration(days: 2)),
+            dispatchedAt: (order.status == OrderStatus.shipped || order.status == OrderStatus.outForDelivery || order.status == OrderStatus.delivered) ? order.date : null,
             deliveredAt: order.status == OrderStatus.delivered ? order.date.add(const Duration(hours: 4)) : null,
-            managerNotes: 'Standard customer order (${order.paymentMethod}). Total: GH₵ ${order.totalAmount.toStringAsFixed(2)}',
+            managerNotes: 'Customer order (${order.paymentMethod}). Total: GH₵ ${order.totalAmount.toStringAsFixed(2)}',
             statusHistory: [
               ShippingCheckpoint(
                 timestamp: order.date,
                 location: 'Circle Main Store',
-                status: ShippingStatus.pendingPickup,
-                note: 'Order confirmed and packed ready for dispatch.',
+                status: ShippingStatus.placed,
+                note: 'Order placed and confirmed by customer.',
               ),
-              if (order.status == OrderStatus.dispatched || order.status == OrderStatus.delivered)
+              if (order.status != OrderStatus.placed)
+                ShippingCheckpoint(
+                  timestamp: order.date.add(const Duration(minutes: 30)),
+                  location: 'Siaka Accra Hub',
+                  status: ShippingStatus.processing,
+                  note: 'Order processed and packed.',
+                ),
+              if (order.status == OrderStatus.shipped || order.status == OrderStatus.outForDelivery || order.status == OrderStatus.delivered)
                 ShippingCheckpoint(
                   timestamp: order.date.add(const Duration(hours: 2)),
-                  location: 'Accra Logistics Hub',
-                  status: ShippingStatus.inTransit,
-                  note: 'Handed over to delivery courier.',
+                  location: 'Circle Main Hub',
+                  status: ShippingStatus.dispatched,
+                  note: 'Dispatched with courier.',
+                ),
+              if (order.status == OrderStatus.outForDelivery || order.status == OrderStatus.delivered)
+                ShippingCheckpoint(
+                  timestamp: order.date.add(const Duration(hours: 3, minutes: 30)),
+                  location: order.deliveryAddress,
+                  status: ShippingStatus.outForDelivery,
+                  note: 'Out for delivery to destination.',
                 ),
               if (order.status == OrderStatus.delivered)
                 ShippingCheckpoint(
-                  timestamp: order.date.add(const Duration(hours: 5)),
+                  timestamp: order.date.add(const Duration(hours: 4)),
                   location: order.deliveryAddress,
                   status: ShippingStatus.delivered,
                   note: 'Successfully delivered to customer.',

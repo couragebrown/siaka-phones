@@ -17,11 +17,13 @@ class OrdersManagementView extends StatefulWidget {
     String? initialBody,
     MessageCategory? initialCategory,
   })? onMessageCustomer;
+  final ValueChanged<int>? onNavigate;
 
   const OrdersManagementView({
     super.key,
     required this.repository,
     this.onMessageCustomer,
+    this.onNavigate,
   });
 
   @override
@@ -422,35 +424,14 @@ class _OrdersManagementViewState extends State<OrdersManagementView> {
                                               tooltip: 'View Order Details',
                                               onPressed: () => _showOrderDetailsDialog(context, order),
                                             ),
-                                            PopupMenuButton<OrderStatus>(
-                                              tooltip: 'Update Status',
-                                              icon: const Icon(Icons.more_vert_rounded, size: 18, color: Color(0xFF64748B)),
-                                              onSelected: (newStatus) {
-                                                widget.repository.updateOrderStatus(order.id, newStatus);
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Order ${order.id} status updated to ${newStatus.label}'),
-                                                    backgroundColor: const Color(0xFF1E293B),
-                                                    duration: const Duration(seconds: 2),
-                                                  ),
-                                                );
+                                            IconButton(
+                                              icon: const Icon(Icons.local_shipping_outlined, size: 18, color: Color(0xFF1C7BFF)),
+                                              tooltip: 'Manage Delivery in Shipping Hub',
+                                              onPressed: () {
+                                                if (widget.onNavigate != null) {
+                                                  widget.onNavigate!(11);
+                                                }
                                               },
-                                              itemBuilder: (ctx) => OrderStatus.values.map((s) {
-                                                return PopupMenuItem<OrderStatus>(
-                                                  value: s,
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        order.status == s ? Icons.check_circle_rounded : Icons.circle_outlined,
-                                                        size: 16,
-                                                        color: Color(s.textColor),
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      Text(s.label, style: const TextStyle(fontSize: 13)),
-                                                    ],
-                                                  ),
-                                                );
-                                              }).toList(),
                                             ),
                                           ],
                                         ),
@@ -699,33 +680,31 @@ class _OrdersManagementViewState extends State<OrdersManagementView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Update Status:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF475569))),
-                    Wrap(
-                      spacing: 8,
-                      children: OrderStatus.values.map((status) {
-                        final isCurrent = order.status == status;
-                        return OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: isCurrent ? Color(status.bgColor) : Colors.transparent,
-                            side: BorderSide(color: Color(status.textColor)),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                          onPressed: () {
-                            widget.repository.updateOrderStatus(order.id, status);
-                            setDialogState(() {});
-                            setState(() {});
-                          },
-                          child: Text(
-                            status.label,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                              color: Color(status.textColor),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                    const Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: Color(0xFF64748B)),
+                        SizedBox(width: 6),
+                        Text(
+                          'Delivery status can strictly only be updated in the Shipping Hub.',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1C7BFF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.local_shipping_rounded, size: 16),
+                      label: const Text('Manage in Shipping Hub'),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        if (widget.onNavigate != null) {
+                          widget.onNavigate!(11);
+                        }
+                      },
                     ),
                   ],
                 ),

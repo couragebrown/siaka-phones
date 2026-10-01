@@ -186,9 +186,9 @@ class _TrackOrderViewState extends State<TrackOrderView> {
             status: _StepStatus.completed,
           ),
           _TrackingStepData(
-            title: 'Dispatched with Carrier',
+            title: 'Dispatched with Courier',
             description:
-                'Carrier: FedEx Express (Tracking #${_order.trackingNumber})',
+                'Circle Express Logistics (Tracking #${_order.trackingNumber})',
             status: _StepStatus.active,
           ),
           const _TrackingStepData(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -7,6 +8,9 @@ import '../mock_data.dart';
 import '../services/supabase_service.dart';
 
 class OrderRepository extends ChangeNotifier {
+  Timer? _syncPollTimer;
+  StreamSubscription? _orderStreamSub;
+
   final List<OrderModel> _orders = [
     OrderModel(
       orderId: 'SP-883921',
@@ -51,6 +55,120 @@ class OrderRepository extends ChangeNotifier {
       trackingNumber: 'TRK-GH-771024-SP',
     ),
   ];
+
+  OrderRepository() {
+    _initSupabaseSync();
+  }
+
+  void _initSupabaseSync() {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    _fetchRemoteOrders();
+    _startRealtimeOrderStream();
+    _syncPollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _fetchRemoteOrders());
+  }
+
+  @override
+  void dispose() {
+    _syncPollTimer?.cancel();
+    _orderStreamSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchRemoteOrders() async {
+    try {
+      final records = await SupabaseService().fetchOrderRecords();
+      if (records != null && records.isNotEmpty) {
+        _applyRemoteOrders(records);
+      }
+    } catch (_) {}
+  }
+
+  void _startRealtimeOrderStream() {
+    try {
+      final stream = SupabaseService().streamOrderRecords();
+      if (stream != null) {
+        _orderStreamSub = stream.listen((records) {
+          _applyRemoteOrders(records);
+        }, onError: (_) {});
+      }
+    } catch (_) {}
+  }
+
+  void _applyRemoteOrders(List<Map<String, dynamic>> records) {
+    bool hasChanges = false;
+    for (final map in records) {
+      final rawId = map['id']?.toString() ?? '';
+      final orderId = rawId.startsWith('ORDER_') ? rawId.substring(6) : rawId;
+      final condition = map['condition']?.toString() ?? '';
+      final newStatus = _parseOrderStatus(condition);
+
+      final idx = _orders.indexWhere((o) => o.orderId == orderId || 'ORDER_${o.orderId}' == rawId);
+      if (idx != -1) {
+        if (_orders[idx].status != newStatus) {
+          _orders[idx] = _orders[idx].copyWith(status: newStatus);
+          hasChanges = true;
+        }
+      } else {
+        final parsed = _orderFromSupabaseMap(map, orderId, newStatus);
+        if (parsed != null) {
+          _orders.add(parsed);
+          hasChanges = true;
+        }
+      }
+    }
+
+    if (hasChanges) {
+      _orders.sort((a, b) => b.date.compareTo(a.date));
+      notifyListeners();
+    }
+  }
+
+  static OrderStatus _parseOrderStatus(String? condition) {
+    final cond = (condition ?? '').toLowerCase().replaceAll(' ', '').replaceAll('_', '').replaceAll('&', '').replaceAll('-', '');
+    if (cond.contains('deliv')) return OrderStatus.delivered;
+    if (cond.contains('outfor')) return OrderStatus.outForDelivery;
+    if (cond.contains('dispatch') || cond.contains('courier') || cond.contains('ship') || cond.contains('transit')) {
+      return OrderStatus.shipped;
+    }
+    if (cond.contains('process') || cond.contains('pack')) return OrderStatus.processing;
+    if (cond.contains('cancel')) return OrderStatus.cancelled;
+    return OrderStatus.placed;
+  }
+
+  OrderModel? _orderFromSupabaseMap(Map<String, dynamic> map, String orderId, OrderStatus status) {
+    try {
+      Map<String, dynamic> specs = {};
+      if (map['specs'] != null) {
+        final specsStr = map['specs'].toString();
+        if (specsStr.startsWith('{')) {
+          specs = jsonDecode(specsStr);
+        }
+      }
+
+      final date = map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now() : DateTime.now();
+      final total = (map['price'] as num?)?.toDouble() ?? 0.0;
+      final subtotal = (map['original_price'] as num?)?.toDouble() ?? total;
+      final address = specs['deliveryAddress']?.toString() ?? 'Accra, Ghana';
+      final paymentMethod = map['brand']?.toString() ?? 'Mobile Money';
+      final trackingNumber = specs['trackingNumber']?.toString() ?? (map['ram']?.toString() ?? 'TRK-GH-$orderId-SP');
+
+      return OrderModel(
+        orderId: orderId,
+        date: date,
+        items: [],
+        subtotal: subtotal,
+        tax: 0.0,
+        shippingFee: 0.0,
+        totalAmount: total,
+        shippingAddress: address,
+        paymentMethod: paymentMethod,
+        status: status,
+        trackingNumber: trackingNumber,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 
   List<OrderModel> get orders => List.unmodifiable(_orders);
 
