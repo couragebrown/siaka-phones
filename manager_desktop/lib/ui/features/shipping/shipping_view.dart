@@ -777,11 +777,9 @@ class _ShippingViewState extends State<ShippingView> {
     );
   }
 
-  // Dialog: Update Shipping Status & Location
+  // Dialog: Update Shipping Status
   void _showUpdateShippingDialog(BuildContext context, ManagerShippingItem shipment) {
     ShippingStatus selectedStatus = shipment.status;
-    final locationCtrl = TextEditingController(text: shipment.lastLocationUpdate);
-    final notesCtrl = TextEditingController(text: shipment.managerNotes);
     final courierCtrl = TextEditingController(text: shipment.courier);
     final riderCtrl = TextEditingController(text: shipment.dispatchRiderPhone);
 
@@ -884,26 +882,11 @@ class _ShippingViewState extends State<ShippingView> {
                         if (val != null) {
                           setDialogState(() {
                             selectedStatus = val;
-                            locationCtrl.text = val.defaultLocationHint;
                           });
                         }
                       },
                     ),
-                    const SizedBox(height: 14),
-
-                    // Location update
-                    const Text('Current Location / Checkpoint *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: locationCtrl,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Near Madina Zongo Junction, handed to recipient...',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.pin_drop_rounded, size: 18),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     // Courier & Rider Phone
                     Row(
@@ -945,20 +928,6 @@ class _ShippingViewState extends State<ShippingView> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-
-                    // Manager Notes
-                    const Text('Checkpoint / Manager Notes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: notesCtrl,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        hintText: 'Any special instructions, delivery confirmation details...',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -970,19 +939,11 @@ class _ShippingViewState extends State<ShippingView> {
               ),
               ElevatedButton.icon(
                 onPressed: () {
-                  final loc = locationCtrl.text.trim();
-                  if (loc.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter a location checkpoint update.')),
-                    );
-                    return;
-                  }
-
                   widget.repository.updateShippingStatus(
                     shipment.id,
                     selectedStatus,
-                    locationUpdate: loc,
-                    notes: notesCtrl.text.trim(),
+                    locationUpdate: selectedStatus.defaultLocationHint,
+                    notes: 'Status updated to ${selectedStatus.label}',
                     courier: courierCtrl.text.trim(),
                     riderPhone: riderCtrl.text.trim(),
                   );
