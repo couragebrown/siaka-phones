@@ -289,7 +289,7 @@ void main() {
     test('Can manage shipping dispatches and update status with checkpoints', () {
       expect(repository.shipments.isNotEmpty, isTrue);
       final initialActive = repository.activeShipmentsCount;
-      final shipment = repository.shipments.first;
+      final shipment = repository.shipments.firstWhere((s) => s.status != ShippingStatus.delivered);
 
       repository.updateShippingStatus(
         shipment.id,

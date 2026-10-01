@@ -545,7 +545,7 @@ class ManagerRepository extends ChangeNotifier {
     _customers = MockManagerData.getInitialCustomerActivities();
     _sentMessages = MockManagerData.getInitialCustomerMessages();
     _serviceTickets = MockManagerData.getInitialServiceTickets();
-    _shipments = MockManagerData.getInitialShipments();
+    _shipments = [];
     _syncOrdersWithShipments();
     _notifications = MockManagerData.getInitialNotifications();
     _advertisements = MockManagerData.getInitialAdvertisements();
