@@ -80,46 +80,20 @@ class ManagerRepository extends ChangeNotifier {
     }
   }
 
-  void _loadCachedProducts() {
+  void _purgeStaleProductCache() {
     try {
       final file = _getCacheFile();
       if (file != null && file.existsSync()) {
-        final content = file.readAsStringSync();
-        if (content.isNotEmpty) {
-          final List decoded = jsonDecode(content);
-          final items = decoded
-              .map((item) => SupabaseService.productFromMap(Map<String, dynamic>.from(item)))
-              .where((p) => p.isMerchandise)
-              .toList();
-          if (items.isNotEmpty) {
-            _sortProductsList(items);
-            _products = items;
-            for (final p in items) {
-              if (p.category.trim().isNotEmpty && p.isMerchandise) {
-                addCategory(p.category, syncRemote: false);
-              }
-            }
-          }
-          // Overwrite cache to purge any leaked ORDER_RECORD or non-merchandise items
-          _saveCachedProducts(items);
-        }
+        file.deleteSync();
+        debugPrint('🧹 Stale local product cache file purged: ${file.path}');
       }
     } catch (e) {
-      debugPrint('Error loading cached products: $e');
+      debugPrint('Error purging stale product cache: $e');
     }
   }
 
   void _saveCachedProducts(List<ManagerProduct> products) {
-    try {
-      final file = _getCacheFile();
-      if (file != null) {
-        final clean = products.where((p) => p.isMerchandise).toList();
-        final list = clean.map((p) => SupabaseService.productToMap(p)).toList();
-        file.writeAsStringSync(jsonEncode(list));
-      }
-    } catch (e) {
-      debugPrint('Error saving cached products: $e');
-    }
+    // No-op: product catalog is sourced directly and purely from live Supabase database
   }
 
   File? _getManagerStateCacheFile() {
@@ -555,7 +529,7 @@ class ManagerRepository extends ChangeNotifier {
       _bnplApplications = [];
       _repairs = [];
       _isLoading = true;
-      _loadCachedProducts();
+      _purgeStaleProductCache();
       _loadCachedManagerState();
       // Initial balance is 0.0 — orders start empty until real customer purchases are made/synced
       if (_bnplApplications.isEmpty) {
@@ -563,9 +537,6 @@ class ManagerRepository extends ChangeNotifier {
       }
       if (_repairs.isEmpty) {
         _repairs = MockManagerData.getInitialRepairs();
-      }
-      if (_products.isNotEmpty) {
-        _isLoading = false;
       }
     }
     _swaps = MockManagerData.getInitialSwaps();
@@ -858,20 +829,13 @@ class ManagerRepository extends ChangeNotifier {
     try {
       await _supabase.initialize();
       final remoteProducts = await _supabase.fetchProducts();
-      if (remoteProducts != null && remoteProducts.isNotEmpty) {
+      if (remoteProducts != null) {
         _applyRemoteData(remoteProducts);
-      } else if (remoteProducts != null && remoteProducts.isEmpty && _products.isNotEmpty) {
-        // First time initialization: populate Supabase with initial product catalog
-        for (final p in _products) {
-          await _supabase.upsertProduct(p);
-        }
       }
 
       // Realtime stream listener
       _supabase.streamProducts()?.listen((liveProducts) {
-        if (liveProducts.isNotEmpty) {
-          _applyRemoteData(liveProducts);
-        }
+        _applyRemoteData(liveProducts);
       }, onError: (e) {
         debugPrint('Supabase products stream error: $e');
       });
@@ -881,7 +845,7 @@ class ManagerRepository extends ChangeNotifier {
       _syncPollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
         try {
           final live = await _supabase.fetchProducts();
-          if (live != null && live.isNotEmpty) {
+          if (live != null) {
             _applyRemoteData(live);
           }
         } catch (_) {}
@@ -895,18 +859,15 @@ class ManagerRepository extends ChangeNotifier {
   }
 
   void _applyRemoteData(List<ManagerProduct> list) {
-    if (list.isEmpty) return;
-
-    for (final p in list) {
-      if (p.isMerchandise && p.category.trim().isNotEmpty) {
-        addCategory(p.category, syncRemote: false);
-      }
-    }
-
     final items = list.where((p) => p.isMerchandise).toList();
     _sortProductsList(items);
     _products = items;
-    _saveCachedProducts(items);
+
+    for (final p in items) {
+      if (p.category.trim().isNotEmpty) {
+        addCategory(p.category, syncRemote: false);
+      }
+    }
 
     final remoteOrderProducts = list.where((p) =>
         p.id.startsWith('ORDER_') ||
