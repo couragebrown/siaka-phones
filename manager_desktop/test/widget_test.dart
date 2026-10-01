@@ -96,6 +96,7 @@ void main() {
         storage: '512GB',
         ram: '12GB',
         color: 'Titanium Gray',
+        colors: const ['Titanium Gray', 'Space Black', 'Amber Yellow'],
         imageUrl: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c',
         specsList: ['Snapdragon 8 Gen 3', '200MP Camera', 'Titanium Frame'],
       );
@@ -106,8 +107,12 @@ void main() {
       expect(newProduct.specsList.length, equals(3));
       expect(newProduct.specsList[0], equals('Snapdragon 8 Gen 3'));
       expect(newProduct.color, equals('Titanium Gray'));
+      expect(newProduct.colors.length, equals(3));
+      expect(newProduct.colors, contains('Space Black'));
       newProduct.color = 'Titanium Violet';
+      newProduct.colors = ['Titanium Violet', 'Space Black'];
       expect(newProduct.color, equals('Titanium Violet'));
+      expect(newProduct.colors.length, equals(2));
 
       repository.addProduct(newProduct);
       expect(repository.products.length, equals(initialCount + 1));
@@ -242,6 +247,43 @@ void main() {
 
       repository.addDeviceModel(brand: 'Apple', modelName: 'iPhone 17 Pro');
       expect(repository.brandModels['Apple']!.contains('iPhone 17 Pro'), isTrue);
+    });
+
+    test('Newly added products always appear at the top of the inventory list', () {
+      final p1 = ManagerProduct(
+        id: 'prod_sort_1',
+        name: 'Older Product',
+        brand: 'Apple',
+        category: 'Smartphones',
+        price: 5000,
+        originalPrice: 5500,
+        stock: 5,
+        specs: 'Old spec',
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      );
+      repository.addProduct(p1);
+
+      final p2 = ManagerProduct(
+        id: 'prod_sort_2',
+        name: 'Brand Newest Product',
+        brand: 'Apple',
+        category: 'Smartphones',
+        price: 6000,
+        originalPrice: 6500,
+        stock: 10,
+        specs: 'Newest spec',
+        createdAt: DateTime.now(),
+      );
+      repository.addProduct(p2);
+
+      expect(repository.products.first.id, equals('prod_sort_2'));
+      expect(repository.products.first.name, equals('Brand Newest Product'));
+    });
+
+    test('Can add new category and it is available in categories list', () {
+      expect(repository.categories.contains('Drones & Quadcopters'), isFalse);
+      repository.addCategory('Drones & Quadcopters', syncRemote: false);
+      expect(repository.categories.contains('Drones & Quadcopters'), isTrue);
     });
 
     test('Can manage shipping dispatches and update status with checkpoints', () {
@@ -554,11 +596,37 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Device Model Name *'), findsOneWidget);
+      expect(find.text('Brand *'), findsNothing);
       expect(find.text('Save Model'), findsOneWidget);
 
       // Dismiss dialog
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('Can open Add Category dialog from Inventory', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(const SiakaManagerApp());
+      await tester.pumpAndSettle();
+
+      // Navigate to Inventory
+      await tester.tap(find.text('Inventory'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add Category'), findsOneWidget);
+      await tester.tap(find.text('Add Category'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add New Category'), findsOneWidget);
+      expect(find.text('Existing categories:'), findsOneWidget);
+
+      // Dismiss dialog
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Add New Category'), findsNothing);
     });
 
     testWidgets('App renders without overflow and supports scrolling when window is minimized', (WidgetTester tester) async {

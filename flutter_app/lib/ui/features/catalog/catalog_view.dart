@@ -85,9 +85,12 @@ class _CatalogViewState extends State<CatalogView> {
       ]),
       builder: (context, _) {
         final bool isSearching = _searchController.text.trim().isNotEmpty;
-        final featuredProducts = widget.viewModel.featuredProducts.isNotEmpty
-            ? widget.viewModel.featuredProducts
-            : widget.viewModel.products.where((p) => p.isFeatured).toList();
+        final featuredProducts = widget.viewModel.products.isNotEmpty
+            ? [
+                ...widget.viewModel.products.where((p) => p.isFeatured),
+                ...widget.viewModel.products.where((p) => !p.isFeatured),
+              ]
+            : widget.viewModel.featuredProducts;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),

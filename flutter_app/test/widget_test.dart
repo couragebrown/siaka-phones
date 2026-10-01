@@ -2494,6 +2494,21 @@ void main() {
     expect(supportTapped, isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  test('ProductRepository dynamically syncs categories and filters CAT_ tokens', () async {
+    final repo = ProductRepository();
+    expect(repo.categories.contains('Drones'), isFalse);
+
+    // Adding category
+    repo.addCategory('Drones');
+    expect(repo.categories.contains('Drones'), isTrue);
+
+    final cats = await repo.getCategories();
+    expect(cats.contains('Drones'), isTrue);
+
+    final filtered = repo.filterProducts(category: 'Drones');
+    expect(filtered.every((p) => !p.id.startsWith('CAT_')), isTrue);
+  });
 }
 
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../domain/models/product.dart';
+import 'product_smart_image.dart';
 
 class FeaturedPhoneCard extends StatelessWidget {
   final Product product;
@@ -25,10 +26,14 @@ class FeaturedPhoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayName =
-        product.name.toLowerCase().startsWith(product.brand.toLowerCase())
-            ? product.name
-            : '${product.brand} ${product.name}';
+    final isGenericBrand = product.brand.toLowerCase().contains('other') ||
+        product.brand.toLowerCase().contains('custom') ||
+        product.brand.toLowerCase() == 'generic' ||
+        product.brand.toLowerCase() == 'category';
+    final displayName = isGenericBrand ||
+            product.name.toLowerCase().startsWith(product.brand.toLowerCase())
+        ? product.name
+        : '${product.brand} ${product.name}';
 
     return GestureDetector(
       onTap: onTap,
@@ -245,16 +250,31 @@ class ProductPhoneGraphic extends StatelessWidget {
             : 160.0;
         final availableHeight = maxH.clamp(40.0, 260.0);
         final availableWidth = maxW.clamp(40.0, 260.0);
-        return SizedBox(
-          width: availableWidth,
-          height: availableHeight,
-          child: CustomPaint(
-            painter: PhoneMockupPainter(
-              brand: product.brand,
-              name: product.name,
+
+        Widget fallbackMockup() => SizedBox(
+              width: availableWidth,
+              height: availableHeight,
+              child: CustomPaint(
+                painter: PhoneMockupPainter(
+                  brand: product.brand,
+                  name: product.name,
+                ),
+              ),
+            );
+
+        if (product.images.isNotEmpty && product.images.first.trim().isNotEmpty) {
+          return SizedBox(
+            width: availableWidth,
+            height: availableHeight,
+            child: ProductSmartImage(
+              imageUrl: product.images.first,
+              fit: BoxFit.contain,
+              fallback: fallbackMockup(),
             ),
-          ),
-        );
+          );
+        }
+
+        return fallbackMockup();
       },
     );
   }

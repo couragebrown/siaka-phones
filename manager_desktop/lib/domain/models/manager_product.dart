@@ -18,6 +18,7 @@ class ManagerProduct {
   String imageUrl;
   Uint8List? imageBytes;
   List<String> specsList;
+  DateTime? createdAt;
 
   ManagerProduct({
     required this.id,
@@ -37,6 +38,7 @@ class ManagerProduct {
     this.imageUrl = '',
     this.imageBytes,
     List<String>? specsList,
+    this.createdAt,
   }) : colors = colors ?? (color.isNotEmpty ? [color] : ['Natural Titanium']),
        specsList = specsList ?? _parseSpecs(specs);
 

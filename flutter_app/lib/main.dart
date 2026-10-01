@@ -55,6 +55,7 @@ import 'ui/features/brands/brands_view.dart';
 import 'ui/features/bnpl/bnpl_view_model.dart';
 import 'ui/features/bnpl/bnpl_view.dart';
 import 'ui/features/splash/splash_view.dart';
+import 'data/services/supabase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +65,12 @@ void main() async {
       statusBarIconBrightness: Brightness.light,
     ),
   );
+
+  try {
+    await SupabaseService().initialize();
+  } catch (e) {
+    debugPrint('Supabase Mobile init in main: $e');
+  }
 
   // Check whether the user has a valid (non-expired) session
   final hasSession = await SessionManager.hasValidSession();
@@ -238,6 +245,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _isAuthenticated) {
       SessionManager.refreshSession();
+      widget.productRepo.refreshFromSupabase(silent: true);
     }
   }
 

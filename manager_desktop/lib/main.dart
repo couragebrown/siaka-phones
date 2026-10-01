@@ -21,9 +21,15 @@ import 'ui/features/swaps/tradein_desk_view.dart';
 import 'ui/features/auth/manager_splash_view.dart';
 import 'ui/features/auth/manager_login_view.dart';
 import 'ui/features/advertisements/advertisements_management_view.dart';
+import 'data/services/supabase_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await SupabaseService().initialize();
+  } catch (e) {
+    debugPrint('Supabase pre-init notice: $e');
+  }
   runApp(const SiakaManagerApp(showSplash: true));
 }
 

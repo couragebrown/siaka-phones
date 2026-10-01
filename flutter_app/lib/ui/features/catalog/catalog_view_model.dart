@@ -7,20 +7,27 @@ class CatalogViewModel extends ChangeNotifier {
 
   CatalogViewModel({required ProductRepository productRepository})
       : _productRepository = productRepository {
-    _categories = [
-      'All',
-      'Smartphones',
-      'UK Used',
-      'Keypad Phones',
-      'Laptops',
-      'Accessories',
-      'Tablets',
-      'Foldables',
-      'Wearables',
-    ];
+    _categories = _productRepository.categories;
     _products = _productRepository.filterProducts();
     _featuredProducts = _products.where((p) => p.isFeatured).toList();
     _isLoading = false;
+    _productRepository.addListener(_onRepositoryChanged);
+  }
+
+  void _onRepositoryChanged() {
+    _categories = _productRepository.categories;
+    _products = _productRepository.filterProducts(
+      category: _selectedCategory,
+      query: _searchQuery,
+    );
+    _featuredProducts = _products.where((p) => p.isFeatured).toList();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _productRepository.removeListener(_onRepositoryChanged);
+    super.dispose();
   }
 
   bool _isLoading = false;
@@ -48,6 +55,7 @@ class CatalogViewModel extends ChangeNotifier {
     }
 
     try {
+      await _productRepository.refreshFromSupabase(silent: true);
       _categories = await _productRepository.getCategories();
       _featuredProducts = await _productRepository.getFeaturedProducts();
       _products = await _productRepository.getProducts(

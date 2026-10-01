@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/widgets/bottom_nav_scaffold.dart';
 import '../../core/widgets/featured_phone_card.dart';
+import '../../core/widgets/product_smart_image.dart';
 import '../../../data/repositories/wishlist_repository.dart';
 import 'product_detail_view_model.dart';
 
@@ -229,14 +230,13 @@ class ProductDetailView extends StatelessWidget {
                                                       .selectedImageIndex
                                                       .clamp(0, 3)]
                                                   .isNotEmpty
-                                          ? Image.network(
-                                              viewModel.displayImages[viewModel
+                                          ? ProductSmartImage(
+                                              imageUrl: viewModel.displayImages[viewModel
                                                   .selectedImageIndex
                                                   .clamp(0, 3)],
                                               fit: BoxFit.contain,
-                                              errorBuilder: (_, __, ___) =>
-                                                  ProductPhoneGraphic(
-                                                      product: product),
+                                              fallback: ProductPhoneGraphic(
+                                                  product: product),
                                             )
                                           : ProductPhoneGraphic(
                                               product: product),
@@ -789,32 +789,13 @@ class ProductDetailView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Column(
-                        children: [
-                          _HighlightRow(
+                      Column(
+                        children: product.effectiveHighlights.map((highlight) {
+                          return _HighlightRow(
                             icon: Icons.check_circle_outline_rounded,
-                            text:
-                                'Super Retina XDR OLED display with ProMotion 120Hz',
-                          ),
-                          _HighlightRow(
-                            icon: Icons.check_circle_outline_rounded,
-                            text:
-                                'Next-generation flagship processor with high efficiency',
-                          ),
-                          _HighlightRow(
-                            icon: Icons.check_circle_outline_rounded,
-                            text:
-                                'Pro camera system with advanced night mode & 4K HDR',
-                          ),
-                          _HighlightRow(
-                            icon: Icons.check_circle_outline_rounded,
-                            text: 'All-day battery life with fast charging',
-                          ),
-                          _HighlightRow(
-                            icon: Icons.check_circle_outline_rounded,
-                            text: '5G ultra-wideband connectivity & Dual SIM',
-                          ),
-                        ],
+                            text: highlight,
+                          );
+                        }).toList(),
                       ),
 
                       const SizedBox(height: 16),
@@ -874,10 +855,10 @@ class ProductDetailView extends StatelessWidget {
           children: [
             Expanded(
               child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
+                  ? ProductSmartImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      fallback: const Icon(
                         Icons.phone_android,
                         size: 22,
                         color: Color(0xFF9CA3AF),
@@ -1068,11 +1049,10 @@ class _PhoneVideoShowcaseState extends State<_PhoneVideoShowcase> {
                     const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
                 child: vm.displayImages.isNotEmpty &&
                         vm.displayImages[0].isNotEmpty
-                    ? Image.network(
-                        vm.displayImages[0],
+                    ? ProductSmartImage(
+                        imageUrl: vm.displayImages[0],
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) =>
-                            ProductPhoneGraphic(product: product),
+                        fallback: ProductPhoneGraphic(product: product),
                       )
                     : ProductPhoneGraphic(product: product),
               ),

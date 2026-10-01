@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
@@ -100,7 +102,10 @@ class _InventoryViewState extends State<InventoryView> {
   }
 
   List<ManagerProduct> _getFilteredProducts() {
-    return widget.repository.products.where((product) {
+    final list = widget.repository.products.where((product) {
+      if (product.id.startsWith('CAT_')) {
+        return false;
+      }
       if (_onlyLowStock && !product.lowStock && product.stock > 0) {
         return false;
       }
@@ -114,10 +119,25 @@ class _InventoryViewState extends State<InventoryView> {
         final matchesName = product.name.toLowerCase().contains(query);
         final matchesBrand = product.brand.toLowerCase().contains(query);
         final matchesSpecs = product.specs.toLowerCase().contains(query);
-        return matchesName || matchesBrand || matchesSpecs;
+        final matchesCategory = product.category.toLowerCase().contains(query);
+        final matchesColor = product.color.toLowerCase().contains(query) ||
+            product.colors.any((c) => c.toLowerCase().contains(query));
+        return matchesName || matchesBrand || matchesSpecs || matchesCategory || matchesColor;
       }
       return true;
     }).toList();
+
+    // Ensure newest products appear on the top of the list
+    list.sort((a, b) {
+      if (a.createdAt != null && b.createdAt != null) {
+        return b.createdAt!.compareTo(a.createdAt!);
+      }
+      if (a.createdAt != null) return -1;
+      if (b.createdAt != null) return 1;
+      return b.id.compareTo(a.id);
+    });
+
+    return list;
   }
 
   @override
@@ -163,6 +183,17 @@ class _InventoryViewState extends State<InventoryView> {
               spacing: 10,
               runSpacing: 8,
               children: [
+                OutlinedButton.icon(
+                  onPressed: () => _showAddCategoryDialog(context),
+                  icon: const Icon(Icons.category_outlined, size: 18),
+                  label: const Text('Add Category'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0F172A),
+                    side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
                 OutlinedButton.icon(
                   onPressed: () => _showAddDeviceModelDialog(context),
                   icon: const Icon(Icons.phonelink_setup_rounded, size: 18),
@@ -377,22 +408,45 @@ class _InventoryViewState extends State<InventoryView> {
           ),
           child: filteredProducts.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.inventory_2_outlined, size: 54, color: Colors.grey.shade300),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No products match your criteria',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Try clearing the filters or click "Add New Product" to expand the catalog.',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                      ),
-                    ],
-                  ),
+                  child: widget.repository.isLoading
+                      ? const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: Color(0xFF1C7BFF),
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Loading inventory catalog...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.inventory_2_outlined, size: 54, color: Colors.grey.shade300),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No products match your criteria',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Try clearing the filters or click "Add New Product" to expand the catalog.',
+                              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                            ),
+                          ],
+                        ),
                 )
               : LayoutBuilder(
                   builder: (context, tableConstraints) {
@@ -459,11 +513,7 @@ class _InventoryViewState extends State<InventoryView> {
                                                       errorBuilder: (context, error, stackTrace) => _buildCategoryIcon(product.category),
                                                     )
                                                   : product.imageUrl.isNotEmpty
-                                                      ? Image.network(
-                                                          product.imageUrl,
-                                                          fit: BoxFit.cover,
-                                                          errorBuilder: (context, error, stackTrace) => _buildCategoryIcon(product.category),
-                                                        )
+                                                      ? _buildProductThumbnail(product.imageUrl, product.category)
                                                       : _buildCategoryIcon(product.category),
                                             ),
                                             const SizedBox(width: 12),
@@ -565,18 +615,26 @@ class _InventoryViewState extends State<InventoryView> {
                                                 child: Row(
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
-                                                    Container(
-                                                      width: 8,
-                                                      height: 8,
-                                                      decoration: BoxDecoration(
-                                                        shape: BoxShape.circle,
-                                                        color: _getColorValue(product.color),
-                                                        border: Border.all(color: Colors.black26, width: 0.5),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 5),
+                                                    ...() {
+                                                      final displayColors = product.colors.isNotEmpty ? product.colors : [product.color];
+                                                      return displayColors.take(3).map((c) => Padding(
+                                                        padding: const EdgeInsets.only(right: 3),
+                                                        child: Container(
+                                                          width: 8,
+                                                          height: 8,
+                                                          decoration: BoxDecoration(
+                                                            shape: BoxShape.circle,
+                                                            color: _getColorValue(c),
+                                                            border: Border.all(color: Colors.black26, width: 0.5),
+                                                          ),
+                                                        ),
+                                                      ));
+                                                    }(),
+                                                    const SizedBox(width: 3),
                                                     Text(
-                                                      product.color,
+                                                      product.colors.length > 1
+                                                          ? '${product.colors.first} (+${product.colors.length - 1})'
+                                                          : (product.colors.isNotEmpty ? product.colors.first : product.color),
                                                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                                                     ),
                                                   ],
@@ -810,6 +868,83 @@ class _InventoryViewState extends State<InventoryView> {
     );
   }
 
+  Widget _buildProductThumbnail(String imageUrl, String category) {
+    final trimmed = imageUrl.trim();
+    final fallback = _buildCategoryIcon(category);
+
+    // 1. Base64 Data URI
+    if (trimmed.startsWith('data:image')) {
+      try {
+        final commaIdx = trimmed.indexOf(',');
+        final base64Str = commaIdx != -1 ? trimmed.substring(commaIdx + 1) : trimmed;
+        final bytes = base64Decode(base64Str);
+        return Image.memory(bytes, fit: BoxFit.cover, errorBuilder: (e, s, t) => fallback);
+      } catch (_) {
+        return fallback;
+      }
+    }
+
+    // 2. Network URL
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return Image.network(trimmed, fit: BoxFit.cover, errorBuilder: (e, s, t) => fallback);
+    }
+
+    // 3. Local file path
+    try {
+      final file = File(trimmed);
+      if (file.existsSync()) {
+        return Image.file(file, fit: BoxFit.cover, errorBuilder: (e, s, t) => fallback);
+      }
+    } catch (_) {}
+
+    return fallback;
+  }
+
+  Widget _buildDialogImagePreview(String imageUrl) {
+    const placeholder = Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.add_photo_alternate_outlined, size: 30, color: Color(0xFF1C7BFF)),
+          SizedBox(height: 4),
+          Text('Click to Add', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF1C7BFF))),
+        ],
+      ),
+    );
+
+    if (imageUrl.isEmpty) return placeholder;
+
+    // 1. Base64 Data URI
+    if (imageUrl.startsWith('data:image')) {
+      try {
+        final commaIdx = imageUrl.indexOf(',');
+        final base64Str = commaIdx != -1 ? imageUrl.substring(commaIdx + 1) : imageUrl;
+        final bytes = base64Decode(base64Str);
+        return Image.memory(bytes, fit: BoxFit.cover,
+            errorBuilder: (e, s, t) => const Center(child: Icon(Icons.broken_image_outlined, size: 32, color: Color(0xFF94A3B8))));
+      } catch (_) {
+        return placeholder;
+      }
+    }
+
+    // 2. Network URL
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return Image.network(imageUrl, fit: BoxFit.cover,
+          errorBuilder: (e, s, t) => const Center(child: Icon(Icons.broken_image_outlined, size: 32, color: Color(0xFF94A3B8))));
+    }
+
+    // 3. Local file path
+    try {
+      final file = File(imageUrl);
+      if (file.existsSync()) {
+        return Image.file(file, fit: BoxFit.cover,
+            errorBuilder: (e, s, t) => const Center(child: Icon(Icons.broken_image_outlined, size: 32, color: Color(0xFF94A3B8))));
+      }
+    } catch (_) {}
+
+    return placeholder;
+  }
+
   Widget _buildMiniMetric({
     required String label,
     required String value,
@@ -872,11 +1007,138 @@ class _InventoryViewState extends State<InventoryView> {
     );
   }
 
+  void _showAddCategoryDialog(BuildContext context, {void Function(String category)? onAdded}) {
+    final catCtrl = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: const Row(
+              children: [
+                Icon(Icons.category_outlined, color: Color(0xFF1C7BFF)),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Add New Category',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Categories help group your inventory and will immediately sync across to the Customer App catalog and navigation.',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: catCtrl,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Category Name',
+                      hintText: 'e.g. Drones, Earbuds, Smartwatches',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.label_outline, size: 20),
+                    ),
+                    onSubmitted: (val) {
+                      final name = val.trim();
+                      if (name.isNotEmpty && !isSubmitting) {
+                        setDialogState(() => isSubmitting = true);
+                        widget.repository.addCategory(name);
+                        setState(() {});
+                        if (onAdded != null) onAdded(name);
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Category "$name" created and synced with Customer App.'),
+                            backgroundColor: const Color(0xFF059669),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Existing categories:',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: widget.repository.categories.map(
+                      (c) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                        ),
+                        child: Text(c, style: const TextStyle(fontSize: 11, color: Color(0xFF334155))),
+                      ),
+                    ).toList(),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1C7BFF),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+                icon: const Icon(Icons.check, size: 16),
+                label: const Text('Add Category'),
+                onPressed: isSubmitting
+                    ? null
+                    : () {
+                        final name = catCtrl.text.trim();
+                        if (name.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a valid category name.'),
+                              backgroundColor: Color(0xFFDC2626),
+                            ),
+                          );
+                          return;
+                        }
+                        setDialogState(() => isSubmitting = true);
+                        widget.repository.addCategory(name);
+                        setState(() {});
+                        if (onAdded != null) onAdded(name);
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Category "$name" created and synced with Customer App.'),
+                            backgroundColor: const Color(0xFF059669),
+                          ),
+                        );
+                      },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _showAddDeviceModelDialog(BuildContext context, {void Function(String brand, String model)? onAdded}) {
-    final existingBrands = widget.repository.brandModels.keys.where((b) => b != 'Other / Custom').toList();
-    String selectedBrandOption = existingBrands.isNotEmpty ? existingBrands.first : 'Apple';
-    bool isNewBrand = false;
-    final newBrandCtrl = TextEditingController();
     final modelNameCtrl = TextEditingController();
 
     // Available categories from repository
@@ -915,53 +1177,13 @@ class _InventoryViewState extends State<InventoryView> {
                       style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                     ),
                     const SizedBox(height: 18),
-                    // Brand Selection
-                    DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      initialValue: selectedBrandOption,
-                      selectedItemBuilder: (context) {
-                        return [
-                          ...existingBrands,
-                          '__NEW_BRAND__',
-                        ].map((b) => Text(b == '__NEW_BRAND__' ? '+ Enter New Brand...' : b, overflow: TextOverflow.ellipsis, maxLines: 1)).toList();
-                      },
-                      decoration: const InputDecoration(
-                        labelText: 'Brand *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.branding_watermark_outlined, size: 18),
-                      ),
-                      items: [
-                        ...existingBrands.map((b) => DropdownMenuItem(value: b, child: Text(b, overflow: TextOverflow.ellipsis, maxLines: 1))),
-                        const DropdownMenuItem(value: '__NEW_BRAND__', child: Text('+ Enter New Brand...', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() {
-                            selectedBrandOption = val;
-                            isNewBrand = val == '__NEW_BRAND__';
-                          });
-                        }
-                      },
-                    ),
-                    if (isNewBrand) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: newBrandCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'New Brand Name *',
-                          hintText: 'e.g. OnePlus, Xiaomi, Nothing, Google',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.business_outlined, size: 18),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 14),
                     // Model Name
                     TextField(
                       controller: modelNameCtrl,
+                      autofocus: true,
                       decoration: const InputDecoration(
                         labelText: 'Device Model Name *',
-                        hintText: 'e.g. Galaxy S25 Ultra, iPhone 17 Pro',
+                        hintText: 'e.g. Galaxy S25 Ultra, iPhone 17 Pro, DJI Drone',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.phone_android_rounded, size: 18),
                       ),
@@ -1049,7 +1271,6 @@ class _InventoryViewState extends State<InventoryView> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: newCategoryCtrl,
-                        autofocus: true,
                         decoration: const InputDecoration(
                           labelText: 'New Category Name *',
                           hintText: 'e.g. Drones, VR Headsets, Cameras, Audio',
@@ -1069,15 +1290,8 @@ class _InventoryViewState extends State<InventoryView> {
               ),
               ElevatedButton.icon(
                 onPressed: () {
-                  final brand = isNewBrand ? newBrandCtrl.text.trim() : selectedBrandOption.trim();
                   final model = modelNameCtrl.text.trim();
                   final category = isNewCategory ? newCategoryCtrl.text.trim() : selectedCategoryOption.trim();
-                  if (brand.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please specify a valid brand name.')),
-                    );
-                    return;
-                  }
                   if (model.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Please enter a device model name.')),
@@ -1092,9 +1306,9 @@ class _InventoryViewState extends State<InventoryView> {
                   }
 
                   widget.repository.addCategory(category);
-                  widget.repository.addDeviceModel(brand: brand, modelName: model, category: category);
+                  widget.repository.addDeviceModel(modelName: model, category: category);
                   Navigator.of(ctx).pop();
-                  onAdded?.call(brand, model);
+                  onAdded?.call('Other / Custom', model);
                   setState(() {});
 
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1104,7 +1318,7 @@ class _InventoryViewState extends State<InventoryView> {
                         children: [
                           const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
                           const SizedBox(width: 8),
-                          Expanded(child: Text('Model "$model" ($brand) under "$category" added successfully!')),
+                          Expanded(child: Text('Model "$model" under "$category" added successfully!')),
                         ],
                       ),
                     ),
@@ -1164,14 +1378,23 @@ class _InventoryViewState extends State<InventoryView> {
       selectedRam = '8GB';
     }
 
-    String selectedColor = product?.color ?? 'Natural Titanium';
-    bool isCustomColor = !_colorPresets.any((c) => c['name'] == selectedColor);
-    final customColorCtrl = TextEditingController(text: isCustomColor ? selectedColor : '');
+    final List<String> selectedColors = [];
+    if (product != null) {
+      if (product.colors.isNotEmpty) {
+        selectedColors.addAll(product.colors);
+      } else if (product.color.isNotEmpty) {
+        selectedColors.add(product.color);
+      }
+    }
+    if (selectedColors.isEmpty) {
+      selectedColors.add('Natural Titanium');
+    }
+    final customColorCtrl = TextEditingController();
 
     final rawCondition = product?.condition ?? 'New';
     final initialCondition = rawCondition == 'Brand New' ? 'New' : rawCondition;
     final conditionCtrl = TextEditingController(text: initialCondition);
-    bool isFeatured = product?.isFeatured ?? false;
+    bool isFeatured = product?.isFeatured ?? true;
 
     // Dynamic Specifications List
     final List<String> specsList = List<String>.from(product?.specsList ?? []);
@@ -1331,24 +1554,7 @@ class _InventoryViewState extends State<InventoryView> {
                                                   pickedImageBytes!,
                                                   fit: BoxFit.cover,
                                                 )
-                                              : imageUrlCtrl.text.trim().isNotEmpty && (imageUrlCtrl.text.startsWith('http://') || imageUrlCtrl.text.startsWith('https://'))
-                                                  ? Image.network(
-                                                      imageUrlCtrl.text.trim(),
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (context, error, stackTrace) => const Center(
-                                                        child: Icon(Icons.broken_image_outlined, size: 32, color: Color(0xFF94A3B8)),
-                                                      ),
-                                                    )
-                                                  : const Center(
-                                                      child: Column(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        children: [
-                                                          Icon(Icons.add_photo_alternate_outlined, size: 30, color: Color(0xFF1C7BFF)),
-                                                          SizedBox(height: 4),
-                                                          Text('Click to Add', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF1C7BFF))),
-                                                        ],
-                                                      ),
-                                                    ),
+                                              : _buildDialogImagePreview(imageUrlCtrl.text.trim()),
                                         ),
                                         Positioned(
                                           bottom: 0,
@@ -1653,43 +1859,11 @@ class _InventoryViewState extends State<InventoryView> {
                                       tooltip: 'Add New Category',
                                       icon: const Icon(Icons.add_circle_outline, color: Color(0xFF1C7BFF)),
                                       onPressed: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (ctx) {
-                                            final catCtrl = TextEditingController();
-                                            return AlertDialog(
-                                              title: const Text('Add New Category', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                              content: TextField(
-                                                controller: catCtrl,
-                                                autofocus: true,
-                                                decoration: const InputDecoration(
-                                                  hintText: 'Category Name (e.g. Drones)',
-                                                  border: OutlineInputBorder(),
-                                                ),
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(ctx),
-                                                  child: const Text('Cancel'),
-                                                ),
-                                                ElevatedButton(
-                                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1C7BFF), foregroundColor: Colors.white),
-                                                  onPressed: () {
-                                                    final newCat = catCtrl.text.trim();
-                                                    if (newCat.isNotEmpty) {
-                                                      widget.repository.addCategory(newCat);
-                                                      setDialogState(() {
-                                                        categoryCtrl.text = newCat;
-                                                      });
-                                                    }
-                                                    Navigator.pop(ctx);
-                                                  },
-                                                  child: const Text('Add'),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        );
+                                        _showAddCategoryDialog(context, onAdded: (newCat) {
+                                          setDialogState(() {
+                                            categoryCtrl.text = newCat;
+                                          });
+                                        });
                                       },
                                     ),
                                   ],
@@ -1916,42 +2090,57 @@ class _InventoryViewState extends State<InventoryView> {
                           const SizedBox(height: 22),
 
                           // -------------------------------------------------------------
-                          // SECTION 5: PRODUCT COLOR FINISH (SELECT FROM LIST OR CUSTOM)
+                          // SECTION 5: PRODUCT COLOR FINISHES (SELECT 1 OR MORE COLOURS)
                           // -------------------------------------------------------------
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Expanded(
-                                child: Text(
-                                  '5. PRODUCT COLOR FINISH (SELECT COLOR VARIANT)',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569), letterSpacing: 0.5),
-                                  overflow: TextOverflow.ellipsis,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      '5. PRODUCT COLOR FINISHES (SELECT 1 OR MORE COLOURS)',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569), letterSpacing: 0.5),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Assign one or multiple color variants for this SKU. Customers can choose between these finishes.',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF8FAFC),
+                                  color: selectedColors.isNotEmpty ? const Color(0xFFEFF6FF) : const Color(0xFFFEF2F2),
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  border: Border.all(
+                                    color: selectedColors.isNotEmpty ? const Color(0xFFBFDBFE) : const Color(0xFFFECACA),
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Text('Selected Color: ', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                                    Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: _getColorValue(isCustomColor && customColorCtrl.text.trim().isNotEmpty ? customColorCtrl.text.trim() : selectedColor),
-                                        border: Border.all(color: Colors.black26, width: 0.5),
-                                      ),
+                                    Icon(
+                                      selectedColors.isNotEmpty ? Icons.palette_rounded : Icons.warning_amber_rounded,
+                                      size: 15,
+                                      color: selectedColors.isNotEmpty ? const Color(0xFF1C7BFF) : const Color(0xFFDC2626),
                                     ),
-                                    const SizedBox(width: 5),
+                                    const SizedBox(width: 6),
                                     Text(
-                                      isCustomColor && customColorCtrl.text.trim().isNotEmpty ? customColorCtrl.text.trim() : selectedColor,
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                      selectedColors.isNotEmpty
+                                          ? '${selectedColors.length} Color${selectedColors.length > 1 ? "s" : ""} Selected'
+                                          : 'At least 1 color required *',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: selectedColors.isNotEmpty ? const Color(0xFF1E40AF) : const Color(0xFFDC2626),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1960,127 +2149,270 @@ class _InventoryViewState extends State<InventoryView> {
                           ),
                           const SizedBox(height: 10),
 
+                          // Active Selected Colors Box
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: selectedColors.isNotEmpty ? const Color(0xFFF8FAFC) : const Color(0xFFFFF7ED),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: selectedColors.isNotEmpty ? const Color(0xFFE2E8F0) : const Color(0xFFFED7AA),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_outline_rounded,
+                                      size: 15,
+                                      color: selectedColors.isNotEmpty ? const Color(0xFF059669) : const Color(0xFFEA580C),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      selectedColors.isNotEmpty
+                                          ? 'Active Colors Assigned to this SKU (${selectedColors.length}):'
+                                          : 'No colors selected yet! Please choose or add colors below:',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: selectedColors.isNotEmpty ? const Color(0xFF334155) : const Color(0xFFC2410C),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (selectedColors.length > 1)
+                                      TextButton(
+                                        onPressed: () {
+                                          setDialogState(() {
+                                            selectedColors.clear();
+                                          });
+                                        },
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: const Text('Clear All', style: TextStyle(fontSize: 11, color: Color(0xFFEF4444), fontWeight: FontWeight.w600)),
+                                      ),
+                                  ],
+                                ),
+                                if (selectedColors.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: selectedColors.map((colorName) {
+                                      final isPrimary = selectedColors.first == colorName;
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: isPrimary ? const Color(0xFF1C7BFF) : const Color(0xFFCBD5E1),
+                                            width: isPrimary ? 1.5 : 1.0,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.04),
+                                              blurRadius: 3,
+                                              offset: const Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              width: 13,
+                                              height: 13,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: _getColorValue(colorName),
+                                                border: Border.all(color: Colors.black26, width: 0.8),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 7),
+                                            Text(
+                                              colorName,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: isPrimary ? FontWeight.w800 : FontWeight.w600,
+                                                color: isPrimary ? const Color(0xFF1D4ED8) : const Color(0xFF1E293B),
+                                              ),
+                                            ),
+                                            if (isPrimary && selectedColors.length > 1) ...[
+                                              const SizedBox(width: 5),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFEFF6FF),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Text('Primary', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: Color(0xFF1D4ED8))),
+                                              ),
+                                            ],
+                                            const SizedBox(width: 6),
+                                            InkWell(
+                                              onTap: () {
+                                                setDialogState(() {
+                                                  selectedColors.remove(colorName);
+                                                });
+                                              },
+                                              borderRadius: BorderRadius.circular(10),
+                                              child: const Padding(
+                                                padding: EdgeInsets.all(2.0),
+                                                child: Icon(Icons.close_rounded, size: 14, color: Color(0xFF94A3B8)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Preset Colors List Header
+                          const Text(
+                            'Quick Pick Preset Colors (Click to add or remove):',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                          ),
+                          const SizedBox(height: 8),
+
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children: [
-                              ..._colorPresets.map((cp) {
-                                final colorName = cp['name'] as String;
-                                final swatchColor = cp['color'] as Color;
-                                final isSel = !isCustomColor && selectedColor == colorName;
-                                return InkWell(
-                                  onTap: () {
-                                    setDialogState(() {
-                                      selectedColor = colorName;
-                                      isCustomColor = false;
-                                      customColorCtrl.clear();
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                                    decoration: BoxDecoration(
-                                      color: isSel ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: isSel ? const Color(0xFF1C7BFF) : const Color(0xFFE2E8F0),
-                                        width: isSel ? 1.8 : 1.0,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          width: 14,
-                                          height: 14,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: swatchColor,
-                                            border: Border.all(color: (cp['border'] as Color?) ?? Colors.black26, width: 1),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(alpha: 0.08),
-                                                blurRadius: 2,
-                                                offset: const Offset(0, 1),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 7),
-                                        Text(
-                                          colorName,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                                            color: isSel ? const Color(0xFF1D4ED8) : const Color(0xFF334155),
-                                          ),
-                                        ),
-                                        if (isSel) ...[
-                                          const SizedBox(width: 5),
-                                          const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF1C7BFF)),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }),
-
-                              // Custom Color Option Button
-                              InkWell(
+                            children: _colorPresets.map((cp) {
+                              final colorName = cp['name'] as String;
+                              final swatchColor = cp['color'] as Color;
+                              final isSel = selectedColors.contains(colorName);
+                              return InkWell(
                                 onTap: () {
                                   setDialogState(() {
-                                    isCustomColor = true;
+                                    if (isSel) {
+                                      selectedColors.remove(colorName);
+                                    } else {
+                                      selectedColors.add(colorName);
+                                    }
                                   });
                                 },
                                 borderRadius: BorderRadius.circular(8),
-                                child: Container(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                                   decoration: BoxDecoration(
-                                    color: isCustomColor ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                                    color: isSel ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: isCustomColor ? const Color(0xFF1C7BFF) : const Color(0xFFCBD5E1),
-                                      width: isCustomColor ? 1.8 : 1.0,
+                                      color: isSel ? const Color(0xFF1C7BFF) : const Color(0xFFE2E8F0),
+                                      width: isSel ? 1.8 : 1.0,
                                     ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                        Icons.palette_outlined,
-                                        size: 15,
-                                        color: isCustomColor ? const Color(0xFF1C7BFF) : const Color(0xFF64748B),
+                                      Container(
+                                        width: 14,
+                                        height: 14,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: swatchColor,
+                                          border: Border.all(color: (cp['border'] as Color?) ?? Colors.black26, width: 1),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.08),
+                                              blurRadius: 2,
+                                              offset: const Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      const SizedBox(width: 6),
+                                      const SizedBox(width: 7),
                                       Text(
-                                        '+ Custom Color...',
+                                        colorName,
                                         style: TextStyle(
                                           fontSize: 12,
-                                          fontWeight: isCustomColor ? FontWeight.w800 : FontWeight.w600,
-                                          color: isCustomColor ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
+                                          fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                                          color: isSel ? const Color(0xFF1D4ED8) : const Color(0xFF334155),
                                         ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Icon(
+                                        isSel ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+                                        size: 14,
+                                        color: isSel ? const Color(0xFF1C7BFF) : const Color(0xFF94A3B8),
                                       ),
                                     ],
                                   ),
                                 ),
+                              );
+                            }).toList(),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Add Custom Color Input
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: customColorCtrl,
+                                  onSubmitted: (text) {
+                                    final customName = text.trim();
+                                    if (customName.isNotEmpty) {
+                                      if (!selectedColors.any((c) => c.toLowerCase() == customName.toLowerCase())) {
+                                        setDialogState(() {
+                                          selectedColors.add(customName);
+                                          customColorCtrl.clear();
+                                        });
+                                      } else {
+                                        customColorCtrl.clear();
+                                      }
+                                    }
+                                  },
+                                  decoration: const InputDecoration(
+                                    labelText: 'Add Custom Color Finish (Optional)',
+                                    hintText: 'Type color name (e.g. Lavender, Mint, Sand) & press Enter or Add',
+                                    prefixIcon: Icon(Icons.palette_outlined, size: 18),
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  final customName = customColorCtrl.text.trim();
+                                  if (customName.isNotEmpty) {
+                                    if (!selectedColors.any((c) => c.toLowerCase() == customName.toLowerCase())) {
+                                      setDialogState(() {
+                                        selectedColors.add(customName);
+                                        customColorCtrl.clear();
+                                      });
+                                    } else {
+                                      customColorCtrl.clear();
+                                    }
+                                  }
+                                },
+                                icon: const Icon(Icons.add_rounded, size: 18),
+                                label: const Text('Add Color'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0F172A),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                ),
                               ),
                             ],
                           ),
-
-                          if (isCustomColor) ...[
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: customColorCtrl,
-                              onChanged: (text) => setDialogState(() {}),
-                              decoration: const InputDecoration(
-                                labelText: 'Custom Product Color Name *',
-                                hintText: 'e.g. Lavender, Phantom Black, Sunset Gold, Ice Blue...',
-                                prefixIcon: Icon(Icons.color_lens_outlined, size: 18),
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              ),
-                            ),
-                          ],
 
                           const SizedBox(height: 22),
 
@@ -2275,14 +2607,15 @@ class _InventoryViewState extends State<InventoryView> {
 
                           const SizedBox(height: 18),
 
-                          // Store Homepage Toggle
+                          // Customer App Banner Carousel Toggle
                           CheckboxListTile(
-                            title: const Text('Featured on Store Homepage Carousel', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                            subtitle: const Text('Highlight this SKU on customer mobile app homepage', style: TextStyle(fontSize: 11)),
+                            title: const Text('Display on Customer App Banner Carousel & Spotlight', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+                            subtitle: const Text('Automatically display this item with its price, photos, and buy button on the customer mobile app hero banner', style: TextStyle(fontSize: 11, color: Color(0xFF475569))),
                             value: isFeatured,
                             onChanged: (val) {
-                              setDialogState(() => isFeatured = val ?? false);
+                              setDialogState(() => isFeatured = val ?? true);
                             },
+                            activeColor: const Color(0xFF1C7BFF),
                             controlAffinity: ListTileControlAffinity.leading,
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -2310,7 +2643,7 @@ class _InventoryViewState extends State<InventoryView> {
                           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           final resolvedName = isCustomModel
                               ? customModelCtrl.text.trim()
                               : selectedModel;
@@ -2328,7 +2661,6 @@ class _InventoryViewState extends State<InventoryView> {
                           final wholesale = double.tryParse(wholesalePriceCtrl.text) ?? 0.0;
                           final retail = double.tryParse(retailPriceCtrl.text) ?? wholesale;
                           final stock = int.tryParse(stockCtrl.text) ?? 0;
-                          final imgUrl = imageUrlCtrl.text.trim();
 
                           if (wholesale <= 0) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -2340,10 +2672,56 @@ class _InventoryViewState extends State<InventoryView> {
                             return;
                           }
 
+                          if (selectedColors.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please select or add at least 1 color finish for this SKU'),
+                                backgroundColor: Color(0xFFDC2626),
+                              ),
+                            );
+                            return;
+                          }
+
                           final compiledSpecs = specsList.isNotEmpty ? specsList.join(' • ') : '';
-                          final resolvedColor = isCustomColor && customColorCtrl.text.trim().isNotEmpty
-                              ? customColorCtrl.text.trim()
-                              : selectedColor;
+                          final primaryColor = selectedColors.first;
+
+                          // Determine product ID for image filename
+                          final productId = isEditing
+                              ? product.id
+                              : 'prod_${DateTime.now().millisecondsSinceEpoch}';
+
+                          // Resolve the final image URL
+                          String imgUrl = imageUrlCtrl.text.trim();
+
+                          // Determine image bytes: prefer pickedImageBytes, otherwise read local file
+                          Uint8List? bytesToUpload = pickedImageBytes;
+                          if (bytesToUpload == null &&
+                              imgUrl.isNotEmpty &&
+                              !imgUrl.startsWith('http') &&
+                              !imgUrl.startsWith('data:')) {
+                            try {
+                              final localFile = File(imgUrl);
+                              if (localFile.existsSync()) {
+                                bytesToUpload = localFile.readAsBytesSync();
+                              }
+                            } catch (_) {}
+                          }
+
+                          // Upload to Supabase Storage if we have image bytes
+                          if (bytesToUpload != null) {
+                            setDialogState(() {});
+                            final uploadedUrl = await widget.repository.supabase
+                                .uploadProductImage(bytesToUpload, productId);
+                            if (uploadedUrl != null) {
+                              // ✅ Successfully uploaded to Supabase Storage — use public URL
+                              imgUrl = uploadedUrl;
+                            } else {
+                              // ⚠️ Storage upload failed (bucket may not exist yet) —
+                              // fall back to base64 Data URI so image is always saved
+                              imgUrl = 'data:image/png;base64,${base64Encode(bytesToUpload)}';
+                              debugPrint('⚠️ Storage upload failed, saved as base64 fallback');
+                            }
+                          }
 
                           if (isEditing) {
                             product.name = resolvedName;
@@ -2354,8 +2732,8 @@ class _InventoryViewState extends State<InventoryView> {
                             product.stock = stock;
                             product.storage = selectedStorage;
                             product.ram = selectedRam;
-                            product.color = resolvedColor;
-                            product.colors = [resolvedColor];
+                            product.color = primaryColor;
+                            product.colors = List<String>.from(selectedColors);
                             product.specsList = List<String>.from(specsList);
                             product.specs = compiledSpecs;
                             product.condition = conditionCtrl.text;
@@ -2365,7 +2743,7 @@ class _InventoryViewState extends State<InventoryView> {
                             widget.repository.updateProduct(product);
                           } else {
                             final newProduct = ManagerProduct(
-                              id: 'prod_${DateTime.now().millisecondsSinceEpoch}',
+                              id: productId,
                               name: resolvedName,
                               brand: selectedBrand,
                               category: categoryCtrl.text,
@@ -2376,8 +2754,8 @@ class _InventoryViewState extends State<InventoryView> {
                               specsList: List<String>.from(specsList),
                               storage: selectedStorage,
                               ram: selectedRam,
-                              color: resolvedColor,
-                              colors: [resolvedColor],
+                              color: primaryColor,
+                              colors: List<String>.from(selectedColors),
                               condition: conditionCtrl.text,
                               isFeatured: isFeatured,
                               imageUrl: imgUrl,
@@ -2386,14 +2764,16 @@ class _InventoryViewState extends State<InventoryView> {
                             widget.repository.addProduct(newProduct);
                           }
 
-                          Navigator.pop(ctx);
+                          if (ctx.mounted) Navigator.pop(ctx);
                           setState(() {});
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(isEditing ? 'Product "$resolvedName" updated successfully' : 'New SKU "$resolvedName" added to inventory catalog'),
-                              backgroundColor: const Color(0xFF059669),
-                            ),
-                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(isEditing ? 'Product "$resolvedName" updated successfully' : 'New SKU "$resolvedName" added to inventory catalog'),
+                                backgroundColor: const Color(0xFF059669),
+                              ),
+                            );
+                          }
                         },
                         label: Text(isEditing ? 'Save Product Changes' : 'Create Inventory SKU'),
                       ),

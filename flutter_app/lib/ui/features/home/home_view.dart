@@ -10,6 +10,7 @@ import '../../core/widgets/running_light_arrow.dart';
 import '../../core/widgets/banner_video_player.dart';
 import '../../core/widgets/flash_sale_promo_banner.dart';
 import '../../core/widgets/ai_customer_service_pill.dart';
+import '../../core/widgets/product_smart_image.dart';
 import '../brands/brands_view.dart';
 import '../notifications/notifications_view.dart';
 import 'home_view_model.dart';
@@ -74,21 +75,17 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   static const _heroSlideInterval = Duration(seconds: 5);
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isAiHelpVisible = false;
+  final ValueNotifier<bool> _isAiHelpVisibleNotifier = ValueNotifier<bool>(false);
   Timer? _aiHelpHideTimer;
 
   void _triggerAiHelpVisibility() {
-    if (!_isAiHelpVisible) {
-      setState(() {
-        _isAiHelpVisible = true;
-      });
+    if (!_isAiHelpVisibleNotifier.value) {
+      _isAiHelpVisibleNotifier.value = true;
     }
     _aiHelpHideTimer?.cancel();
     _aiHelpHideTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) {
-        setState(() {
-          _isAiHelpVisible = false;
-        });
+        _isAiHelpVisibleNotifier.value = false;
       }
     });
   }
@@ -105,7 +102,7 @@ class _HomeViewState extends State<HomeView> {
     if (!widget.isCurrentTab && oldWidget.isCurrentTab) {
       _closeMenuDrawer();
       _aiHelpHideTimer?.cancel();
-      _isAiHelpVisible = false;
+      _isAiHelpVisibleNotifier.value = false;
     } else if (widget.isCurrentTab && !oldWidget.isCurrentTab) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && (_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
@@ -144,8 +141,8 @@ class _HomeViewState extends State<HomeView> {
 
   final Set<String> _wishlistProductIds = {'phone-1'};
   late final PageController _heroPageController;
+  final ValueNotifier<int> _activeHeroIndexNotifier = ValueNotifier<int>(0);
   Timer? _heroTimer;
-  int _activeHeroIndex = 0;
 
   String _formatFeaturedPrice(double price) {
     final formatted = price.toStringAsFixed(0).replaceAllMapped(
@@ -162,7 +159,7 @@ class _HomeViewState extends State<HomeView> {
     widget.viewModel.loadData();
     // First banner (index 0) has a promotional video; it advances when the video ends.
     // If starting on a non-video banner, start the 5-second timer.
-    if (_activeHeroIndex != 0) {
+    if (_activeHeroIndexNotifier.value != 0) {
       _heroTimer = Timer(_heroSlideInterval, _advanceHero);
     }
   }
@@ -171,12 +168,14 @@ class _HomeViewState extends State<HomeView> {
   void dispose() {
     _heroTimer?.cancel();
     _heroPageController.dispose();
+    _activeHeroIndexNotifier.dispose();
+    _isAiHelpVisibleNotifier.dispose();
     _aiHelpHideTimer?.cancel();
     super.dispose();
   }
 
   void _onHeroPageChanged(int index) {
-    setState(() => _activeHeroIndex = index);
+    _activeHeroIndexNotifier.value = index;
     _heroTimer?.cancel();
     if (index != 0) {
       // Banners 1, 2, 3 advance on standard 5-second interval
@@ -186,7 +185,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _onBannerVideoCompleted() {
-    if (!mounted || _activeHeroIndex != 0) return;
+    if (!mounted || _activeHeroIndexNotifier.value != 0) return;
     _advanceHero();
   }
 
@@ -195,7 +194,7 @@ class _HomeViewState extends State<HomeView> {
       return;
     }
 
-    final nextIndex = (_activeHeroIndex + 1) % _heroPromotions.length;
+    final nextIndex = (_activeHeroIndexNotifier.value + 1) % _heroPromotions.length;
     _heroPageController.animateToPage(
       nextIndex,
       duration: const Duration(milliseconds: 450),
@@ -228,14 +227,16 @@ class _HomeViewState extends State<HomeView> {
           drawer: _buildMenuDrawer(),
           body: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
-              if (notification is UserScrollNotification) {
-                if (notification.direction == ScrollDirection.forward) {
-                  _triggerAiHelpVisibility();
-                }
-              } else if (notification is ScrollUpdateNotification) {
-                final delta = notification.scrollDelta ?? 0;
-                if (delta < -6.0 && !_isAiHelpVisible) {
-                  _triggerAiHelpVisibility();
+              if (notification.depth == 0) {
+                if (notification is UserScrollNotification) {
+                  if (notification.direction == ScrollDirection.forward) {
+                    _triggerAiHelpVisibility();
+                  }
+                } else if (notification is ScrollUpdateNotification) {
+                  final delta = notification.scrollDelta ?? 0;
+                  if (delta < -6.0 && !_isAiHelpVisibleNotifier.value) {
+                    _triggerAiHelpVisibility();
+                  }
                 }
               }
               return false;
@@ -269,9 +270,12 @@ class _HomeViewState extends State<HomeView> {
                 Positioned(
                   right: 16,
                   bottom: 16,
-                  child: AiCustomerServicePill(
-                    isVisible: _isAiHelpVisible,
-                    onTap: widget.onSupportTap,
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _isAiHelpVisibleNotifier,
+                    builder: (context, isVisible, _) => AiCustomerServicePill(
+                      isVisible: isVisible,
+                      onTap: widget.onSupportTap,
+                    ),
                   ),
                 ),
               ],
@@ -427,13 +431,33 @@ class _HomeViewState extends State<HomeView> {
       ),
     ];
 
-    final moreCategories = [
+    final baseMoreCategories = [
       (category: 'All Products', icon: Icons.grid_view_rounded),
       (category: 'Tablets', icon: Icons.tablet_mac_rounded),
       (category: 'UK Used', icon: Icons.verified_rounded),
       (category: 'Wearables', icon: Icons.watch_rounded),
       (category: 'Foldables', icon: Icons.devices_fold_rounded),
     ];
+
+    final knownDrawerNames = {
+      'smartphones',
+      'keypad phones',
+      'laptops',
+      'accessories',
+      'all products',
+      'all',
+      'tablets',
+      'uk used',
+      'wearables',
+      'foldables',
+    };
+
+    final dynamicMoreCategories = widget.viewModel.categories
+        .where((c) => !knownDrawerNames.contains(c.toLowerCase()))
+        .map((c) => (category: c, icon: Icons.devices_other_rounded))
+        .toList();
+
+    final moreCategories = [...baseMoreCategories, ...dynamicMoreCategories];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1068,7 +1092,7 @@ class _HomeViewState extends State<HomeView> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
-        final categories = [
+        final baseCategories = [
           (
             category: 'Smartphones',
             icon: Icons.phone_android_rounded,
@@ -1133,6 +1157,22 @@ class _HomeViewState extends State<HomeView> {
             bgColor: const Color(0xFFECFDF5),
           ),
         ];
+
+        final knownNames = baseCategories.map((c) => c.category.toLowerCase()).toSet();
+        knownNames.add('all');
+
+        final dynamicCategories = widget.viewModel.categories
+            .where((c) => !knownNames.contains(c.toLowerCase()))
+            .map((c) => (
+                  category: c,
+                  icon: Icons.devices_other_rounded,
+                  subtitle: 'Explore $c',
+                  color: const Color(0xFF0D9488),
+                  bgColor: const Color(0xFFF0FDFA),
+                ))
+            .toList();
+
+        final categories = [...baseCategories, ...dynamicCategories];
 
         final bottomInset = MediaQuery.of(ctx).padding.bottom;
         return Container(
@@ -1377,35 +1417,40 @@ class _HomeViewState extends State<HomeView> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            _heroPromotions.length,
-            (index) => GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                _heroPageController.animateToPage(
-                  index,
-                  duration: const Duration(milliseconds: 350),
-                  curve: Curves.easeInOut,
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 4),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: _activeHeroIndex == index ? 14 : 5,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: _activeHeroIndex == index
-                        ? const Color(0xFF1C7BFF)
-                        : const Color(0xFFB8C0CC),
-                    borderRadius: BorderRadius.circular(3),
+        ValueListenableBuilder<int>(
+          valueListenable: _activeHeroIndexNotifier,
+          builder: (context, activeIndex, _) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                _heroPromotions.length,
+                (index) => GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    _heroPageController.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 350),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 4),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: activeIndex == index ? 14 : 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: activeIndex == index
+                            ? const Color(0xFF1C7BFF)
+                            : const Color(0xFFB8C0CC),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
@@ -1795,11 +1840,14 @@ class _HomeViewState extends State<HomeView> {
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(11),
-                                    child: BannerVideoPlayer(
-                                      isActive: _activeHeroIndex == 0,
-                                      onVideoCompleted:
-                                          _onBannerVideoCompleted,
-                                      aspectRatio: 16 / 10,
+                                    child: ValueListenableBuilder<int>(
+                                      valueListenable: _activeHeroIndexNotifier,
+                                      builder: (context, activeIndex, _) => BannerVideoPlayer(
+                                        isActive: activeIndex == 0,
+                                        onVideoCompleted:
+                                            _onBannerVideoCompleted,
+                                        aspectRatio: 16 / 10,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -2536,12 +2584,15 @@ class _HomeViewState extends State<HomeView> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: Image.network(
-          product.images.first,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              Container(color: const Color(0xFFE2E8F0)),
-        ),
+        child: product.images.isNotEmpty
+            ? ProductSmartImage(
+                imageUrl: product.images.first,
+                fit: BoxFit.cover,
+                width: width,
+                height: height,
+                fallback: Container(color: const Color(0xFFE2E8F0)),
+              )
+            : Container(color: const Color(0xFFE2E8F0)),
       ),
     );
   }
@@ -2720,10 +2771,19 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildFeaturedByBrand() {
     final items = widget.viewModel.featuredProducts;
 
-    // Group products by brand, preserving insertion order.
+    // Group products by brand or custom category, preserving insertion order.
     final Map<String, List<Product>> byBrand = {};
     for (final p in items) {
-      byBrand.putIfAbsent(p.brand, () => []).add(p);
+      final isGeneric = p.brand.toLowerCase().contains('other') ||
+          p.brand.toLowerCase().contains('custom') ||
+          p.brand.toLowerCase() == 'generic' ||
+          p.brand.toLowerCase() == 'category';
+      final groupKey = isGeneric
+          ? (p.category.trim().isNotEmpty && p.category.toLowerCase() != 'category'
+              ? p.category.trim()
+              : 'Featured Products')
+          : p.brand;
+      byBrand.putIfAbsent(groupKey, () => []).add(p);
     }
 
     final brandEntries = byBrand.entries.toList();
@@ -2766,7 +2826,7 @@ class _HomeViewState extends State<HomeView> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${brandEntries[i].value.length} phones',
+                        '${brandEntries[i].value.length} ${brandEntries[i].value.length == 1 ? "item" : "items"}',
                         style: const TextStyle(
                           color: Color(0xFF9CA3AF),
                           fontSize: 12,
@@ -2816,10 +2876,14 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildCompactFeaturedCard(Product product) {
     final isWishlisted = widget.wishlistRepo?.isWishlisted(product.id) ??
         _wishlistProductIds.contains(product.id);
-    final displayName =
-        product.name.toLowerCase().startsWith(product.brand.toLowerCase())
-            ? product.name
-            : '${product.brand} ${product.name}';
+    final isGenericBrand = product.brand.toLowerCase().contains('other') ||
+        product.brand.toLowerCase().contains('custom') ||
+        product.brand.toLowerCase() == 'generic' ||
+        product.brand.toLowerCase() == 'category';
+    final displayName = isGenericBrand ||
+            product.name.toLowerCase().startsWith(product.brand.toLowerCase())
+        ? product.name
+        : '${product.brand} ${product.name}';
 
     return GestureDetector(
       onTap: () => widget.onProductTap(product),
@@ -3000,16 +3064,31 @@ class _HomeViewState extends State<HomeView> {
             : 160.0;
         final availableHeight = maxH.clamp(40.0, 180.0);
         final availableWidth = maxW.clamp(40.0, 180.0);
-        return SizedBox(
-          width: availableWidth,
-          height: availableHeight,
-          child: CustomPaint(
-            painter: _PhoneMockupPainter(
-              brand: product.brand,
-              name: product.name,
+
+        Widget fallbackMockup() => SizedBox(
+              width: availableWidth,
+              height: availableHeight,
+              child: CustomPaint(
+                painter: _PhoneMockupPainter(
+                  brand: product.brand,
+                  name: product.name,
+                ),
+              ),
+            );
+
+        if (product.images.isNotEmpty && product.images.first.trim().isNotEmpty) {
+          return SizedBox(
+            width: availableWidth,
+            height: availableHeight,
+            child: ProductSmartImage(
+              imageUrl: product.images.first,
+              fit: BoxFit.contain,
+              fallback: fallbackMockup(),
             ),
-          ),
-        );
+          );
+        }
+
+        return fallbackMockup();
       },
     );
   }

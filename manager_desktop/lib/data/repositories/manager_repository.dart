@@ -15,6 +15,7 @@ import '../../domain/models/manager_swap.dart';
 import '../../domain/models/service_ticket.dart';
 import '../../domain/models/advertisement_banner.dart';
 import '../mock_manager_data.dart';
+import '../services/supabase_service.dart';
 
 class ManagerRepository extends ChangeNotifier {
   List<ManagerProduct> _products = [];
@@ -40,6 +41,12 @@ class ManagerRepository extends ChangeNotifier {
     'Gaming & Consoles',
   ];
 
+  final SupabaseService _supabase = SupabaseService();
+  SupabaseService get supabase => _supabase;
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+
   // 24-Hour Auth Session State
   bool _isAuthenticated = true;
   DateTime? _lastLoginTime = DateTime.now();
@@ -53,8 +60,76 @@ class ManagerRepository extends ChangeNotifier {
     'Kasoa Main Market',
   ];
 
+  File? _getCacheFile() {
+    try {
+      final appData = Platform.environment['APPDATA'] ??
+          Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['HOME'];
+      final baseDir = appData != null
+          ? Directory('$appData/SiakaPhonesManager')
+          : Directory.systemTemp;
+      if (!baseDir.existsSync()) {
+        baseDir.createSync(recursive: true);
+      }
+      return File('${baseDir.path}/cached_products.json');
+    } catch (e) {
+      debugPrint('Error getting cache file: $e');
+      return null;
+    }
+  }
+
+  void _loadCachedProducts() {
+    try {
+      final file = _getCacheFile();
+      if (file != null && file.existsSync()) {
+        final content = file.readAsStringSync();
+        if (content.isNotEmpty) {
+          final List decoded = jsonDecode(content);
+          final items = decoded
+              .map((item) => SupabaseService.productFromMap(Map<String, dynamic>.from(item)))
+              .where((p) => !p.id.startsWith('CAT_'))
+              .toList();
+          if (items.isNotEmpty) {
+            _sortProductsList(items);
+            _products = items;
+            for (final p in items) {
+              if (p.category.trim().isNotEmpty) {
+                addCategory(p.category, syncRemote: false);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading cached products: $e');
+    }
+  }
+
+  void _saveCachedProducts(List<ManagerProduct> products) {
+    try {
+      final file = _getCacheFile();
+      if (file != null) {
+        final list = products.map((p) => SupabaseService.productToMap(p)).toList();
+        file.writeAsStringSync(jsonEncode(list));
+      }
+    } catch (e) {
+      debugPrint('Error saving cached products: $e');
+    }
+  }
+
   ManagerRepository() {
-    _products = MockManagerData.getInitialProducts();
+    final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+    if (isTest) {
+      _products = MockManagerData.getInitialProducts();
+      _isLoading = false;
+    } else {
+      _products = [];
+      _isLoading = true;
+      _loadCachedProducts();
+      if (_products.isNotEmpty) {
+        _isLoading = false;
+      }
+    }
     _orders = MockManagerData.getInitialOrders();
     _bnplApplications = MockManagerData.getInitialBnplApplications();
     _repairs = MockManagerData.getInitialRepairs();
@@ -66,6 +141,7 @@ class ManagerRepository extends ChangeNotifier {
     _syncOrdersWithShipments();
     _notifications = MockManagerData.getInitialNotifications();
     _advertisements = MockManagerData.getInitialAdvertisements();
+    _initSupabaseSync();
     _brandModels = {
       'Apple': [
         'iPhone 16 Pro Max',
@@ -271,29 +347,109 @@ class ManagerRepository extends ChangeNotifier {
     }
   }
 
+  void _sortProductsList(List<ManagerProduct> list) {
+    list.sort((a, b) {
+      if (a.createdAt != null && b.createdAt != null) {
+        return b.createdAt!.compareTo(a.createdAt!);
+      }
+      if (a.createdAt != null) return -1;
+      if (b.createdAt != null) return 1;
+      return b.id.compareTo(a.id);
+    });
+  }
+
   // Product Actions
   void addProduct(ManagerProduct product) {
+    product.createdAt ??= DateTime.now();
     _products.insert(0, product);
+    _sortProductsList(_products);
+    _saveCachedProducts(_products);
     notifyListeners();
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _supabase.upsertProduct(product);
+    }
   }
 
   void updateProduct(ManagerProduct product) {
     final idx = _products.indexWhere((p) => p.id == product.id);
     if (idx != -1) {
       _products[idx] = product;
+      _saveCachedProducts(_products);
       notifyListeners();
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        _supabase.upsertProduct(product);
+      }
     }
   }
 
   void deleteProduct(String productId) {
     _products.removeWhere((p) => p.id == productId);
+    _saveCachedProducts(_products);
     notifyListeners();
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _supabase.deleteProduct(productId);
+    }
   }
 
   void updateStock(String productId, int newStock) {
     final idx = _products.indexWhere((p) => p.id == productId);
     if (idx != -1) {
       _products[idx].stock = newStock;
+      _saveCachedProducts(_products);
+      notifyListeners();
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        _supabase.upsertProduct(_products[idx]);
+      }
+    }
+  }
+
+  Future<void> _initSupabaseSync() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      _isLoading = false;
+      return;
+    }
+    try {
+      await _supabase.initialize();
+      final remoteProducts = await _supabase.fetchProducts();
+      if (remoteProducts != null && remoteProducts.isNotEmpty) {
+        for (final p in remoteProducts) {
+          if (p.category.trim().isNotEmpty) {
+            addCategory(p.category, syncRemote: false);
+          }
+        }
+        final items = remoteProducts.where((p) => !p.id.startsWith('CAT_')).toList();
+        _sortProductsList(items);
+        _products = items;
+        _saveCachedProducts(items);
+        notifyListeners();
+      } else if (remoteProducts != null && remoteProducts.isEmpty && _products.isNotEmpty) {
+        // First time initialization: populate Supabase with initial product catalog
+        for (final p in _products) {
+          await _supabase.upsertProduct(p);
+        }
+      }
+
+      // Realtime stream listener
+      _supabase.streamProducts()?.listen((liveProducts) {
+        if (liveProducts.isNotEmpty) {
+          for (final p in liveProducts) {
+            if (p.category.trim().isNotEmpty) {
+              addCategory(p.category, syncRemote: false);
+            }
+          }
+          final items = liveProducts.where((p) => !p.id.startsWith('CAT_')).toList();
+          _sortProductsList(items);
+          _products = items;
+          _saveCachedProducts(items);
+          notifyListeners();
+        }
+      }, onError: (e) {
+        debugPrint('Supabase products stream error: $e');
+      });
+    } catch (e) {
+      debugPrint('ℹ️ Supabase sync deferred: $e');
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -521,20 +677,57 @@ class ManagerRepository extends ChangeNotifier {
   }
 
   // Category Actions
-  void addCategory(String category) {
+  void addCategory(String category, {bool syncRemote = true}) {
     final clean = category.trim();
     if (clean.isEmpty) return;
     if (!_categories.any((c) => c.toLowerCase() == clean.toLowerCase())) {
       _categories.add(clean);
       notifyListeners();
+      if (syncRemote && !Platform.environment.containsKey('FLUTTER_TEST')) {
+        final catToken = ManagerProduct(
+          id: 'CAT_${clean.toLowerCase().replaceAll(RegExp(r'\s+'), '_')}',
+          name: clean,
+          brand: 'Category',
+          category: clean,
+          price: 0,
+          originalPrice: 0,
+          stock: 0,
+          specs: 'Category Definition',
+          condition: 'Category',
+        );
+        _supabase.upsertProduct(catToken);
+      }
     }
   }
 
   // Device Model Actions
-  void addDeviceModel({required String brand, required String modelName, String? category}) {
-    final cleanBrand = brand.trim();
+  void addDeviceModel({String? brand, required String modelName, String? category}) {
     final cleanModel = modelName.trim();
-    if (cleanBrand.isEmpty || cleanModel.isEmpty) return;
+    if (cleanModel.isEmpty) return;
+
+    String cleanBrand = (brand ?? '').trim();
+    if (cleanBrand.isEmpty) {
+      final lower = cleanModel.toLowerCase();
+      if (lower.startsWith('iphone') || lower.startsWith('ipad') || lower.startsWith('macbook') || lower.startsWith('apple')) {
+        cleanBrand = 'Apple';
+      } else if (lower.startsWith('samsung') || lower.startsWith('galaxy')) {
+        cleanBrand = 'Samsung';
+      } else if (lower.startsWith('tecno') || lower.startsWith('camon') || lower.startsWith('phantom') || lower.startsWith('spark')) {
+        cleanBrand = 'Tecno';
+      } else if (lower.startsWith('infinix') || lower.startsWith('zero') || lower.startsWith('note') || lower.startsWith('hot')) {
+        cleanBrand = 'Infinix';
+      } else if (lower.startsWith('google') || lower.startsWith('pixel')) {
+        cleanBrand = 'Google';
+      } else if (lower.startsWith('xiaomi') || lower.startsWith('redmi') || lower.startsWith('poco')) {
+        cleanBrand = 'Xiaomi';
+      } else if (lower.startsWith('oneplus')) {
+        cleanBrand = 'OnePlus';
+      } else if (lower.startsWith('oraimo')) {
+        cleanBrand = 'Oraimo';
+      } else {
+        cleanBrand = 'Other / Custom';
+      }
+    }
 
     if (!_brandModels.containsKey(cleanBrand)) {
       _brandModels[cleanBrand] = [];
