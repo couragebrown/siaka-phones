@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/repair_booking.dart';
+import '../services/supabase_service.dart';
 
 class RepairRepository extends ChangeNotifier {
   final List<RepairBooking> _bookings = [
@@ -74,6 +77,33 @@ class RepairRepository extends ChangeNotifier {
     );
     _bookings.insert(0, booking);
     notifyListeners();
+
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      final repairMap = {
+        'id': 'REPAIR_${booking.id}',
+        'name': '${booking.customerName} - ${booking.deviceModel}',
+        'brand': booking.deviceModel,
+        'category': 'REPAIR_RECORD',
+        'price': booking.estimatedCost,
+        'original_price': booking.estimatedCost,
+        'stock': 1,
+        'specs': jsonEncode({
+          'customerName': booking.customerName,
+          'customerPhone': booking.customerPhone,
+          'deviceModel': booking.deviceModel,
+          'issueType': booking.issueType,
+          'description': booking.description,
+          'dropOffBranch': booking.dropOffBranch,
+          'timeSlot': booking.timeSlot,
+          'status': booking.status,
+        }),
+        'condition': 'received',
+        'created_at': booking.appointmentDate.toIso8601String(),
+      };
+
+      SupabaseService().upsertRawRecord(repairMap);
+    }
+
     return booking;
   }
 }

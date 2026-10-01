@@ -128,6 +128,38 @@ class SupabaseService {
     }
   }
 
+  Future<bool> upsertRawRecord(Map<String, dynamic> record) async {
+    if (!_isInitialized || client == null) {
+      await initialize();
+    }
+    if (!_isInitialized || client == null) {
+      return false;
+    }
+    try {
+      await client!.from('products').upsert(record);
+      return true;
+    } catch (e) {
+      debugPrint('⚠️ Error upserting raw record to Supabase: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateRecordCondition(String id, String condition) async {
+    if (!_isInitialized || client == null) {
+      await initialize();
+    }
+    if (!_isInitialized || client == null) {
+      return false;
+    }
+    try {
+      await client!.from('products').update({'condition': condition}).eq('id', id);
+      return true;
+    } catch (e) {
+      debugPrint('⚠️ Error updating record condition in Supabase: $e');
+      return false;
+    }
+  }
+
   /// Upload image bytes to Supabase Storage bucket 'product-images'.
   /// Returns the public URL of the uploaded image, or null on failure.
   Future<String?> uploadProductImage(Uint8List imageBytes, String productId) async {

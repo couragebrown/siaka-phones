@@ -141,7 +141,14 @@ class SupabaseService {
     try {
       final response = await client!.from('products').select().order('created_at', ascending: false);
       final List<dynamic> data = response as List<dynamic>;
-      return data.map((item) => productFromMap(item as Map<String, dynamic>)).toList();
+      return data
+          .map((item) => productFromMap(item as Map<String, dynamic>))
+          .where((p) =>
+              !p.id.startsWith('CAT_') &&
+              !p.id.startsWith('ORDER_') &&
+              !p.id.startsWith('BNPL_') &&
+              !p.id.startsWith('REPAIR_'))
+          .toList();
     } catch (e) {
       debugPrint('ℹ️ Mobile fetchProducts note: $e');
       return null;
@@ -161,11 +168,33 @@ class SupabaseService {
               final bTime = b['created_at']?.toString() ?? '';
               return bTime.compareTo(aTime);
             });
-            return sorted.map((map) => productFromMap(map)).toList();
+            return sorted
+                .map((map) => productFromMap(map))
+                .where((p) =>
+                    !p.id.startsWith('CAT_') &&
+                    !p.id.startsWith('ORDER_') &&
+                    !p.id.startsWith('BNPL_') &&
+                    !p.id.startsWith('REPAIR_'))
+                .toList();
           });
     } catch (e) {
       debugPrint('⚠️ Mobile streamProducts error: $e');
       return null;
+    }
+  }
+
+  Future<bool> upsertRawRecord(Map<String, dynamic> record) async {
+    if (!_isInitialized || client == null) {
+      await initialize();
+    }
+    if (!_isInitialized || client == null) return false;
+    try {
+      await client!.from('products').upsert(record);
+      debugPrint('✅ Synced record to Supabase: ${record['id']}');
+      return true;
+    } catch (e) {
+      debugPrint('⚠️ Error upserting record to Supabase: $e');
+      return false;
     }
   }
 }

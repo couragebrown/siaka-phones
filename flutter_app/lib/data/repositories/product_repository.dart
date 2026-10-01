@@ -81,7 +81,11 @@ class ProductRepository with ChangeNotifier {
         }
       }
     }
-    _products = list.where((p) => !p.id.startsWith('CAT_')).toList();
+    _products = list.where((p) =>
+        !p.id.startsWith('CAT_') &&
+        !p.id.startsWith('ORDER_') &&
+        !p.id.startsWith('BNPL_') &&
+        !p.id.startsWith('REPAIR_')).toList();
   }
 
   bool _productsOrCategoriesChanged(

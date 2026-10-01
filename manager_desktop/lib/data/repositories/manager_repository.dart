@@ -117,22 +117,362 @@ class ManagerRepository extends ChangeNotifier {
     }
   }
 
+  File? _getManagerStateCacheFile() {
+    try {
+      final appData = Platform.environment['APPDATA'] ??
+          Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['HOME'];
+      final baseDir = appData != null
+          ? Directory('$appData/SiakaPhonesManager')
+          : Directory.systemTemp;
+      if (!baseDir.existsSync()) {
+        baseDir.createSync(recursive: true);
+      }
+      return File('${baseDir.path}/cached_manager_state.json');
+    } catch (e) {
+      debugPrint('Error getting manager state cache file: $e');
+      return null;
+    }
+  }
+
+  void _saveCachedManagerState() {
+    try {
+      final file = _getManagerStateCacheFile();
+      if (file != null) {
+        final data = {
+          'orders': _orders.map((o) => _orderToMap(o)).toList(),
+          'bnpl': _bnplApplications.map((b) => _bnplToMap(b)).toList(),
+          'repairs': _repairs.map((r) => _repairToMap(r)).toList(),
+        };
+        file.writeAsStringSync(jsonEncode(data));
+      }
+    } catch (e) {
+      debugPrint('Error saving manager state: $e');
+    }
+  }
+
+  void _loadCachedManagerState() {
+    try {
+      final file = _getManagerStateCacheFile();
+      if (file != null && file.existsSync()) {
+        final content = file.readAsStringSync();
+        if (content.isNotEmpty) {
+          final Map<String, dynamic> data = jsonDecode(content);
+          if (data['orders'] is List) {
+            _orders = (data['orders'] as List)
+                .map((m) => _orderFromMap(Map<String, dynamic>.from(m)))
+                .toList();
+          }
+          if (data['bnpl'] is List) {
+            _bnplApplications = (data['bnpl'] as List)
+                .map((m) => _bnplFromMap(Map<String, dynamic>.from(m)))
+                .toList();
+          }
+          if (data['repairs'] is List) {
+            _repairs = (data['repairs'] as List)
+                .map((m) => _repairFromMap(Map<String, dynamic>.from(m)))
+                .toList();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading manager state: $e');
+    }
+  }
+
+  Map<String, dynamic> _orderToMap(ManagerOrder o) => {
+    'id': o.id,
+    'customerName': o.customerName,
+    'customerEmail': o.customerEmail,
+    'customerPhone': o.customerPhone,
+    'deliveryAddress': o.deliveryAddress,
+    'region': o.region,
+    'gpsCode': o.gpsCode,
+    'date': o.date.toIso8601String(),
+    'items': o.items.map((i) => {
+      'title': i.title,
+      'brand': i.brand,
+      'price': i.price,
+      'quantity': i.quantity,
+      'specs': i.specs,
+    }).toList(),
+    'totalAmount': o.totalAmount,
+    'paymentMethod': o.paymentMethod,
+    'status': o.status.name,
+  };
+
+  ManagerOrder _orderFromMap(Map<String, dynamic> m) {
+    final itemsList = (m['items'] as List? ?? []).map((i) => OrderItem(
+      title: i['title']?.toString() ?? '',
+      brand: i['brand']?.toString() ?? '',
+      price: (i['price'] as num?)?.toDouble() ?? 0.0,
+      quantity: (i['quantity'] as num?)?.toInt() ?? 1,
+      specs: i['specs']?.toString() ?? '',
+    )).toList();
+
+    OrderStatus status = OrderStatus.pending;
+    final statusStr = m['status']?.toString().toLowerCase() ?? '';
+    for (final s in OrderStatus.values) {
+      if (s.name.toLowerCase() == statusStr) {
+        status = s;
+        break;
+      }
+    }
+
+    return ManagerOrder(
+      id: m['id']?.toString() ?? '',
+      customerName: m['customerName']?.toString() ?? '',
+      customerEmail: m['customerEmail']?.toString() ?? '',
+      customerPhone: m['customerPhone']?.toString() ?? '',
+      deliveryAddress: m['deliveryAddress']?.toString() ?? '',
+      region: m['region']?.toString() ?? 'Greater Accra',
+      gpsCode: m['gpsCode']?.toString() ?? '',
+      date: DateTime.tryParse(m['date']?.toString() ?? '') ?? DateTime.now(),
+      items: itemsList,
+      totalAmount: (m['totalAmount'] as num?)?.toDouble() ?? 0.0,
+      paymentMethod: m['paymentMethod']?.toString() ?? 'Mobile Money',
+      status: status,
+    );
+  }
+
+  Map<String, dynamic> _bnplToMap(ManagerBnpl b) => {
+    'id': b.id,
+    'applicantName': b.applicantName,
+    'phone': b.phone,
+    'email': b.email,
+    'nationalId': b.nationalId,
+    'location': b.location,
+    'employer': b.employer,
+    'monthlySalary': b.monthlySalary,
+    'requestedPhone': b.requestedPhone,
+    'phonePrice': b.phonePrice,
+    'downPayment': b.downPayment,
+    'monthlyInstallment': b.monthlyInstallment,
+    'tenureMonths': b.tenureMonths,
+    'applicationDate': b.applicationDate.toIso8601String(),
+    'status': b.status.name,
+    'managerNotes': b.managerNotes,
+  };
+
+  ManagerBnpl _bnplFromMap(Map<String, dynamic> m) {
+    BnplStatus status = BnplStatus.pending;
+    final statusStr = m['status']?.toString().toLowerCase() ?? '';
+    for (final s in BnplStatus.values) {
+      if (s.name.toLowerCase() == statusStr) {
+        status = s;
+        break;
+      }
+    }
+
+    return ManagerBnpl(
+      id: m['id']?.toString() ?? '',
+      applicantName: m['applicantName']?.toString() ?? '',
+      phone: m['phone']?.toString() ?? '',
+      email: m['email']?.toString() ?? '',
+      nationalId: m['nationalId']?.toString() ?? '',
+      location: m['location']?.toString() ?? 'Greater Accra, Ghana',
+      employer: m['employer']?.toString() ?? 'Self Employed',
+      monthlySalary: (m['monthlySalary'] as num?)?.toDouble() ?? 0.0,
+      requestedPhone: m['requestedPhone']?.toString() ?? '',
+      phonePrice: (m['phonePrice'] as num?)?.toDouble() ?? 0.0,
+      downPayment: (m['downPayment'] as num?)?.toDouble() ?? 0.0,
+      monthlyInstallment: (m['monthlyInstallment'] as num?)?.toDouble() ?? 0.0,
+      tenureMonths: (m['tenureMonths'] as num?)?.toInt() ?? 6,
+      applicationDate: DateTime.tryParse(m['applicationDate']?.toString() ?? '') ?? DateTime.now(),
+      status: status,
+      managerNotes: m['managerNotes']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> _repairToMap(ManagerRepair r) => {
+    'id': r.id,
+    'customerName': r.customerName,
+    'customerPhone': r.customerPhone,
+    'deviceModel': r.deviceModel,
+    'reportedIssue': r.reportedIssue,
+    'bookedDate': r.bookedDate.toIso8601String(),
+    'stage': r.stage.name,
+    'estimatedCost': r.estimatedCost,
+    'technicianNotes': r.technicianNotes,
+  };
+
+  ManagerRepair _repairFromMap(Map<String, dynamic> m) {
+    RepairStage stage = RepairStage.received;
+    final stageStr = m['stage']?.toString().toLowerCase() ?? '';
+    for (final s in RepairStage.values) {
+      if (s.name.toLowerCase() == stageStr) {
+        stage = s;
+        break;
+      }
+    }
+
+    return ManagerRepair(
+      id: m['id']?.toString() ?? '',
+      customerName: m['customerName']?.toString() ?? '',
+      customerPhone: m['customerPhone']?.toString() ?? '',
+      deviceModel: m['deviceModel']?.toString() ?? '',
+      reportedIssue: m['reportedIssue']?.toString() ?? '',
+      bookedDate: DateTime.tryParse(m['bookedDate']?.toString() ?? '') ?? DateTime.now(),
+      stage: stage,
+      estimatedCost: (m['estimatedCost'] as num?)?.toDouble() ?? 0.0,
+      technicianNotes: m['technicianNotes']?.toString() ?? '',
+    );
+  }
+
+  ManagerOrder _orderFromSupabase(ManagerProduct p) {
+    Map<String, dynamic> extra = {};
+    try {
+      if (p.specs.isNotEmpty && p.specs.startsWith('{')) {
+        extra = jsonDecode(p.specs);
+      }
+    } catch (_) {}
+
+    final List itemsJson = extra['items'] as List? ?? [];
+    final items = itemsJson.map((item) {
+      return OrderItem(
+        title: item['title']?.toString() ?? p.name,
+        brand: item['brand']?.toString() ?? 'Siaka Devices',
+        price: (item['price'] as num?)?.toDouble() ?? p.price,
+        quantity: (item['quantity'] as num?)?.toInt() ?? 1,
+        specs: item['specs']?.toString() ?? '',
+      );
+    }).toList();
+
+    OrderStatus status = OrderStatus.pending;
+    final cond = p.condition.toLowerCase();
+    if (cond == 'confirmed' || cond == 'processing') {
+      status = OrderStatus.confirmed;
+    } else if (cond == 'dispatched' || cond == 'shipped' || cond == 'outfordelivery') {
+      status = OrderStatus.dispatched;
+    } else if (cond == 'delivered') {
+      status = OrderStatus.delivered;
+    } else if (cond == 'cancelled') {
+      status = OrderStatus.cancelled;
+    } else {
+      status = OrderStatus.pending;
+    }
+
+    final orderId = p.id.replaceFirst('ORDER_', '');
+    return ManagerOrder(
+      id: orderId,
+      customerName: extra['customerName']?.toString() ?? (p.name.isNotEmpty ? p.name : 'Customer'),
+      customerEmail: extra['customerEmail']?.toString() ?? 'customer@siakaphones.com',
+      customerPhone: extra['customerPhone']?.toString() ?? '024 555 0192',
+      deliveryAddress: extra['deliveryAddress']?.toString() ?? 'Accra, Ghana',
+      region: extra['region']?.toString() ?? 'Greater Accra',
+      gpsCode: extra['gpsCode']?.toString() ?? 'GA-183-9021',
+      date: p.createdAt ?? DateTime.now(),
+      items: items.isNotEmpty ? items : [
+        OrderItem(
+          title: p.name,
+          brand: p.brand,
+          price: p.price,
+          quantity: p.stock > 0 ? p.stock : 1,
+        ),
+      ],
+      totalAmount: p.price,
+      paymentMethod: p.brand.isNotEmpty ? p.brand : 'Mobile Money',
+      status: status,
+    );
+  }
+
+  ManagerBnpl _bnplFromSupabase(ManagerProduct p) {
+    Map<String, dynamic> extra = {};
+    try {
+      if (p.specs.isNotEmpty && p.specs.startsWith('{')) {
+        extra = jsonDecode(p.specs);
+      }
+    } catch (_) {}
+
+    BnplStatus status = BnplStatus.pending;
+    final cond = p.condition.toLowerCase();
+    if (cond.contains('approv')) {
+      status = BnplStatus.approved;
+    } else if (cond.contains('reject') || cond.contains('declin')) {
+      status = BnplStatus.rejected;
+    } else {
+      status = BnplStatus.pending;
+    }
+
+    final bnplId = p.id.replaceFirst('BNPL_', '');
+    final tenure = p.stock > 0 ? p.stock : 6;
+    final brandModel = extra['modelName']?.toString() ?? p.name;
+    return ManagerBnpl(
+      id: bnplId,
+      applicantName: extra['customerName']?.toString() ?? p.name,
+      phone: extra['customerPhone']?.toString() ?? '024 555 0192',
+      email: extra['email']?.toString() ?? 'applicant@gmail.com',
+      nationalId: extra['nationalId']?.toString() ?? 'GHA-729104820-1',
+      location: extra['location']?.toString() ?? 'Greater Accra, Ghana',
+      employer: extra['employer']?.toString() ?? 'Self Employed / Trader',
+      monthlySalary: (extra['monthlySalary'] as num?)?.toDouble() ?? 3500.0,
+      requestedPhone: brandModel,
+      phonePrice: p.price > 0 ? p.price : 2800.0,
+      downPayment: p.price > 0 ? p.price * 0.3 : 840.0,
+      monthlyInstallment: p.price > 0 ? (p.price * 0.7) / tenure : 326.0,
+      tenureMonths: tenure,
+      applicationDate: p.createdAt ?? DateTime.now(),
+      status: status,
+      managerNotes: extra['notes']?.toString() ?? '',
+    );
+  }
+
+  ManagerRepair _repairFromSupabase(ManagerProduct p) {
+    Map<String, dynamic> extra = {};
+    try {
+      if (p.specs.isNotEmpty && p.specs.startsWith('{')) {
+        extra = jsonDecode(p.specs);
+      }
+    } catch (_) {}
+
+    RepairStage stage = RepairStage.received;
+    final cond = p.condition.toLowerCase();
+    if (cond.contains('diag')) {
+      stage = RepairStage.diagnosing;
+    } else if (cond.contains('part')) {
+      stage = RepairStage.awaitingParts;
+    } else if (cond.contains('ready') || cond.contains('pickup')) {
+      stage = RepairStage.readyForPickup;
+    } else if (cond.contains('complete')) {
+      stage = RepairStage.completed;
+    } else {
+      stage = RepairStage.received;
+    }
+
+    final repairId = p.id.replaceFirst('REPAIR_', '');
+    return ManagerRepair(
+      id: repairId,
+      customerName: extra['customerName']?.toString() ?? p.name,
+      customerPhone: extra['customerPhone']?.toString() ?? '024 555 0192',
+      deviceModel: extra['deviceModel']?.toString() ?? p.brand,
+      reportedIssue: extra['issueType']?.toString() ?? 'Hardware Diagnostic',
+      bookedDate: p.createdAt ?? DateTime.now(),
+      stage: stage,
+      estimatedCost: p.price,
+      technicianNotes: extra['description']?.toString() ?? '',
+    );
+  }
+
   ManagerRepository() {
     final isTest = Platform.environment.containsKey('FLUTTER_TEST');
     if (isTest) {
       _products = MockManagerData.getInitialProducts();
+      _orders = MockManagerData.getInitialOrders();
+      _bnplApplications = MockManagerData.getInitialBnplApplications();
+      _repairs = MockManagerData.getInitialRepairs();
       _isLoading = false;
     } else {
       _products = [];
+      _orders = [];
+      _bnplApplications = [];
+      _repairs = [];
       _isLoading = true;
       _loadCachedProducts();
+      _loadCachedManagerState();
       if (_products.isNotEmpty) {
         _isLoading = false;
       }
     }
-    _orders = MockManagerData.getInitialOrders();
-    _bnplApplications = MockManagerData.getInitialBnplApplications();
-    _repairs = MockManagerData.getInitialRepairs();
     _swaps = MockManagerData.getInitialSwaps();
     _customers = MockManagerData.getInitialCustomerActivities();
     _sentMessages = MockManagerData.getInitialCustomerMessages();
@@ -343,7 +683,11 @@ class ManagerRepository extends ChangeNotifier {
           shipment.lastLocationUpdate = 'Order confirmed. Packaged at Circle Hub awaiting courier dispatch.';
         }
       }
+      _saveCachedManagerState();
       notifyListeners();
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        _supabase.updateRecordCondition('ORDER_$orderId', newStatus.name);
+      }
     }
   }
 
@@ -412,16 +756,7 @@ class ManagerRepository extends ChangeNotifier {
       await _supabase.initialize();
       final remoteProducts = await _supabase.fetchProducts();
       if (remoteProducts != null && remoteProducts.isNotEmpty) {
-        for (final p in remoteProducts) {
-          if (p.category.trim().isNotEmpty) {
-            addCategory(p.category, syncRemote: false);
-          }
-        }
-        final items = remoteProducts.where((p) => !p.id.startsWith('CAT_')).toList();
-        _sortProductsList(items);
-        _products = items;
-        _saveCachedProducts(items);
-        notifyListeners();
+        _applyRemoteData(remoteProducts);
       } else if (remoteProducts != null && remoteProducts.isEmpty && _products.isNotEmpty) {
         // First time initialization: populate Supabase with initial product catalog
         for (final p in _products) {
@@ -432,16 +767,7 @@ class ManagerRepository extends ChangeNotifier {
       // Realtime stream listener
       _supabase.streamProducts()?.listen((liveProducts) {
         if (liveProducts.isNotEmpty) {
-          for (final p in liveProducts) {
-            if (p.category.trim().isNotEmpty) {
-              addCategory(p.category, syncRemote: false);
-            }
-          }
-          final items = liveProducts.where((p) => !p.id.startsWith('CAT_')).toList();
-          _sortProductsList(items);
-          _products = items;
-          _saveCachedProducts(items);
-          notifyListeners();
+          _applyRemoteData(liveProducts);
         }
       }, onError: (e) {
         debugPrint('Supabase products stream error: $e');
@@ -454,6 +780,75 @@ class ManagerRepository extends ChangeNotifier {
     }
   }
 
+  void _applyRemoteData(List<ManagerProduct> list) {
+    if (list.isEmpty) return;
+
+    for (final p in list) {
+      if (!p.id.startsWith('CAT_') &&
+          !p.id.startsWith('ORDER_') &&
+          !p.id.startsWith('BNPL_') &&
+          !p.id.startsWith('REPAIR_') &&
+          p.category.trim().isNotEmpty) {
+        addCategory(p.category, syncRemote: false);
+      }
+    }
+
+    final items = list.where((p) =>
+        !p.id.startsWith('CAT_') &&
+        !p.id.startsWith('ORDER_') &&
+        !p.id.startsWith('BNPL_') &&
+        !p.id.startsWith('REPAIR_')).toList();
+    _sortProductsList(items);
+    _products = items;
+    _saveCachedProducts(items);
+
+    final remoteOrderProducts = list.where((p) => p.id.startsWith('ORDER_')).toList();
+    if (remoteOrderProducts.isNotEmpty) {
+      for (final p in remoteOrderProducts) {
+        final parsedOrder = _orderFromSupabase(p);
+        final idx = _orders.indexWhere((o) => o.id == parsedOrder.id);
+        if (idx != -1) {
+          _orders[idx] = parsedOrder;
+        } else {
+          _orders.add(parsedOrder);
+        }
+      }
+      _orders.sort((a, b) => b.date.compareTo(a.date));
+      _syncOrdersWithShipments();
+    }
+
+    final remoteBnplProducts = list.where((p) => p.id.startsWith('BNPL_')).toList();
+    if (remoteBnplProducts.isNotEmpty) {
+      for (final p in remoteBnplProducts) {
+        final parsedBnpl = _bnplFromSupabase(p);
+        final idx = _bnplApplications.indexWhere((b) => b.id == parsedBnpl.id);
+        if (idx != -1) {
+          _bnplApplications[idx] = parsedBnpl;
+        } else {
+          _bnplApplications.add(parsedBnpl);
+        }
+      }
+      _bnplApplications.sort((a, b) => b.applicationDate.compareTo(a.applicationDate));
+    }
+
+    final remoteRepairProducts = list.where((p) => p.id.startsWith('REPAIR_')).toList();
+    if (remoteRepairProducts.isNotEmpty) {
+      for (final p in remoteRepairProducts) {
+        final parsedRepair = _repairFromSupabase(p);
+        final idx = _repairs.indexWhere((r) => r.id == parsedRepair.id);
+        if (idx != -1) {
+          _repairs[idx] = parsedRepair;
+        } else {
+          _repairs.add(parsedRepair);
+        }
+      }
+      _repairs.sort((a, b) => b.bookedDate.compareTo(a.bookedDate));
+    }
+
+    _saveCachedManagerState();
+    notifyListeners();
+  }
+
   // BNPL Actions
   void updateBnplStatus(String id, BnplStatus status, {String notes = ''}) {
     final idx = _bnplApplications.indexWhere((b) => b.id == id);
@@ -462,7 +857,11 @@ class ManagerRepository extends ChangeNotifier {
       if (notes.isNotEmpty) {
         _bnplApplications[idx].managerNotes = notes;
       }
+      _saveCachedManagerState();
       notifyListeners();
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        _supabase.updateRecordCondition('BNPL_$id', status.name);
+      }
     }
   }
 
@@ -477,7 +876,11 @@ class ManagerRepository extends ChangeNotifier {
       if (cost != null) {
         _repairs[idx].estimatedCost = cost;
       }
+      _saveCachedManagerState();
       notifyListeners();
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        _supabase.updateRecordCondition('REPAIR_$id', stage.name);
+      }
     }
   }
 

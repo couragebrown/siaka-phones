@@ -1,7 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/order.dart';
 import '../../domain/models/cart_item.dart';
 import '../mock_data.dart';
+import '../services/supabase_service.dart';
 
 class OrderRepository extends ChangeNotifier {
   final List<OrderModel> _orders = [
@@ -127,6 +130,43 @@ class OrderRepository extends ChangeNotifier {
     );
     _orders.insert(0, newOrder);
     notifyListeners();
+
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      final itemsList = newOrder.items.map((i) => {
+        'title': i.product.name,
+        'brand': i.product.brand,
+        'price': i.product.price,
+        'quantity': i.quantity,
+        'specs': '${i.selectedStorage} • ${i.selectedColor}',
+      }).toList();
+
+      final orderMap = {
+        'id': 'ORDER_${newOrder.orderId}',
+        'name': newOrder.items.isNotEmpty ? newOrder.items.first.product.name : 'Device Order',
+        'brand': newOrder.paymentMethod,
+        'category': 'ORDER_RECORD',
+        'price': newOrder.totalAmount,
+        'original_price': newOrder.subtotal,
+        'stock': newOrder.items.fold(0, (sum, i) => sum + i.quantity),
+        'specs': jsonEncode({
+          'customerName': 'Siaka Customer',
+          'customerEmail': 'customer@siakaphones.com',
+          'customerPhone': '024 555 0192',
+          'deliveryAddress': newOrder.shippingAddress,
+          'region': 'Greater Accra',
+          'gpsCode': 'GA-183-9021',
+          'trackingNumber': newOrder.trackingNumber,
+          'items': itemsList,
+        }),
+        'condition': newOrder.status.name,
+        'storage': newOrder.orderId,
+        'ram': newOrder.trackingNumber,
+        'created_at': newOrder.date.toIso8601String(),
+      };
+
+      SupabaseService().upsertRawRecord(orderMap);
+    }
+
     return newOrder;
   }
 }

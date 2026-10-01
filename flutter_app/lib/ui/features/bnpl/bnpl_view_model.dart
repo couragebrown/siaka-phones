@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import '../../../data/services/supabase_service.dart';
 import '../../../domain/models/bnpl_model.dart';
 
 class BnplViewModel extends ChangeNotifier {
@@ -211,6 +214,39 @@ class BnplViewModel extends ChangeNotifier {
     _isSubmitting = false;
     _isSubmitted = true;
     notifyListeners();
+
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      final tenureMonths = int.tryParse(application.planDuration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 6;
+      final bnplMap = {
+        'id': 'BNPL_${application.id}',
+        'name': '${application.customerName} - ${application.brand} ${application.modelName}',
+        'brand': application.brand,
+        'category': 'BNPL_RECORD',
+        'price': 2800.0,
+        'original_price': 3200.0,
+        'stock': tenureMonths,
+        'specs': jsonEncode({
+          'customerName': application.customerName,
+          'customerPhone': application.customerPhone,
+          'modelName': application.modelName,
+          'storage': application.storage,
+          'ram': application.ram,
+          'condition': application.condition,
+          'preferredColor': application.preferredColor,
+          'planDuration': application.planDuration,
+          'notes': application.notes,
+          'status': application.status,
+        }),
+        'condition': 'pending',
+        'storage': application.storage,
+        'ram': application.ram,
+        'color': application.preferredColor,
+        'created_at': application.createdAt.toIso8601String(),
+      };
+
+      SupabaseService().upsertRawRecord(bnplMap);
+    }
+
     return true;
   }
 
