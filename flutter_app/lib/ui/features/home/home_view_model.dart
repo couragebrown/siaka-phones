@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../domain/models/product.dart';
+import '../../../domain/models/banner_playlist.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final ProductRepository _productRepository;
@@ -14,12 +15,12 @@ class HomeViewModel extends ChangeNotifier {
 
   void _loadFromRepository() {
     _categories = _productRepository.categories;
-    final all = _productRepository.filterProducts();
+    final all = _productRepository.filterProducts().where((p) => p.isMerchandise).toList();
     _allProducts = all;
-    final featured = all.where((p) => p.isFeatured).toList();
-    _featuredProducts = featured.isNotEmpty ? featured : List.from(all);
-    final arrivals = all.where((p) => p.isNewArrival).toList();
-    _newArrivals = arrivals.isNotEmpty ? arrivals : List.from(all);
+    final featured = all.where((p) => p.isFeatured && p.isMerchandise).toList();
+    _featuredProducts = featured.isNotEmpty ? featured : all;
+    final arrivals = all.where((p) => p.isNewArrival && p.isMerchandise).toList();
+    _newArrivals = arrivals.isNotEmpty ? arrivals : all;
   }
 
   void _onRepositoryChanged() {
@@ -37,16 +38,19 @@ class HomeViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   List<Product> _allProducts = [];
-  List<Product> get allProducts => _allProducts.isNotEmpty ? _allProducts : _productRepository.filterProducts();
+  List<Product> get allProducts => _allProducts.isNotEmpty ? _allProducts : _productRepository.filterProducts().where((p) => p.isMerchandise).toList();
 
   List<Product> _featuredProducts = [];
-  List<Product> get featuredProducts => _featuredProducts;
+  List<Product> get featuredProducts => _featuredProducts.where((p) => p.isMerchandise).toList();
 
   List<Product> _newArrivals = [];
-  List<Product> get newArrivals => _newArrivals;
+  List<Product> get newArrivals => _newArrivals.where((p) => p.isMerchandise).toList();
 
   List<String> _categories = [];
   List<String> get categories => _categories;
+
+  List<BannerPlaylist> get bannerPlaylists => _productRepository.bannerPlaylists;
+  BannerPlaylist? getBannerPlaylist(String id) => _productRepository.getBannerPlaylist(id);
 
   String _selectedCategory = 'All';
   String get selectedCategory => _selectedCategory;
@@ -59,9 +63,7 @@ class HomeViewModel extends ChangeNotifier {
 
     try {
       await _productRepository.refreshFromSupabase(silent: true);
-      _featuredProducts = await _productRepository.getFeaturedProducts();
-      _newArrivals = await _productRepository.getNewArrivals();
-      _categories = await _productRepository.getCategories();
+      _loadFromRepository();
     } finally {
       _isLoading = false;
       notifyListeners();

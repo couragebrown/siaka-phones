@@ -29,6 +29,8 @@ class UserProfile {
     this.pushNotifications = true,
   });
 
+  String get fullName => name;
+
   String get fullFormattedAddress =>
       '$detailAddress, $region • $gpsCode';
 

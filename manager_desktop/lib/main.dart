@@ -26,7 +26,7 @@ import 'data/services/supabase_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await SupabaseService().initialize();
+    await SupabaseService().initialize().timeout(const Duration(seconds: 2), onTimeout: () {});
   } catch (e) {
     debugPrint('Supabase pre-init notice: $e');
   }

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/repositories/manager_repository.dart';
@@ -245,41 +246,6 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
     }
   }
 
-  void _simulateCustomerReply() {
-    if (_selectedCustomer == null) return;
-
-    final sampleReplies = [
-      'Thank you manager! I have received your message and will check the app.',
-      'Thank you for the update. Could you please confirm the branch opening hours today?',
-      'Understood! I will visit the Circle branch this afternoon with my Ghana Card.',
-      'Thank you so much, appreciate the prompt customer support!',
-    ];
-
-    final randomReply = (sampleReplies..shuffle()).first;
-    widget.repository.addIncomingCustomerReply(
-      _selectedCustomer!.id,
-      randomReply,
-      channel: _selectedChannel,
-    );
-
-    _scrollToBottom();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.mark_chat_unread_rounded, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text('New incoming reply from ${_selectedCustomer!.fullName}!'),
-          ],
-        ),
-        backgroundColor: const Color(0xFF1C7BFF),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final customers = widget.repository.customers;
@@ -305,8 +271,6 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
 
     // Stats
     final inAppCount = sentMessages.where((m) => m.channel == MessageChannel.inApp).length;
-    final whatsappCount = sentMessages.where((m) => m.channel == MessageChannel.whatsapp).length;
-    final smsCount = sentMessages.where((m) => m.channel == MessageChannel.sms).length;
     final emailCount = sentMessages.where((m) => m.channel == MessageChannel.email).length;
 
     // Header bar like Service Center
@@ -337,32 +301,49 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Direct multi-channel customer communications hub across In-App Notification, WhatsApp, SMS, and Email.',
+              'Direct customer communications hub across In-App Notification and Email.',
               style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
             ),
           ],
         ),
 
-        // KPI Counters & Simulation Button
+        // KPI Counters & Live Sync Badge
         Wrap(
           spacing: 10,
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _buildKpiPill('ALL SENT', '${sentMessages.length}', const Color(0xFF0F172A), const Color(0xFFF1F5F9)),
-            _buildKpiPill('IN-APP', '$inAppCount', const Color(0xFF7C3AED), const Color(0xFFF3E8FF)),
-            _buildKpiPill('WHATSAPP', '$whatsappCount', const Color(0xFF15803D), const Color(0xFFDCFCE7)),
-            _buildKpiPill('SMS', '$smsCount', const Color(0xFF1D4ED8), const Color(0xFFDBEAFE)),
-            _buildKpiPill('EMAIL', '$emailCount', const Color(0xFFB45309), const Color(0xFFFEF3C7)),
-            ElevatedButton.icon(
-              onPressed: _selectedCustomer == null ? null : _simulateCustomerReply,
-              icon: const Icon(Icons.reply_all_rounded, size: 16),
-              label: const Text('Simulate Inbound Reply', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F172A),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            _buildKpiPill('ALL SENT', '${sentMessages.length}', const Color(0xFF0F172A), const Color(0xFFF1F5F9), channel: null),
+            _buildKpiPill('IN-APP', '$inAppCount', const Color(0xFF7C3AED), const Color(0xFFF3E8FF), channel: MessageChannel.inApp),
+            _buildKpiPill('EMAIL', '$emailCount', const Color(0xFFB45309), const Color(0xFFFEF3C7), channel: MessageChannel.email),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF86EFAC)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF16A34A),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Live Inbound Sync Active',
+                    style: TextStyle(
+                      color: Color(0xFF166534),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -459,10 +440,6 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
                 const SizedBox(width: 6),
                 _buildChannelFilterChip('INAPP', 'In-App'),
                 const SizedBox(width: 6),
-                _buildChannelFilterChip('WHATSAPP', 'WhatsApp'),
-                const SizedBox(width: 6),
-                _buildChannelFilterChip('SMS', 'SMS'),
-                const SizedBox(width: 6),
                 _buildChannelFilterChip('EMAIL', 'Email'),
               ],
             ),
@@ -534,18 +511,37 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
                                   Expanded(
                                     child: Row(
                                       children: [
-                                        CircleAvatar(
-                                          radius: 13,
-                                          backgroundColor: isSelected
-                                              ? const Color(0xFF1C7BFF)
-                                              : const Color(0xFF64748B),
-                                          child: Text(
-                                            c.fullName.isNotEmpty ? c.fullName[0] : 'C',
-                                            style: const TextStyle(fontSize: 10.5, color: Colors.white, fontWeight: FontWeight.bold),
-                                          ),
+                                        Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 13,
+                                              backgroundColor: isSelected
+                                                  ? const Color(0xFF1C7BFF)
+                                                  : const Color(0xFF64748B),
+                                              child: Text(
+                                                c.fullName.isNotEmpty ? c.fullName[0] : 'C',
+                                                style: const TextStyle(fontSize: 10.5, color: Colors.white, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                            if (c.isOnline)
+                                              Positioned(
+                                                right: -1,
+                                                bottom: -1,
+                                                child: Container(
+                                                  width: 9,
+                                                  height: 9,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF10B981),
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(color: Colors.white, width: 1.5),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                         const SizedBox(width: 8),
-                                        Flexible(
+                                        Expanded(
                                           child: Text(
                                             c.fullName,
                                             overflow: TextOverflow.ellipsis,
@@ -559,6 +555,7 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
                                       ],
                                     ),
                                   ),
+                                  const SizedBox(width: 4),
                                   Text(
                                     timeStr,
                                     style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8)),
@@ -589,14 +586,18 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                lastMsg != null
+                                (c.isOnline ? '● Online Now • ' : '') +
+                                (lastMsg != null
                                     ? (lastMsg.isFromCustomer ? 'Inbound: ' : 'Outbound: ') + lastMsg.message
-                                    : 'Registered device: ${c.primaryDevice}',
+                                    : 'Registered device: ${c.primaryDevice}'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11.5,
-                                  color: isSelected ? const Color(0xFF1E40AF) : const Color(0xFF475569),
+                                  fontWeight: c.isOnline ? FontWeight.w600 : FontWeight.normal,
+                                  color: c.isOnline
+                                      ? const Color(0xFF15803D)
+                                      : (isSelected ? const Color(0xFF1E40AF) : const Color(0xFF475569)),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -687,19 +688,38 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: const Color(0xFF1C7BFF),
-                        child: Text(
-                          _selectedCustomer!.fullName.isNotEmpty
-                              ? _selectedCustomer!.fullName[0]
-                              : 'C',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: const Color(0xFF1C7BFF),
+                            child: Text(
+                              _selectedCustomer!.fullName.isNotEmpty
+                                  ? _selectedCustomer!.fullName[0]
+                                  : 'C',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
-                        ),
+                          if (_selectedCustomer!.isOnline)
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                width: 11,
+                                height: 11,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -717,6 +737,24 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
                                     fontWeight: FontWeight.w800,
                                     fontSize: 14,
                                     color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                                  decoration: BoxDecoration(
+                                    color: _selectedCustomer!.isOnline ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: _selectedCustomer!.isOnline ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _selectedCustomer!.isOnline ? '● Active in App' : '○ Offline',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: _selectedCustomer!.isOnline ? const Color(0xFF15803D) : const Color(0xFF64748B),
+                                    ),
                                   ),
                                 ),
                                 Container(
@@ -1372,27 +1410,101 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
     );
   }
 
-  Widget _buildKpiPill(String label, String value, Color textColor, Color bgColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: textColor.withValues(alpha: 0.2)),
+  Widget _buildKpiPill(
+    String label,
+    String value,
+    Color textColor,
+    Color bgColor, {
+    MessageChannel? channel,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: Tooltip(
+        message: 'Click to view $label message details & audit trail',
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              if (channel == null) {
+                _channelFilter = 'ALL';
+              } else if (channel == MessageChannel.inApp) {
+                _channelFilter = 'INAPP';
+              } else if (channel == MessageChannel.email) {
+                _channelFilter = 'EMAIL';
+              }
+            });
+            _showChannelDetailsDialog(label: label, initialChannel: channel);
+          },
+          borderRadius: BorderRadius.circular(6),
+          mouseCursor: SystemMouseCursors.click,
+          hoverColor: textColor.withValues(alpha: 0.08),
+          splashColor: textColor.withValues(alpha: 0.12),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: textColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: textColor),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  value,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: textColor),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 11,
+                  color: textColor.withValues(alpha: 0.6),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: textColor),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: textColor),
-          ),
-        ],
+    );
+  }
+
+  void _showChannelDetailsDialog({
+    required String label,
+    MessageChannel? initialChannel,
+  }) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => _ChannelMessageDetailsDialog(
+        label: label,
+        initialChannel: initialChannel,
+        repository: widget.repository,
+        onSelectCustomer: (customer, targetChannel) {
+          Navigator.of(dialogCtx).pop();
+          setState(() {
+            _selectedCustomer = customer;
+            if (targetChannel != null) {
+              _selectedChannel = targetChannel;
+            }
+          });
+          _scrollToBottom();
+        },
+        onComposeNew: (targetChannel) {
+          Navigator.of(dialogCtx).pop();
+          if (targetChannel != null) {
+            setState(() {
+              _selectedChannel = targetChannel;
+            });
+          }
+        },
+        onFilterWorkspace: (channelFilterKey) {
+          Navigator.of(dialogCtx).pop();
+          setState(() {
+            _channelFilter = channelFilterKey;
+          });
+        },
       ),
     );
   }
@@ -1419,3 +1531,912 @@ class _CustomerMessagingViewState extends State<CustomerMessagingView> {
     );
   }
 }
+
+class _ChannelMessageDetailsDialog extends StatefulWidget {
+  final String label;
+  final MessageChannel? initialChannel;
+  final ManagerRepository repository;
+  final void Function(CustomerActivity customer, MessageChannel? targetChannel) onSelectCustomer;
+  final void Function(MessageChannel? targetChannel) onComposeNew;
+  final void Function(String channelFilterKey) onFilterWorkspace;
+
+  const _ChannelMessageDetailsDialog({
+    required this.label,
+    required this.initialChannel,
+    required this.repository,
+    required this.onSelectCustomer,
+    required this.onComposeNew,
+    required this.onFilterWorkspace,
+  });
+
+  @override
+  State<_ChannelMessageDetailsDialog> createState() => _ChannelMessageDetailsDialogState();
+}
+
+class _ChannelMessageDetailsDialogState extends State<_ChannelMessageDetailsDialog> {
+  late MessageChannel? _activeChannel;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _activeChannel = widget.initialChannel;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<CustomerMessage> get _filteredMessages {
+    final allMessages = widget.repository.sentMessages;
+    final query = _searchController.text.trim().toLowerCase();
+
+    final filtered = allMessages.where((m) {
+      if (_activeChannel != null && m.channel != _activeChannel) {
+        return false;
+      }
+      if (query.isEmpty) return true;
+      return m.customerName.toLowerCase().contains(query) ||
+          m.customerPhone.toLowerCase().contains(query) ||
+          m.customerEmail.toLowerCase().contains(query) ||
+          m.subject.toLowerCase().contains(query) ||
+          m.message.toLowerCase().contains(query) ||
+          m.category.label.toLowerCase().contains(query) ||
+          m.customerId.toLowerCase().contains(query);
+    }).toList();
+
+    filtered.sort((a, b) => b.sentAt.compareTo(a.sentAt));
+    return filtered;
+  }
+
+  String _getChannelTitle() {
+    if (_activeChannel == null) {
+      return 'All Sent Customer Messages';
+    }
+    switch (_activeChannel!) {
+      case MessageChannel.inApp:
+        return 'In-App Notification Messages';
+      case MessageChannel.email:
+        return 'Email Communications';
+    }
+  }
+
+  String _getChannelSubtitle() {
+    if (_activeChannel == null) {
+      return 'Audit log and delivery status of outbound customer communications across In-App Notification and Email.';
+    }
+    switch (_activeChannel!) {
+      case MessageChannel.inApp:
+        return 'Direct mobile notifications pushed to registered customers in the Siaka Mobile App.';
+      case MessageChannel.email:
+        return 'Official receipts, invoices, and service notification emails sent to customer inboxes.';
+    }
+  }
+
+  IconData _getChannelIcon(MessageChannel? channel) {
+    if (channel == null) return Icons.mark_chat_read_rounded;
+    switch (channel) {
+      case MessageChannel.inApp:
+        return Icons.notifications_active_rounded;
+      case MessageChannel.email:
+        return Icons.email_rounded;
+    }
+  }
+
+  Color _getChannelColor(MessageChannel? channel) {
+    if (channel == null) return const Color(0xFF0F172A);
+    return Color(channel.colorValue);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sentMessages = widget.repository.sentMessages;
+    final inAppCount = sentMessages.where((m) => m.channel == MessageChannel.inApp).length;
+    final emailCount = sentMessages.where((m) => m.channel == MessageChannel.email).length;
+
+    final messages = _filteredMessages;
+    final channelColor = _getChannelColor(_activeChannel);
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      backgroundColor: Colors.white,
+      elevation: 16,
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 820,
+          maxHeight: math.min(740, MediaQuery.of(context).size.height * 0.9),
+        ),
+        child: Column(
+          children: [
+            // Header Bar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: channelColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      _getChannelIcon(_activeChannel),
+                      color: channelColor,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 10,
+                          runSpacing: 4,
+                          children: [
+                            Text(
+                              _getChannelTitle(),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: channelColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${messages.length} ${messages.length == 1 ? 'Message' : 'Messages'}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: channelColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _getChannelSubtitle(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B), size: 22),
+                    tooltip: 'Close Details Dialog',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Channel Filter Chips & Search Bar
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 12),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFF1F5F9)),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Channel Tabs
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildTabChip(null, 'All Sent', sentMessages.length, const Color(0xFF0F172A)),
+                        const SizedBox(width: 8),
+                        _buildTabChip(MessageChannel.inApp, 'In-App', inAppCount, const Color(0xFF7C3AED)),
+                        const SizedBox(width: 8),
+                        _buildTabChip(MessageChannel.email, 'Email', emailCount, const Color(0xFFB45309)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Search Field
+                  TextField(
+                    controller: _searchController,
+                    onChanged: (_) => setState(() {}),
+                    style: const TextStyle(fontSize: 12.5),
+                    decoration: InputDecoration(
+                      hintText: 'Search by customer name, phone, subject, or message text...',
+                      hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF64748B)),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 16),
+                              onPressed: () => setState(() => _searchController.clear()),
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Channel Metric Summary Bar
+            _buildChannelSummaryBar(messages),
+
+            // Message Cards List
+            Expanded(
+              child: messages.isEmpty
+                  ? _buildEmptyState(context)
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(24),
+                      itemCount: messages.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 16),
+                      itemBuilder: (context, index) {
+                        final msg = messages[index];
+                        return _buildMessageCard(context, msg);
+                      },
+                    ),
+            ),
+
+            // Footer Toolbar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+              ),
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 10,
+                children: [
+                  Text(
+                    'Showing ${messages.length} of ${sentMessages.length} total sent messages',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (_activeChannel != null)
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            final key = _activeChannel == MessageChannel.inApp
+                                ? 'INAPP'
+                                : _activeChannel!.name.toUpperCase();
+                            widget.onFilterWorkspace(key);
+                          },
+                          icon: const Icon(Icons.filter_alt_outlined, size: 15),
+                          label: Text(
+                            'Filter Workspace by ${_activeChannel!.label}',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: channelColor,
+                            side: BorderSide(color: channelColor.withValues(alpha: 0.3)),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F172A),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Close', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabChip(MessageChannel? channel, String label, int count, Color color) {
+    final isSelected = _activeChannel == channel;
+    return ChoiceChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: isSelected ? color : color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: isSelected ? Colors.white : color,
+              ),
+            ),
+          ),
+        ],
+      ),
+      selected: isSelected,
+      onSelected: (val) {
+        if (val) setState(() => _activeChannel = channel);
+      },
+      backgroundColor: const Color(0xFFF1F5F9),
+      selectedColor: color.withValues(alpha: 0.15),
+      labelStyle: TextStyle(
+        fontSize: 11.5,
+        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+        color: isSelected ? color : const Color(0xFF475569),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      side: BorderSide(
+        color: isSelected ? color : const Color(0xFFE2E8F0),
+      ),
+    );
+  }
+
+  Widget _buildChannelSummaryBar(List<CustomerMessage> messages) {
+    final channelColor = _getChannelColor(_activeChannel);
+    final deliveredCount = messages
+        .where((m) =>
+            m.status == MessageDeliveryStatus.delivered ||
+            m.status == MessageDeliveryStatus.read)
+        .length;
+    final deliveryRate =
+        messages.isEmpty ? 100 : ((deliveredCount / messages.length) * 100).round();
+    final uniqueRecipients = messages.map((m) => m.customerId).toSet().length;
+
+    String gatewayLabel;
+    if (_activeChannel == null) {
+      gatewayLabel = 'In-App & Email Active';
+    } else {
+      switch (_activeChannel!) {
+        case MessageChannel.inApp:
+          gatewayLabel = 'Push Notification Active';
+          break;
+        case MessageChannel.email:
+          gatewayLabel = 'SMTP Mailer Ready';
+          break;
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: channelColor.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: channelColor.withValues(alpha: 0.15)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSummaryMetric(
+              'TOTAL SENT',
+              '${messages.length}',
+              Icons.outbox_rounded,
+              channelColor,
+            ),
+            const SizedBox(width: 18),
+            Container(height: 24, width: 1, color: const Color(0xFFE2E8F0)),
+            const SizedBox(width: 18),
+            _buildSummaryMetric(
+              'DELIVERY RATE',
+              '$deliveryRate%',
+              Icons.verified_rounded,
+              const Color(0xFF16A34A),
+            ),
+            const SizedBox(width: 18),
+            Container(height: 24, width: 1, color: const Color(0xFFE2E8F0)),
+            const SizedBox(width: 18),
+            _buildSummaryMetric(
+              'RECIPIENTS',
+              '$uniqueRecipients Customer${uniqueRecipients == 1 ? '' : 's'}',
+              Icons.people_alt_rounded,
+              const Color(0xFF0F172A),
+            ),
+            const SizedBox(width: 18),
+            Container(height: 24, width: 1, color: const Color(0xFFE2E8F0)),
+            const SizedBox(width: 18),
+            _buildSummaryMetric(
+              'GATEWAY ROUTE',
+              gatewayLabel,
+              Icons.hub_rounded,
+              const Color(0xFF2563EB),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryMetric(String title, String value, IconData icon, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF64748B),
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final isEmail = _activeChannel == MessageChannel.email;
+    final isSearch = _searchController.text.isNotEmpty;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Icon(
+                isSearch
+                    ? Icons.search_off_rounded
+                    : (isEmail ? Icons.mark_email_unread_rounded : Icons.forum_outlined),
+                size: 40,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isSearch
+                  ? 'No messages found'
+                  : (isEmail ? 'No Email Messages Recorded Yet' : 'No Messages in this Channel'),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              isSearch
+                  ? 'No sent messages match "${_searchController.text}". Try a different keyword.'
+                  : (isEmail
+                      ? 'Direct official emails sent to customers will be logged, timestamped, and audited here.'
+                      : 'Messages sent via this channel will appear here automatically.'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 20),
+            if (isSearch)
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _searchController.clear()),
+                icon: const Icon(Icons.clear_rounded, size: 16),
+                label: const Text('Clear Search'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF1C7BFF),
+                  side: const BorderSide(color: Color(0xFFBFDBFE)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              )
+            else
+              ElevatedButton.icon(
+                onPressed: () => widget.onComposeNew(_activeChannel ?? MessageChannel.inApp),
+                icon: const Icon(Icons.edit_note_rounded, size: 18),
+                label: Text(
+                  isEmail ? 'Compose New Email Message' : 'Compose Message',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1C7BFF),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageCard(BuildContext context, CustomerMessage msg) {
+    final channelColor = Color(msg.channel.colorValue);
+    final statusColor = Color(msg.status.textColor);
+    final statusBgColor = Color(msg.status.bgColor);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Card Header: Recipient & Delivery Status
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(10),
+                topRight: Radius.circular(10),
+              ),
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFF1F5F9)),
+              ),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: channelColor.withValues(alpha: 0.15),
+                  child: Text(
+                    msg.customerName.isNotEmpty ? msg.customerName[0].toUpperCase() : 'C',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      color: channelColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            msg.customerName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13.5,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: Text(
+                              msg.customerId,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E40AF),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            msg.customerPhone,
+                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                          ),
+                          if (msg.customerEmail.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            const Text('•', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 11)),
+                            const SizedBox(width: 6),
+                            Text(
+                              msg.customerEmail,
+                              style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Delivery Status Pill & Sent Time
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: statusBgColor,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            msg.status == MessageDeliveryStatus.read
+                                ? Icons.done_all_rounded
+                                : (msg.status == MessageDeliveryStatus.delivered
+                                    ? Icons.done_all_rounded
+                                    : Icons.check_rounded),
+                            size: 13,
+                            color: statusColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            msg.status.label,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      DateFormat('MMM d, y • HH:mm').format(msg.sentAt),
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Message Subject & Category Badges
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                // Channel Tag
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: channelColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: channelColor.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_getChannelIcon(msg.channel), size: 12, color: channelColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        msg.channel.label.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: channelColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Category Tag
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Text(
+                    msg.category.label,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ),
+
+                // Subject Text
+                Text(
+                  msg.subject,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Message Body Container
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: SelectableText(
+                msg.message,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  height: 1.5,
+                  color: Color(0xFF334155),
+                ),
+              ),
+            ),
+          ),
+
+          // Action Toolbar on Card
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person_pin_rounded, size: 14, color: channelColor),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Sent by ${msg.sentBy} • Local & Cloud Synced',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: msg.message));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Message copied: "${msg.subject}"'),
+                            backgroundColor: const Color(0xFF0F172A),
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 13),
+                      label: const Text('Copy Text', style: TextStyle(fontSize: 11.5)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF475569),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        final matching = widget.repository.customers.firstWhere(
+                          (c) =>
+                              c.id == msg.customerId ||
+                              c.phone.replaceAll(' ', '') == msg.customerPhone.replaceAll(' ', ''),
+                          orElse: () => CustomerActivity(
+                            id: msg.customerId,
+                            fullName: msg.customerName,
+                            phone: msg.customerPhone,
+                            email: msg.customerEmail,
+                            signupDate: msg.sentAt,
+                            loginCount: 1,
+                            lastLogin: msg.sentAt,
+                            primaryDevice: 'Registered Device',
+                            status: 'Active',
+                            totalSpend: 0,
+                            totalOrders: 0,
+                            branch: widget.repository.currentBranch,
+                            isOnline: true,
+                          ),
+                        );
+                        widget.onSelectCustomer(matching, msg.channel);
+                      },
+                      icon: const Icon(Icons.forum_rounded, size: 13),
+                      label: const Text('Open Thread & Reply', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: channelColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

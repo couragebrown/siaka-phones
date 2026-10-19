@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../domain/models/product.dart';
+import '../../../domain/models/banner_playlist.dart';
 
 class CatalogViewModel extends ChangeNotifier {
   final ProductRepository _productRepository;
@@ -38,6 +39,9 @@ class CatalogViewModel extends ChangeNotifier {
 
   List<Product> _featuredProducts = [];
   List<Product> get featuredProducts => _featuredProducts;
+
+  List<BannerPlaylist> get bannerPlaylists => _productRepository.bannerPlaylists;
+  BannerPlaylist? getBannerPlaylist(String id) => _productRepository.getBannerPlaylist(id);
 
   List<String> _categories = [];
   List<String> get categories => _categories;

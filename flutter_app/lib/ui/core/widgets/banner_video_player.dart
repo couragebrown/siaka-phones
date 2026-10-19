@@ -145,6 +145,39 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
       }
     } catch (e) {
       if (!mounted || _isDisposed) return;
+
+      // Fallback: If network video URL fails (e.g., 403 / 504 / timeout / offline), try loading local bundled video asset
+      if (currentSource != (widget.videoAsset ?? BannerVideoPlayer.defaultVideoAsset)) {
+        try {
+          final fallbackController = VideoPlayerController.asset(
+            widget.videoAsset ?? BannerVideoPlayer.defaultVideoAsset,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+          _controller = fallbackController;
+          await fallbackController.initialize();
+          if (!mounted || _isDisposed) {
+            await fallbackController.dispose();
+            return;
+          }
+          await fallbackController.setLooping(false);
+          await fallbackController.setVolume(_isMuted ? 0.0 : 1.0);
+          fallbackController.addListener(_videoListener);
+
+          setState(() {
+            _isInitialized = true;
+            _isError = false;
+          });
+
+          if (widget.isActive && !_isDisposed) {
+            fallbackController.play();
+            setState(() {
+              _isPlaying = true;
+            });
+          }
+          return;
+        } catch (_) {}
+      }
+
       setState(() {
         _isError = true;
       });

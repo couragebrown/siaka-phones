@@ -68,12 +68,13 @@ class _ProductSmartImageState extends State<ProductSmartImage> {
 
     try {
       if (trimmed.startsWith('data:image') ||
+          trimmed.startsWith('data:') ||
           (trimmed.length > 100 &&
               !trimmed.startsWith('http') &&
-              !trimmed.contains('/') &&
-              !trimmed.contains('\\'))) {
+              !trimmed.startsWith('assets/'))) {
         final commaIdx = trimmed.indexOf(',');
-        final base64Str = commaIdx != -1 ? trimmed.substring(commaIdx + 1) : trimmed;
+        var base64Str = commaIdx != -1 ? trimmed.substring(commaIdx + 1) : trimmed;
+        base64Str = base64Str.replaceAll(RegExp(r'\s+'), '');
         final bytes = base64Decode(base64Str);
         _provider = MemoryImage(bytes);
       } else if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {

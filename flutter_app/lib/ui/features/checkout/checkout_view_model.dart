@@ -52,8 +52,8 @@ class CheckoutViewModel extends ChangeNotifier {
   double get discountAmount => _cartRepository.discountAmount;
   String? get appliedPromoCode => _cartRepository.appliedPromoCode;
   double get shipping => _customShippingFee ?? _cartRepository.shipping;
-  double get tax => (subtotal - discountAmount) * 0.0825;
-  double get total => (subtotal - discountAmount) + tax + shipping;
+  double get tax => 0.0;
+  double get total => (subtotal - discountAmount) + shipping;
   int get itemCount => _cartRepository.itemCount;
 
   void updateShippingInfo({

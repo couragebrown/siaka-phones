@@ -1,0 +1,17 @@
+{
+  "id": "prod_google_pixel_9_pro_xl",
+  "name": "Google Pixel 9 Pro XL",
+  "brand": "Google",
+  "category": "Smartphones",
+  "price": 13500.0,
+  "original_price": 14500.0,
+  "stock": 15,
+  "specs": "6.8-inch Super Actua OLED (1-120Hz) • Tensor G4 with Gemini Nano • 50MP Triple Camera",
+  "storage": "256GB",
+  "ram": "16GB",
+  "color": "Obsidian Black",
+  "colors": ["Obsidian Black", "Hazel", "Porcelain"],
+  "condition": "New",
+  "is_featured": true,
+  "image_url": "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80"
+}

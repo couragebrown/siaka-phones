@@ -6,6 +6,7 @@ import '../../domain/models/order.dart';
 import '../../domain/models/cart_item.dart';
 import '../mock_data.dart';
 import '../services/supabase_service.dart';
+import 'customer_notification_repository.dart';
 
 class OrderRepository extends ChangeNotifier {
   Timer? _syncPollTimer;
@@ -64,7 +65,11 @@ class OrderRepository extends ChangeNotifier {
     if (Platform.environment.containsKey('FLUTTER_TEST')) return;
     _fetchRemoteOrders();
     _startRealtimeOrderStream();
-    _syncPollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _fetchRemoteOrders());
+    _syncPollTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+      if (!SupabaseService.isQuotaRestricted) {
+        _fetchRemoteOrders();
+      }
+    });
   }
 
   @override
@@ -249,6 +254,11 @@ class OrderRepository extends ChangeNotifier {
     _orders.insert(0, newOrder);
     notifyListeners();
 
+    CustomerNotificationRepository.instance.addOrderPlacedNotification(
+      orderId: newOrder.orderId,
+      totalAmount: newOrder.totalAmount,
+    );
+
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       final itemsList = newOrder.items.map((i) {
         final wholesale = i.product.price;
@@ -293,7 +303,70 @@ class OrderRepository extends ChangeNotifier {
         'created_at': newOrder.date.toIso8601String(),
       };
 
+      // 1. Sync order to Supabase
       SupabaseService().upsertRawRecord(orderMap);
+
+      // 2. Sync notification to Supabase for manager desktop
+      final notifRecord = {
+        'id': 'NOTIF_ORDER_${newOrder.orderId}',
+        'name': 'New Customer Order Placed',
+        'brand': 'Customer Order',
+        'category': 'NOTIFICATION_RECORD',
+        'price': newOrder.totalAmount,
+        'specs': jsonEncode({
+          'title': 'New Customer Order Placed',
+          'message': 'Order #${newOrder.orderId} for GH₵${newOrder.totalAmount.toStringAsFixed(2)} placed by customer',
+          'target': 'manager',
+          'orderId': newOrder.orderId,
+          'customerName': 'Siaka Customer',
+          'amount': newOrder.totalAmount,
+          'itemsCount': newOrder.items.length,
+          'timestamp': newOrder.date.toIso8601String(),
+        }),
+        'condition': 'unread',
+        'storage': newOrder.orderId,
+        'ram': 'manager',
+        'created_at': newOrder.date.toIso8601String(),
+      };
+      SupabaseService().upsertRawRecord(notifRecord);
+      SupabaseService().upsertNotificationRaw({
+        'id': 'NOTIF_ORDER_${newOrder.orderId}',
+        'title': 'New Customer Order Placed',
+        'message': 'Order #${newOrder.orderId} for GH₵${newOrder.totalAmount.toStringAsFixed(2)} placed by customer',
+        'type': 'order',
+        'target': 'manager',
+        'reference_id': newOrder.orderId,
+        'is_read': false,
+        'created_at': newOrder.date.toIso8601String(),
+      });
+
+      // 3. Post directly to local PC Manager if available on network
+      () async {
+        try {
+          final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+          final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 1000);
+          final req = await client.postUrl(Uri.parse('http://$host:8088/api/orders'));
+          req.headers.contentType = ContentType.json;
+          req.write(jsonEncode(orderMap));
+          await req.close();
+        } catch (_) {}
+
+        try {
+          final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+          final notifClient = HttpClient()..connectionTimeout = const Duration(milliseconds: 1000);
+          final notifReq = await notifClient.postUrl(Uri.parse('http://$host:8088/api/notifications'));
+          notifReq.headers.contentType = ContentType.json;
+          notifReq.write(jsonEncode({
+            'id': 'NOTIF_ORDER_${newOrder.orderId}',
+            'title': 'New Customer Order Placed',
+            'message': 'Order #${newOrder.orderId} for GH₵${newOrder.totalAmount.toStringAsFixed(2)} placed by customer',
+            'type': 'order',
+            'target': 'manager',
+            'orderId': newOrder.orderId,
+          }));
+          await notifReq.close();
+        } catch (_) {}
+      }();
     }
 
     return newOrder;

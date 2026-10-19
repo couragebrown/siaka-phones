@@ -104,7 +104,27 @@ class _InventoryViewState extends State<InventoryView> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    widget.repository.addListener(_onRepositoryChanged);
+  }
+
+  @override
+  void didUpdateWidget(InventoryView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.repository != widget.repository) {
+      oldWidget.repository.removeListener(_onRepositoryChanged);
+      widget.repository.addListener(_onRepositoryChanged);
+    }
+  }
+
+  void _onRepositoryChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    widget.repository.removeListener(_onRepositoryChanged);
     _searchController.dispose();
     _horizontalScrollController.dispose();
     _verticalTableScrollController.dispose();
@@ -419,7 +439,7 @@ class _InventoryViewState extends State<InventoryView> {
           ),
           child: filteredProducts.isEmpty
               ? Center(
-                  child: widget.repository.isLoading
+                  child: widget.repository.isLoading && widget.repository.products.isEmpty
                       ? const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -442,22 +462,67 @@ class _InventoryViewState extends State<InventoryView> {
                             ),
                           ],
                         )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.inventory_2_outlined, size: 54, color: Colors.grey.shade300),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No products match your criteria',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
+                      : widget.repository.products.isEmpty
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.inventory_2_outlined, size: 54, color: Colors.blue.shade300),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Database Catalog is Currently Empty',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Click below to instantly populate the standard 10-device flagship inventory.',
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    widget.repository.seedInitialCatalogIfEmpty(force: true);
+                                    setState(() {});
+                                  },
+                                  icon: const Icon(Icons.download_rounded, size: 18),
+                                  label: const Text('Load Standard Phone Catalog (10 Devices)'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1C7BFF),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.filter_alt_off_outlined, size: 54, color: Colors.grey.shade300),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No products match your current filters',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Total available in catalog: ${widget.repository.products.length} SKUs. Clear filters or search to view.',
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                                ),
+                                const SizedBox(height: 14),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _searchController.clear();
+                                      _searchQuery = '';
+                                      _selectedCategory = 'All';
+                                      _onlyLowStock = false;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                                  label: const Text('Reset All Filters'),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Try clearing the filters or click "Add New Product" to expand the catalog.',
-                              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                            ),
-                          ],
-                        ),
                 )
               : LayoutBuilder(
                   builder: (context, tableConstraints) {
@@ -1379,15 +1444,33 @@ class _InventoryViewState extends State<InventoryView> {
     String? pickedImageName;
     int? pickedImageSize;
 
-    String selectedStorage = product?.storage ?? '256GB';
-    if (!_storageOptions.contains(selectedStorage)) {
-      selectedStorage = '256GB';
+    final List<String> selectedStorages = [];
+    if (product != null) {
+      if (product.storages.isNotEmpty) {
+        selectedStorages.addAll(product.storages);
+      } else if (product.storage.isNotEmpty) {
+        final parts = product.storage.split(RegExp(r'[,/•|]')).map((s) => s.trim()).where((s) => s.isNotEmpty);
+        selectedStorages.addAll(parts);
+      }
     }
+    if (selectedStorages.isEmpty) {
+      selectedStorages.add('256GB');
+    }
+    final customStorageCtrl = TextEditingController();
 
-    String selectedRam = product?.ram ?? '8GB';
-    if (!_ramOptions.contains(selectedRam)) {
-      selectedRam = '8GB';
+    final List<String> selectedRams = [];
+    if (product != null) {
+      if (product.rams.isNotEmpty) {
+        selectedRams.addAll(product.rams);
+      } else if (product.ram.isNotEmpty) {
+        final parts = product.ram.split(RegExp(r'[,/•|]')).map((s) => s.trim()).where((s) => s.isNotEmpty);
+        selectedRams.addAll(parts);
+      }
     }
+    if (selectedRams.isEmpty) {
+      selectedRams.add('8GB');
+    }
+    final customRamCtrl = TextEditingController();
 
     final List<String> selectedColors = [];
     if (product != null) {
@@ -1406,6 +1489,7 @@ class _InventoryViewState extends State<InventoryView> {
     final initialCondition = rawCondition == 'Brand New' ? 'New' : rawCondition;
     final conditionCtrl = TextEditingController(text: initialCondition);
     bool isFeatured = product?.isFeatured ?? true;
+    bool isSubmitting = false;
 
     // Dynamic Specifications List
     final List<String> specsList = List<String>.from(product?.specsList ?? []);
@@ -2017,82 +2101,413 @@ class _InventoryViewState extends State<InventoryView> {
                           const SizedBox(height: 22),
 
                           // -------------------------------------------------------------
-                          // SECTION 4: STORAGE & RAM SELECTION FROM LIST
+                          // SECTION 4: STORAGE & RAM SELECTION (1 OR MORE OPTIONS)
                           // -------------------------------------------------------------
-                          const Text(
-                            '4. HARDWARE MEMORY & STORAGE (SELECT FROM LIST)',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569), letterSpacing: 0.5),
-                          ),
-                          const SizedBox(height: 10),
-
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Storage Selector
-                              Expanded(
+                              const Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Internal Storage Capacity:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-                                    const SizedBox(height: 6),
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 6,
-                                      children: _storageOptions.map((st) {
-                                        final isSel = selectedStorage == st;
-                                        return ChoiceChip(
-                                          label: Text(st),
-                                          selected: isSel,
-                                          onSelected: (val) {
-                                            if (val) setDialogState(() => selectedStorage = st);
-                                          },
-                                          selectedColor: const Color(0xFF1C7BFF),
-                                          labelStyle: TextStyle(
-                                            color: isSel ? Colors.white : const Color(0xFF1E293B),
-                                            fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                                            fontSize: 12,
-                                          ),
-                                          backgroundColor: const Color(0xFFF1F5F9),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        );
-                                      }).toList(),
+                                    Text(
+                                      '4. HARDWARE MEMORY & STORAGE (SELECT 1 OR MORE OPTIONS)',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569), letterSpacing: 0.5),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Select all storage capacities and RAM sizes available for this model. You can select 1 or more options.',
+                                      style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                                     ),
                                   ],
                                 ),
                               ),
-
-                              const SizedBox(width: 16),
-
-                              // RAM Selector
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('System RAM Memory:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-                                    const SizedBox(height: 6),
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 6,
-                                      children: _ramOptions.map((rm) {
-                                        final isSel = selectedRam == rm;
-                                        return ChoiceChip(
-                                          label: Text(rm),
-                                          selected: isSel,
-                                          onSelected: (val) {
-                                            if (val) setDialogState(() => selectedRam = rm);
-                                          },
-                                          selectedColor: const Color(0xFF7C3AED),
-                                          labelStyle: TextStyle(
-                                            color: isSel ? Colors.white : const Color(0xFF1E293B),
-                                            fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                                            fontSize: 12,
-                                          ),
-                                          backgroundColor: const Color(0xFFF1F5F9),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        );
-                                      }).toList(),
+                              const SizedBox(width: 8),
+                              Wrap(
+                                spacing: 6,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFBFDBFE)),
                                     ),
-                                  ],
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.sd_storage_rounded, size: 14, color: Color(0xFF1D4ED8)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${selectedStorages.length} Storage${selectedStorages.length > 1 ? "s" : ""}',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1E40AF)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3E8FF),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFDDD6FE)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.memory_rounded, size: 14, color: Color(0xFF6D28D9)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${selectedRams.length} RAM${selectedRams.length > 1 ? "s" : ""}',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6D28D9)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // -------------------------------------------------------
+                              // Storage Multi-Select Column
+                              // -------------------------------------------------------
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Internal Storage (ROM):',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                                      ),
+                                      const SizedBox(height: 8),
+
+                                      // Selected Storage Summary Box
+                                      if (selectedStorages.isNotEmpty) ...[
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: selectedStorages.map((st) {
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF1C7BFF),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.check_rounded, size: 13, color: Colors.white),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    st,
+                                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Colors.white),
+                                                  ),
+                                                  if (selectedStorages.length > 1) ...[
+                                                    const SizedBox(width: 4),
+                                                    InkWell(
+                                                      onTap: () {
+                                                        setDialogState(() {
+                                                          selectedStorages.remove(st);
+                                                        });
+                                                      },
+                                                      child: const Icon(Icons.close_rounded, size: 13, color: Colors.white70),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                        const SizedBox(height: 10),
+                                      ],
+
+                                      // Quick Pick Options
+                                      const Text(
+                                        'Quick Pick Storage Options:',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: [
+                                          ..._storageOptions,
+                                          ...selectedStorages.where((s) => !_storageOptions.contains(s)),
+                                        ].map((st) {
+                                          final isSel = selectedStorages.contains(st);
+                                          return FilterChip(
+                                            label: Text(st),
+                                            selected: isSel,
+                                            onSelected: (val) {
+                                              setDialogState(() {
+                                                if (isSel) {
+                                                  if (selectedStorages.length > 1) {
+                                                    selectedStorages.remove(st);
+                                                  }
+                                                } else {
+                                                  selectedStorages.add(st);
+                                                }
+                                              });
+                                            },
+                                            selectedColor: const Color(0xFFDBEAFE),
+                                            checkmarkColor: const Color(0xFF1D4ED8),
+                                            labelStyle: TextStyle(
+                                              color: isSel ? const Color(0xFF1D4ED8) : const Color(0xFF334155),
+                                              fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                                              fontSize: 11.5,
+                                            ),
+                                            backgroundColor: Colors.white,
+                                            side: BorderSide(
+                                              color: isSel ? const Color(0xFF93C5FD) : const Color(0xFFCBD5E1),
+                                              width: isSel ? 1.4 : 0.8,
+                                            ),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                          );
+                                        }).toList(),
+                                      ),
+
+                                      const SizedBox(height: 10),
+
+                                      // Custom Storage Input
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 36,
+                                              child: TextField(
+                                                controller: customStorageCtrl,
+                                                style: const TextStyle(fontSize: 12),
+                                                decoration: InputDecoration(
+                                                  hintText: 'Add custom (e.g. 32GB, 4TB)...',
+                                                  hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                                  isDense: true,
+                                                ),
+                                                onSubmitted: (val) {
+                                                  final text = val.trim();
+                                                  if (text.isNotEmpty) {
+                                                    setDialogState(() {
+                                                      if (!selectedStorages.contains(text)) {
+                                                        selectedStorages.add(text);
+                                                      }
+                                                      customStorageCtrl.clear();
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              final text = customStorageCtrl.text.trim();
+                                              if (text.isNotEmpty) {
+                                                setDialogState(() {
+                                                  if (!selectedStorages.contains(text)) {
+                                                    selectedStorages.add(text);
+                                                  }
+                                                  customStorageCtrl.clear();
+                                                });
+                                              }
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF1C7BFF),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              minimumSize: const Size(0, 36),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                              elevation: 0,
+                                            ),
+                                            child: const Text('+ Add', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(width: 14),
+
+                              // -------------------------------------------------------
+                              // RAM Multi-Select Column
+                              // -------------------------------------------------------
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'System RAM Memory:',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                                      ),
+                                      const SizedBox(height: 8),
+
+                                      // Selected RAM Summary Box
+                                      if (selectedRams.isNotEmpty) ...[
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: selectedRams.map((rm) {
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF7C3AED),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.check_rounded, size: 13, color: Colors.white),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    rm,
+                                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Colors.white),
+                                                  ),
+                                                  if (selectedRams.length > 1) ...[
+                                                    const SizedBox(width: 4),
+                                                    InkWell(
+                                                      onTap: () {
+                                                        setDialogState(() {
+                                                          selectedRams.remove(rm);
+                                                        });
+                                                      },
+                                                      child: const Icon(Icons.close_rounded, size: 13, color: Colors.white70),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                        const SizedBox(height: 10),
+                                      ],
+
+                                      // Quick Pick Options
+                                      const Text(
+                                        'Quick Pick RAM Options:',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: [
+                                          ..._ramOptions,
+                                          ...selectedRams.where((r) => !_ramOptions.contains(r)),
+                                        ].map((rm) {
+                                          final isSel = selectedRams.contains(rm);
+                                          return FilterChip(
+                                            label: Text(rm),
+                                            selected: isSel,
+                                            onSelected: (val) {
+                                              setDialogState(() {
+                                                if (isSel) {
+                                                  if (selectedRams.length > 1) {
+                                                    selectedRams.remove(rm);
+                                                  }
+                                                } else {
+                                                  selectedRams.add(rm);
+                                                }
+                                              });
+                                            },
+                                            selectedColor: const Color(0xFFF3E8FF),
+                                            checkmarkColor: const Color(0xFF7C3AED),
+                                            labelStyle: TextStyle(
+                                              color: isSel ? const Color(0xFF7C3AED) : const Color(0xFF334155),
+                                              fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                                              fontSize: 11.5,
+                                            ),
+                                            backgroundColor: Colors.white,
+                                            side: BorderSide(
+                                              color: isSel ? const Color(0xFFDDD6FE) : const Color(0xFFCBD5E1),
+                                              width: isSel ? 1.4 : 0.8,
+                                            ),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                          );
+                                        }).toList(),
+                                      ),
+
+                                      const SizedBox(height: 10),
+
+                                      // Custom RAM Input
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 36,
+                                              child: TextField(
+                                                controller: customRamCtrl,
+                                                style: const TextStyle(fontSize: 12),
+                                                decoration: InputDecoration(
+                                                  hintText: 'Add custom (e.g. 18GB, 64GB)...',
+                                                  hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                                  isDense: true,
+                                                ),
+                                                onSubmitted: (val) {
+                                                  final text = val.trim();
+                                                  if (text.isNotEmpty) {
+                                                    setDialogState(() {
+                                                      if (!selectedRams.contains(text)) {
+                                                        selectedRams.add(text);
+                                                      }
+                                                      customRamCtrl.clear();
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              final text = customRamCtrl.text.trim();
+                                              if (text.isNotEmpty) {
+                                                setDialogState(() {
+                                                  if (!selectedRams.contains(text)) {
+                                                    selectedRams.add(text);
+                                                  }
+                                                  customRamCtrl.clear();
+                                                });
+                                              }
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF7C3AED),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              minimumSize: const Size(0, 36),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                              elevation: 0,
+                                            ),
+                                            child: const Text('+ Add', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -2642,151 +3057,205 @@ class _InventoryViewState extends State<InventoryView> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => Navigator.pop(ctx),
+                        onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton.icon(
-                        icon: Icon(isEditing ? Icons.save_rounded : Icons.add_circle_outline_rounded, size: 18),
+                        icon: isSubmitting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Icon(isEditing ? Icons.save_rounded : Icons.add_circle_outline_rounded, size: 18),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1C7BFF),
+                          backgroundColor: isSubmitting ? const Color(0xFF93C5FD) : const Color(0xFF1C7BFF),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        onPressed: () async {
-                          final resolvedName = isCustomModel
-                              ? customModelCtrl.text.trim()
-                              : selectedModel;
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                final resolvedName = isCustomModel
+                                    ? customModelCtrl.text.trim()
+                                    : selectedModel;
 
-                          if (resolvedName.isEmpty || resolvedName == 'Custom / Unlisted Model') {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please select or specify a valid product model name'),
-                                backgroundColor: Color(0xFFDC2626),
-                              ),
-                            );
-                            return;
-                          }
+                                if (resolvedName.isEmpty || resolvedName == 'Custom / Unlisted Model') {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please select or specify a valid product model name'),
+                                      backgroundColor: Color(0xFFDC2626),
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          final wholesale = double.tryParse(wholesalePriceCtrl.text) ?? 0.0;
-                          final retail = double.tryParse(retailPriceCtrl.text) ?? wholesale;
-                          final stock = int.tryParse(stockCtrl.text) ?? 0;
+                                final wholesale = double.tryParse(wholesalePriceCtrl.text) ?? 0.0;
+                                final retail = double.tryParse(retailPriceCtrl.text) ?? wholesale;
+                                final stock = int.tryParse(stockCtrl.text) ?? 0;
 
-                          if (wholesale <= 0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please specify a valid wholesale selling price'),
-                                backgroundColor: Color(0xFFDC2626),
-                              ),
-                            );
-                            return;
-                          }
+                                if (wholesale <= 0) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please specify a valid wholesale selling price'),
+                                      backgroundColor: Color(0xFFDC2626),
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          if (selectedColors.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please select or add at least 1 color finish for this SKU'),
-                                backgroundColor: Color(0xFFDC2626),
-                              ),
-                            );
-                            return;
-                          }
+                                if (selectedStorages.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please select or add at least 1 storage capacity for this SKU'),
+                                      backgroundColor: Color(0xFFDC2626),
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          final compiledSpecs = specsList.isNotEmpty ? specsList.join(' • ') : '';
-                          final primaryColor = selectedColors.first;
+                                if (selectedRams.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please select or add at least 1 RAM memory size for this SKU'),
+                                      backgroundColor: Color(0xFFDC2626),
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          // Determine product ID for image filename
-                          final productId = isEditing
-                              ? product.id
-                              : 'prod_${DateTime.now().millisecondsSinceEpoch}';
+                                if (selectedColors.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please select or add at least 1 color finish for this SKU'),
+                                      backgroundColor: Color(0xFFDC2626),
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          // Resolve the final image URL
-                          String imgUrl = imageUrlCtrl.text.trim();
+                                // Lock button immediately to prevent double/multiple clicks
+                                setDialogState(() {
+                                  isSubmitting = true;
+                                });
 
-                          // Determine image bytes: prefer pickedImageBytes, otherwise read local file
-                          Uint8List? bytesToUpload = pickedImageBytes;
-                          if (bytesToUpload == null &&
-                              imgUrl.isNotEmpty &&
-                              !imgUrl.startsWith('http') &&
-                              !imgUrl.startsWith('data:')) {
-                            try {
-                              final localFile = File(imgUrl);
-                              if (localFile.existsSync()) {
-                                bytesToUpload = localFile.readAsBytesSync();
-                              }
-                            } catch (_) {}
-                          }
+                                try {
+                                  final compiledSpecs = specsList.isNotEmpty ? specsList.join(' • ') : '';
+                                  final primaryColor = selectedColors.first;
+                                  final resolvedStorage = selectedStorages.join(', ');
+                                  final resolvedRam = selectedRams.join(', ');
 
-                          // Upload to Supabase Storage if we have image bytes
-                          if (bytesToUpload != null) {
-                            setDialogState(() {});
-                            final uploadedUrl = await widget.repository.supabase
-                                .uploadProductImage(bytesToUpload, productId);
-                            if (uploadedUrl != null) {
-                              // ✅ Successfully uploaded to Supabase Storage — use public URL
-                              imgUrl = uploadedUrl;
-                            } else {
-                              // ⚠️ Storage upload failed (bucket may not exist yet) —
-                              // fall back to base64 Data URI so image is always saved
-                              imgUrl = 'data:image/png;base64,${base64Encode(bytesToUpload)}';
-                              debugPrint('⚠️ Storage upload failed, saved as base64 fallback');
-                            }
-                          }
+                                  // Determine product ID for image filename
+                                  final productId = isEditing
+                                      ? product.id
+                                      : 'prod_${DateTime.now().millisecondsSinceEpoch}';
 
-                          if (isEditing) {
-                            product.name = resolvedName;
-                            product.brand = selectedBrand;
-                            product.category = categoryCtrl.text;
-                            product.wholesalePrice = wholesale;
-                            product.retailPrice = retail;
-                            product.stock = stock;
-                            product.storage = selectedStorage;
-                            product.ram = selectedRam;
-                            product.color = primaryColor;
-                            product.colors = List<String>.from(selectedColors);
-                            product.specsList = List<String>.from(specsList);
-                            product.specs = compiledSpecs;
-                            product.condition = conditionCtrl.text;
-                            product.isFeatured = isFeatured;
-                            product.imageUrl = imgUrl;
-                            product.imageBytes = pickedImageBytes;
-                            widget.repository.updateProduct(product);
-                          } else {
-                            final newProduct = ManagerProduct(
-                              id: productId,
-                              name: resolvedName,
-                              brand: selectedBrand,
-                              category: categoryCtrl.text,
-                              price: wholesale,
-                              originalPrice: retail,
-                              stock: stock,
-                              specs: compiledSpecs,
-                              specsList: List<String>.from(specsList),
-                              storage: selectedStorage,
-                              ram: selectedRam,
-                              color: primaryColor,
-                              colors: List<String>.from(selectedColors),
-                              condition: conditionCtrl.text,
-                              isFeatured: isFeatured,
-                              imageUrl: imgUrl,
-                              imageBytes: pickedImageBytes,
-                            );
-                            widget.repository.addProduct(newProduct);
-                          }
+                                  // Resolve the final image URL
+                                  String imgUrl = imageUrlCtrl.text.trim();
 
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          setState(() {});
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(isEditing ? 'Product "$resolvedName" updated successfully' : 'New SKU "$resolvedName" added to inventory catalog'),
-                                backgroundColor: const Color(0xFF059669),
-                              ),
-                            );
-                          }
-                        },
-                        label: Text(isEditing ? 'Save Product Changes' : 'Create Inventory SKU'),
+                                  // Determine image bytes: prefer pickedImageBytes, otherwise read local file
+                                  Uint8List? bytesToUpload = pickedImageBytes;
+                                  if (bytesToUpload == null &&
+                                      imgUrl.isNotEmpty &&
+                                      !imgUrl.startsWith('http') &&
+                                      !imgUrl.startsWith('data:')) {
+                                    try {
+                                      final localFile = File(imgUrl);
+                                      if (localFile.existsSync()) {
+                                        bytesToUpload = localFile.readAsBytesSync();
+                                      }
+                                    } catch (_) {}
+                                  }
+
+                                  // Upload to Supabase Storage with fast timeout fallback so UI never hangs
+                                  if (bytesToUpload != null) {
+                                    try {
+                                      final uploadedUrl = await widget.repository.supabase
+                                          .uploadProductImage(bytesToUpload, productId)
+                                          .timeout(const Duration(milliseconds: 1200));
+                                      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+                                        imgUrl = uploadedUrl;
+                                      } else {
+                                        imgUrl = 'data:image/png;base64,${base64Encode(bytesToUpload)}';
+                                      }
+                                    } catch (_) {
+                                      imgUrl = 'data:image/png;base64,${base64Encode(bytesToUpload)}';
+                                    }
+                                  }
+
+                                  if (isEditing) {
+                                    product.name = resolvedName;
+                                    product.brand = selectedBrand;
+                                    product.category = categoryCtrl.text;
+                                    product.wholesalePrice = wholesale;
+                                    product.retailPrice = retail;
+                                    product.stock = stock;
+                                    product.storage = resolvedStorage;
+                                    product.storages = List<String>.from(selectedStorages);
+                                    product.ram = resolvedRam;
+                                    product.rams = List<String>.from(selectedRams);
+                                    product.color = primaryColor;
+                                    product.colors = List<String>.from(selectedColors);
+                                    product.specsList = List<String>.from(specsList);
+                                    product.specs = compiledSpecs;
+                                    product.condition = conditionCtrl.text;
+                                    product.isFeatured = isFeatured;
+                                    product.imageUrl = imgUrl;
+                                    product.imageBytes = pickedImageBytes;
+                                    widget.repository.updateProduct(product);
+                                  } else {
+                                    final newProduct = ManagerProduct(
+                                      id: productId,
+                                      name: resolvedName,
+                                      brand: selectedBrand,
+                                      category: categoryCtrl.text,
+                                      price: wholesale,
+                                      originalPrice: retail,
+                                      stock: stock,
+                                      specs: compiledSpecs,
+                                      specsList: List<String>.from(specsList),
+                                      storage: resolvedStorage,
+                                      storages: List<String>.from(selectedStorages),
+                                      ram: resolvedRam,
+                                      rams: List<String>.from(selectedRams),
+                                      color: primaryColor,
+                                      colors: List<String>.from(selectedColors),
+                                      condition: conditionCtrl.text,
+                                      isFeatured: isFeatured,
+                                      imageUrl: imgUrl,
+                                      imageBytes: pickedImageBytes,
+                                    );
+                                    widget.repository.addProduct(newProduct);
+                                  }
+
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  setState(() {});
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(isEditing
+                                            ? 'Product "$resolvedName" updated successfully'
+                                            : 'New SKU "$resolvedName" added to inventory catalog'),
+                                        backgroundColor: const Color(0xFF059669),
+                                      ),
+                                    );
+                                  }
+                                } finally {
+                                  if (ctx.mounted) {
+                                    setDialogState(() {
+                                      isSubmitting = false;
+                                    });
+                                  }
+                                }
+                              },
+                        label: Text(isSubmitting
+                            ? (isEditing ? 'Saving Changes...' : 'Creating SKU...')
+                            : (isEditing ? 'Save Product Changes' : 'Create Inventory SKU')),
                       ),
                     ],
                   ),

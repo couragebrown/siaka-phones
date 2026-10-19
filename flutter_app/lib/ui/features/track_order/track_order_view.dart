@@ -8,12 +8,16 @@ class TrackOrderView extends StatefulWidget {
   final OrderModel order;
   final OrderRepository? orderRepository;
   final ValueChanged<int> onTabSelected;
+  final int cartBadgeCount;
+  final int wishlistBadgeCount;
 
   const TrackOrderView({
     super.key,
     required this.order,
     this.orderRepository,
     required this.onTabSelected,
+    this.cartBadgeCount = 0,
+    this.wishlistBadgeCount = 0,
   });
 
   @override
@@ -930,6 +934,8 @@ class _TrackOrderViewState extends State<TrackOrderView> {
           AppBottomNavBar(
             currentIndex: 0,
             onTabSelected: widget.onTabSelected,
+            cartBadgeCount: widget.cartBadgeCount,
+            wishlistBadgeCount: widget.wishlistBadgeCount,
           ),
         ],
       ),

@@ -445,7 +445,7 @@ class _OrdersViewState extends State<OrdersView> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${item.selectedColor} • ${item.selectedStorage} • Qty: ${item.quantity}',
+                                '${item.specsDescription} • Qty: ${item.quantity}',
                                 style: const TextStyle(
                                   color: Color(0xFF64748B),
                                   fontSize: 11.5,

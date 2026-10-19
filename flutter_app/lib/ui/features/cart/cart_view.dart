@@ -669,7 +669,7 @@ class _CartViewState extends State<CartView> {
 
                 // Specs
                 Text(
-                  '${item.selectedStorage} • ${item.selectedColor}',
+                  item.specsDescription,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -772,7 +772,6 @@ class _CartViewState extends State<CartView> {
     final subtotal = widget.viewModel.subtotal;
     final discount = widget.viewModel.discountAmount;
     final shipping = widget.viewModel.shipping;
-    final tax = widget.viewModel.tax;
     final total = widget.viewModel.total;
 
     return Padding(
@@ -892,11 +891,6 @@ class _CartViewState extends State<CartView> {
               valueColor: shipping == 0.0
                   ? const Color(0xFF059669)
                   : const Color(0xFF1F2937),
-            ),
-            const SizedBox(height: 6),
-            _buildSummaryRow(
-              'Estimated Tax (8.25%)',
-              '₵${tax.toStringAsFixed(2)}',
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),

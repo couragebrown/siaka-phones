@@ -11,8 +11,11 @@ import '../../core/widgets/banner_video_player.dart';
 import '../../core/widgets/flash_sale_promo_banner.dart';
 import '../../core/widgets/ai_customer_service_pill.dart';
 import '../../core/widgets/product_smart_image.dart';
+import '../../core/widgets/banner_playlist_image_cycler.dart';
+import '../../../domain/models/banner_playlist.dart';
 import '../brands/brands_view.dart';
 import '../notifications/notifications_view.dart';
+import '../../../data/repositories/customer_notification_repository.dart';
 import 'home_view_model.dart';
 
 class _HeroPromotion {
@@ -378,20 +381,32 @@ class _HomeViewState extends State<HomeView> {
                   Positioned(
                     right: -2,
                     top: -2,
-                    child: Container(
-                      width: 13,
-                      height: 13,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1C7BFF),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Text('2',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 8.5,
-                                fontWeight: FontWeight.bold)),
-                      ),
+                    child: AnimatedBuilder(
+                      animation: CustomerNotificationRepository.instance,
+                      builder: (context, _) {
+                        final unread =
+                            CustomerNotificationRepository.instance.unreadCount;
+                        if (unread <= 0) return const SizedBox.shrink();
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 3, vertical: 1),
+                          constraints: const BoxConstraints(
+                              minWidth: 14, minHeight: 14),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF1C7BFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              unread > 9 ? '9+' : '$unread',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   )
                 ],
@@ -1842,12 +1857,20 @@ class _HomeViewState extends State<HomeView> {
                                     borderRadius: BorderRadius.circular(11),
                                     child: ValueListenableBuilder<int>(
                                       valueListenable: _activeHeroIndexNotifier,
-                                      builder: (context, activeIndex, _) => BannerVideoPlayer(
-                                        isActive: activeIndex == 0,
-                                        onVideoCompleted:
-                                            _onBannerVideoCompleted,
-                                        aspectRatio: 16 / 10,
-                                      ),
+                                      builder: (context, activeIndex, _) {
+                                        final playlist = widget.viewModel.getBannerPlaylist('banner_home_1');
+                                        final activeVideos = (playlist != null && playlist.isActive && playlist.activeVideos.isNotEmpty)
+                                            ? playlist.activeVideos.map((v) => v.videoUrl).toList()
+                                            : null;
+
+                                        return BannerVideoPlayer(
+                                          isActive: activeIndex == 0,
+                                          onVideoCompleted:
+                                              _onBannerVideoCompleted,
+                                          aspectRatio: 16 / 10,
+                                          videoSources: activeVideos,
+                                        );
+                                      },
                                     ),
                                   ),
                                 ),
@@ -2370,48 +2393,78 @@ class _HomeViewState extends State<HomeView> {
                           clipBehavior: Clip.none,
                           children: [
                             // Phones cascade keeping the phone images and design from the app banner
-                            if (tertiaryProduct != null)
-                              Positioned(
-                                left: 6,
-                                bottom: 18,
-                                child: Transform.rotate(
-                                  angle: -0.06,
-                                  child: _buildHeroProductImage(
-                                    tertiaryProduct,
-                                    66,
-                                    102,
-                                    10,
-                                  ),
-                                ),
-                              ),
-                            if (secondaryProduct != null)
-                              Positioned(
-                                left: tertiaryProduct != null ? 44 : 14,
-                                bottom: 14,
-                                child: Transform.rotate(
-                                  angle: 0.02,
-                                  child: _buildHeroProductImage(
-                                    secondaryProduct,
-                                    74,
-                                    116,
-                                    12,
-                                  ),
-                                ),
-                              ),
-                            if (primaryProduct != null)
-                              Positioned(
-                                left: tertiaryProduct != null ? 80 : 68,
-                                bottom: 10,
-                                child: Transform.rotate(
-                                  angle: 0.07,
-                                  child: _buildHeroProductImage(
-                                    primaryProduct,
-                                    86,
-                                    130,
-                                    14,
-                                  ),
-                                ),
-                              ),
+                            Builder(
+                              builder: (context) {
+                                final playlistId = 'banner_home_${index + 1}';
+                                final playlist = widget.viewModel.getBannerPlaylist(playlistId);
+                                final activeImages = (playlist != null && playlist.isActive)
+                                    ? playlist.activeImages.take(3).toList()
+                                    : <BannerImageItem>[];
+
+                                final backPlaylistImage = activeImages.isNotEmpty ? activeImages[0].imageUrl : null;
+                                final midPlaylistImage = activeImages.length > 1 ? activeImages[1].imageUrl : null;
+                                final frontPlaylistImage = activeImages.length > 2 ? activeImages[2].imageUrl : null;
+
+                                final backProduct = tertiaryProduct;
+                                final midProduct = secondaryProduct;
+                                final frontProduct = primaryProduct;
+
+                                final hasBack = backPlaylistImage != null || backProduct != null;
+                                final hasMid = midPlaylistImage != null || midProduct != null;
+                                final hasFront = frontPlaylistImage != null || frontProduct != null;
+
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    if (hasBack)
+                                      Positioned(
+                                        left: 6,
+                                        bottom: 18,
+                                        child: Transform.rotate(
+                                          angle: -0.06,
+                                          child: _buildHeroProductImage(
+                                            backProduct,
+                                            66,
+                                            102,
+                                            10,
+                                            overrideImageUrl: backPlaylistImage,
+                                          ),
+                                        ),
+                                      ),
+                                    if (hasMid)
+                                      Positioned(
+                                        left: hasBack ? 44 : 14,
+                                        bottom: 14,
+                                        child: Transform.rotate(
+                                          angle: 0.02,
+                                          child: _buildHeroProductImage(
+                                            midProduct,
+                                            74,
+                                            116,
+                                            12,
+                                            overrideImageUrl: midPlaylistImage,
+                                          ),
+                                        ),
+                                      ),
+                                    if (hasFront)
+                                      Positioned(
+                                        left: hasBack ? 80 : 68,
+                                        bottom: 10,
+                                        child: Transform.rotate(
+                                          angle: 0.07,
+                                          child: _buildHeroProductImage(
+                                            frontProduct,
+                                            86,
+                                            130,
+                                            14,
+                                            overrideImageUrl: frontPlaylistImage,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
 
                             // Floating badge with tail pointing to phone
                             Positioned(
@@ -2564,11 +2617,17 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildHeroProductImage(
-    Product product,
+    Product? product,
     double width,
     double height,
-    double radius,
-  ) {
+    double radius, {
+    String? overrideImageUrl,
+    List<BannerImageItem>? playlistImages,
+  }) {
+    final image = (overrideImageUrl != null && overrideImageUrl.isNotEmpty)
+        ? overrideImageUrl
+        : (product != null && product.images.isNotEmpty ? product.images.first : null);
+
     return Container(
       width: width,
       height: height,
@@ -2584,15 +2643,22 @@ class _HomeViewState extends State<HomeView> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: product.images.isNotEmpty
-            ? ProductSmartImage(
-                imageUrl: product.images.first,
-                fit: BoxFit.cover,
+        child: (playlistImages != null && playlistImages.isNotEmpty)
+            ? BannerPlaylistImageCycler(
+                images: playlistImages,
                 width: width,
                 height: height,
-                fallback: Container(color: const Color(0xFFE2E8F0)),
+                fit: BoxFit.cover,
               )
-            : Container(color: const Color(0xFFE2E8F0)),
+            : (image != null
+                ? ProductSmartImage(
+                    imageUrl: image,
+                    fit: BoxFit.cover,
+                    width: width,
+                    height: height,
+                    fallback: Container(color: const Color(0xFFE2E8F0)),
+                  )
+                : Container(color: const Color(0xFFE2E8F0))),
       ),
     );
   }
@@ -2769,11 +2835,21 @@ class _HomeViewState extends State<HomeView> {
   /// horizontally-scrollable row with 2 cards visible at a time,
   /// with the brand name shown as a label above each row.
   Widget _buildFeaturedByBrand() {
-    final items = widget.viewModel.featuredProducts;
+    // Repository order is newest-first (the PC Manager puts new products at the top),
+    // so a product added on the PC leads the list and is visible instantly.
+    final allMerchandise = widget.viewModel.allProducts.where((p) => p.isMerchandise).toList();
+    final featured = widget.viewModel.featuredProducts.where((p) => p.isMerchandise).toList();
+    final items = <Product>[...allMerchandise];
+    for (final p in featured) {
+      if (!items.any((existing) => existing.id == p.id)) {
+        items.add(p);
+      }
+    }
 
     // Group products by brand or custom category, preserving insertion order.
     final Map<String, List<Product>> byBrand = {};
     for (final p in items) {
+      if (!p.isMerchandise) continue;
       final isGeneric = p.brand.toLowerCase().contains('other') ||
           p.brand.toLowerCase().contains('custom') ||
           p.brand.toLowerCase() == 'generic' ||
@@ -2972,9 +3048,10 @@ class _HomeViewState extends State<HomeView> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Color(0xFF6B7280),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+                color: Color(0xFF0D62FE),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
               ),
             ),
             const SizedBox(height: 3),

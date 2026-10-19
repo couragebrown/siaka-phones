@@ -9,6 +9,7 @@ import '../../domain/models/manager_shipping.dart';
 import '../../domain/models/manager_swap.dart';
 import '../../domain/models/service_ticket.dart';
 import '../../domain/models/advertisement_banner.dart';
+import '../../domain/models/banner_playlist.dart';
 
 class MockManagerData {
   static List<ManagerProduct> getInitialProducts() {
@@ -548,7 +549,7 @@ class MockManagerData {
     final now = DateTime.now();
     return [
       CustomerActivity(
-        id: 'CUST-1001',
+        id: 'SK-90001',
         fullName: 'Kwame Mensah',
         phone: '+233 24 123 4567',
         email: 'kwame.mensah@gmail.com',
@@ -563,7 +564,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1002',
+        id: 'SK-90002',
         fullName: 'Abena Osei',
         phone: '+233 50 987 6543',
         email: 'abena.osei@outlook.com',
@@ -578,7 +579,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1003',
+        id: 'SK-90003',
         fullName: 'Kofi Annan Jr.',
         phone: '+233 27 889 0011',
         email: 'kofi.annan@yahoo.com',
@@ -593,7 +594,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1004',
+        id: 'SK-90004',
         fullName: 'Esi Boakye',
         phone: '+233 55 443 2211',
         email: 'esi.boakye@gmail.com',
@@ -608,7 +609,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1005',
+        id: 'SK-90005',
         fullName: 'Emmanuel Tetteh',
         phone: '+233 20 112 3344',
         email: 'e.tetteh@icloud.com',
@@ -623,7 +624,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1006',
+        id: 'SK-90006',
         fullName: 'Nana Yaa Darko',
         phone: '+233 24 556 7788',
         email: 'nana.darko@gmail.com',
@@ -638,7 +639,7 @@ class MockManagerData {
         isOnline: false,
       ),
       CustomerActivity(
-        id: 'CUST-1007',
+        id: 'SK-90007',
         fullName: 'Bright Quaye',
         phone: '+233 54 887 6655',
         email: 'bright.q@gmail.com',
@@ -653,7 +654,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1008',
+        id: 'SK-90008',
         fullName: 'Jennifer Agyeman',
         phone: '+233 24 332 1199',
         email: 'jennifer.a@hotmail.com',
@@ -668,7 +669,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1009',
+        id: 'SK-90009',
         fullName: 'Samuel K. Adjei',
         phone: '+233 59 778 9900',
         email: 'samuel.adjei@gmail.com',
@@ -683,7 +684,7 @@ class MockManagerData {
         isOnline: false,
       ),
       CustomerActivity(
-        id: 'CUST-1010',
+        id: 'SK-90010',
         fullName: 'Doris Akuffo',
         phone: '+233 26 445 6677',
         email: 'doris.akuffo@yahoo.com',
@@ -698,7 +699,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1011',
+        id: 'SK-90011',
         fullName: 'Yaw Frimpong',
         phone: '+233 50 112 9988',
         email: 'yaw.frimpong@gmail.com',
@@ -713,7 +714,7 @@ class MockManagerData {
         isOnline: false,
       ),
       CustomerActivity(
-        id: 'CUST-1012',
+        id: 'SK-90012',
         fullName: 'Priscilla Antwi',
         phone: '+233 24 990 1122',
         email: 'priscilla.antwi@gmail.com',
@@ -728,7 +729,7 @@ class MockManagerData {
         isOnline: false,
       ),
       CustomerActivity(
-        id: 'CUST-1013',
+        id: 'SK-90013',
         fullName: 'Grace Addo',
         phone: '+233 24 555 1290',
         email: 'grace.addo@gmail.com',
@@ -743,7 +744,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'CUST-1014',
+        id: 'SK-90014',
         fullName: 'Kelvin Boateng',
         phone: '+233 55 889 4433',
         email: 'kelvin.b@gmail.com',
@@ -765,11 +766,11 @@ class MockManagerData {
     return [
       CustomerMessage(
         id: 'MSG-2026-101',
-        customerId: 'CUST-1001',
+        customerId: 'SK-90001',
         customerName: 'Kwame Mensah',
         customerPhone: '+233 24 123 4567',
         customerEmail: 'kwame.mensah@gmail.com',
-        channel: MessageChannel.sms,
+        channel: MessageChannel.inApp,
         category: MessageCategory.orderUpdate,
         subject: 'Order Dispatch Notice',
         message: 'Dear Kwame, your order #ORD-2026-001 has been dispatched with delivery driver Kojo (0244112233). Track via your Siaka App.',
@@ -778,11 +779,11 @@ class MockManagerData {
       ),
       CustomerMessage(
         id: 'MSG-2026-102',
-        customerId: 'CUST-1002',
+        customerId: 'SK-90002',
         customerName: 'Abena Osei',
         customerPhone: '+233 20 987 6543',
         customerEmail: 'abena.osei@yahoo.com',
-        channel: MessageChannel.whatsapp,
+        channel: MessageChannel.email,
         category: MessageCategory.repairNotice,
         subject: 'Screen Repair Diagnostic Complete',
         message: 'Hi Abena, your Samsung S23 Ultra screen diagnosis is complete. Genuine OLED replacement panel is ready. Estimated completion: today at 4:30 PM.',
@@ -791,11 +792,11 @@ class MockManagerData {
       ),
       CustomerMessage(
         id: 'MSG-2026-103',
-        customerId: 'CUST-1003',
+        customerId: 'SK-90003',
         customerName: 'Samuel Adjei',
         customerPhone: '+233 54 223 3445',
         customerEmail: 'samuel.adjei@gmail.com',
-        channel: MessageChannel.sms,
+        channel: MessageChannel.inApp,
         category: MessageCategory.paymentReminder,
         subject: 'Installment Reminder',
         message: 'Hello Samuel, friendly reminder that your BNPL installment of GH₵ 880 is due in 3 days. Pay conveniently via Mobile Money on your Siaka app.',
@@ -804,11 +805,11 @@ class MockManagerData {
       ),
       CustomerMessage(
         id: 'MSG-2026-104',
-        customerId: 'CUST-1004',
+        customerId: 'SK-90004',
         customerName: 'Akosua Ansah',
         customerPhone: '+233 55 432 1098',
         customerEmail: 'akosua.ansah@gmail.com',
-        channel: MessageChannel.inApp,
+        channel: MessageChannel.email,
         category: MessageCategory.promotional,
         subject: 'VIP Device Trade-In Bonus',
         message: 'Trade in your iPhone 13 this week and receive an extra GH₵ 350 trade-in bonus voucher towards any iPhone 15 or 15 Pro model!',
@@ -823,7 +824,7 @@ class MockManagerData {
     return [
       ServiceTicket(
         id: 'SRV-2026-001',
-        customerId: 'CUST-1001',
+        customerId: 'SK-90001',
         customerName: 'Kwame Mensah',
         customerPhone: '+233 24 123 4567',
         customerEmail: 'kwame.mensah@gmail.com',
@@ -1101,6 +1102,166 @@ class MockManagerData {
         impressionsCount: 1120,
         clicksCount: 215,
         createdAt: now.subtract(const Duration(days: 9)),
+      ),
+    ];
+  }
+
+  static List<BannerPlaylist> getInitialBannerPlaylists() {
+    final now = DateTime.now();
+    return [
+      BannerPlaylist(
+        id: 'banner_home_1',
+        name: 'Homepage Banner 1',
+        subtitle: 'Hero Video Ad Loop (Slide 1)',
+        targetPage: 'home',
+        bannerIndex: 0,
+        bannerType: 'video',
+        isActive: true,
+        images: const [],
+        videos: [
+          BannerVideoItem(
+            id: 'VID-H1-01',
+            videoUrl: 'assets/videos/phone_promo.mp4',
+            title: 'iPhone 16 Pro Max • Official Launch Promo',
+            description: 'Ultra titanium finish, Apple Intelligence & A18 Pro chip',
+            badgeText: 'HOT DEAL',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 4)),
+          ),
+          BannerVideoItem(
+            id: 'VID-H1-02',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+            title: 'Samsung Galaxy S24 Ultra • AI Flagship Event',
+            description: 'Live translate, circle to search, and pro-visual camera engine',
+            badgeText: 'NEW',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 2)),
+          ),
+        ],
+      ),
+      BannerPlaylist(
+        id: 'banner_home_2',
+        name: 'Homepage Banner 2',
+        subtitle: 'New Arrivals (Flagship 20% Off)',
+        targetPage: 'home',
+        bannerIndex: 1,
+        bannerType: 'image',
+        isActive: true,
+        videos: const [],
+        images: [
+          BannerImageItem(
+            id: 'IMG-H2-01',
+            imageUrl:
+                'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
+            title: 'Google Pixel 9 Pro XL • Hazel Glass',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 5)),
+          ),
+          BannerImageItem(
+            id: 'IMG-H2-02',
+            imageUrl:
+                'https://images.unsplash.com/photo-1511707171634-5f897ff02560?auto=format&fit=crop&w=800&q=80',
+            title: 'Tecno Camon 30 Premier 5G',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 3)),
+          ),
+        ],
+      ),
+      BannerPlaylist(
+        id: 'banner_home_3',
+        name: 'Homepage Banner 3',
+        subtitle: 'Trade-in Deals (Instant Upgrade Credit)',
+        targetPage: 'home',
+        bannerIndex: 2,
+        bannerType: 'image',
+        isActive: true,
+        videos: const [],
+        images: [
+          BannerImageItem(
+            id: 'IMG-H3-01',
+            imageUrl:
+                'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=800&q=80',
+            title: 'Apple iPhone 15 Plus • Pastel Blue',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 6)),
+          ),
+          BannerImageItem(
+            id: 'IMG-H3-02',
+            imageUrl:
+                'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=800&q=80',
+            title: 'Galaxy Z Fold 6 • Silver Shadow',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 1)),
+          ),
+        ],
+      ),
+      BannerPlaylist(
+        id: 'banner_home_4',
+        name: 'Homepage Banner 4',
+        subtitle: 'Premium Care (Screen & Hardware Protection)',
+        targetPage: 'home',
+        bannerIndex: 3,
+        bannerType: 'image',
+        isActive: true,
+        videos: const [],
+        images: [
+          BannerImageItem(
+            id: 'IMG-H4-01',
+            imageUrl:
+                'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=800&q=80',
+            title: 'Screen & AMOLED Diamond Glass Guard',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 7)),
+          ),
+          BannerImageItem(
+            id: 'IMG-H4-02',
+            imageUrl:
+                'https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=800&q=80',
+            title: 'OEM 1-Year Certified Store Warranty',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 2)),
+          ),
+        ],
+      ),
+      BannerPlaylist(
+        id: 'banner_search_1',
+        name: 'Search Page Banner',
+        subtitle: 'Catalog Top Video Ad Stream',
+        targetPage: 'search',
+        bannerIndex: 0,
+        bannerType: 'video',
+        isActive: true,
+        images: const [],
+        videos: [
+          BannerVideoItem(
+            id: 'VID-S1-01',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+            title: 'Search Spotlight • Fast Smartphone Catalog',
+            description: 'Explore Ghana\'s best device deals with instant store warranty',
+            badgeText: 'FEATURED',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 5)),
+          ),
+          BannerVideoItem(
+            id: 'VID-S1-02',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+            title: 'Express Repairs & Genuine Screen Replacements',
+            description: 'Walk in or ship to Circle & Madina hubs for express turnaround',
+            badgeText: 'SERVICE',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 1)),
+          ),
+        ],
       ),
     ];
   }

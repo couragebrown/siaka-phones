@@ -259,7 +259,7 @@ class ConfirmationView extends StatelessWidget {
                                           ),
                                         ),
                                         Text(
-                                          '${item.selectedStorage} • ${item.selectedColor} • Qty: ${item.quantity}',
+                                          '${item.specsDescription} • Qty: ${item.quantity}',
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(

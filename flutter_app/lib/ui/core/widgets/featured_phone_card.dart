@@ -112,9 +112,10 @@ class FeaturedPhoneCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Color(0xFF6B7280),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+                color: Color(0xFF0D62FE),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
               ),
             ),
             const SizedBox(height: 3),

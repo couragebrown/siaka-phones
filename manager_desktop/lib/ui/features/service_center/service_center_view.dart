@@ -99,45 +99,17 @@ class _ServiceCenterViewState extends State<ServiceCenterView> {
     }
   }
 
-  void _simulateCustomerMessage() {
-    if (_selectedTicket == null) return;
-
-    final sampleMessages = [
-      'Thank you manager, I will make payment right now on the app.',
-      'Could you also check if you have the 20W USB-C adapter in stock?',
-      'Alright, I am on my way to Circle right now. See you soon!',
-      'Great! Please notify me once the rider is close to my office.',
-    ];
-
-    final randomMsg = (sampleMessages..shuffle()).first;
-    widget.repository.addIncomingCustomerMessage(_selectedTicket!.id, randomMsg);
-
-    setState(() {
-      _selectedTicket = widget.repository.serviceTickets
-          .firstWhere((t) => t.id == _selectedTicket!.id);
-    });
-
-    _scrollToBottom();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.mark_chat_unread_rounded, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text('New incoming message received from ${_selectedTicket!.customerName}!'),
-          ],
-        ),
-        backgroundColor: const Color(0xFF1C7BFF),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final tickets = widget.repository.serviceTickets;
+    if (_selectedTicket != null) {
+      final matching = tickets.where((t) => t.id == _selectedTicket!.id);
+      if (matching.isNotEmpty) {
+        _selectedTicket = matching.first;
+      }
+    } else if (tickets.isNotEmpty) {
+      _selectedTicket = tickets.first;
+    }
 
     // Filter tickets
     final filteredTickets = tickets.where((t) {
@@ -192,7 +164,7 @@ class _ServiceCenterViewState extends State<ServiceCenterView> {
           ],
         ),
 
-        // KPI Counters & Simulation Button
+        // KPI Counters & Live Sync Status
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -202,15 +174,27 @@ class _ServiceCenterViewState extends State<ServiceCenterView> {
             _buildStatusBadge('Waiting', waitingCount, const Color(0xFF7C3AED), const Color(0xFFF3E8FF)),
             _buildStatusBadge('In Progress', inProgressCount, const Color(0xFFD97706), const Color(0xFFFEF3C7)),
             _buildStatusBadge('Resolved', resolvedCount, const Color(0xFF059669), const Color(0xFFECFDF5)),
-            OutlinedButton.icon(
-              onPressed: _simulateCustomerMessage,
-              icon: const Icon(Icons.add_comment_rounded, size: 16),
-              label: const Text('Simulate App Message'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF1C7BFF),
-                side: const BorderSide(color: Color(0xFFBFDBFE)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.bolt_rounded, size: 16, color: Color(0xFF16A34A)),
+                  SizedBox(width: 5),
+                  Text(
+                    'Live App Sync Active',
+                    style: TextStyle(
+                      color: Color(0xFF15803D),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -330,9 +314,12 @@ class _ServiceCenterViewState extends State<ServiceCenterView> {
                                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
                                                 Expanded(
-                                                  child: Row(
+                                                  child: Wrap(
+                                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                                    spacing: 6,
+                                                    runSpacing: 2,
                                                     children: [
-                                                      if (hasUnread) ...[
+                                                      if (hasUnread)
                                                         Container(
                                                           width: 8,
                                                           height: 8,
@@ -341,19 +328,45 @@ class _ServiceCenterViewState extends State<ServiceCenterView> {
                                                             shape: BoxShape.circle,
                                                           ),
                                                         ),
-                                                        const SizedBox(width: 6),
-                                                      ],
-                                                      Flexible(
-                                                        child: Text(
-                                                          t.customerName,
-                                                          overflow: TextOverflow.ellipsis,
-                                                          style: TextStyle(
-                                                            fontWeight: hasUnread ? FontWeight.w800 : FontWeight.w700,
-                                                            fontSize: 13,
-                                                            color: const Color(0xFF0F172A),
-                                                          ),
+                                                      Text(
+                                                        t.customerName,
+                                                        style: TextStyle(
+                                                          fontWeight: hasUnread ? FontWeight.w800 : FontWeight.w700,
+                                                          fontSize: 13,
+                                                          color: const Color(0xFF0F172A),
                                                         ),
                                                       ),
+                                                      if (widget.repository.isCustomerOnlineForTicket(t))
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                          decoration: BoxDecoration(
+                                                            color: const Color(0xFFDCFCE7),
+                                                            borderRadius: BorderRadius.circular(4),
+                                                            border: Border.all(color: const Color(0xFF86EFAC)),
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Container(
+                                                                width: 5,
+                                                                height: 5,
+                                                                decoration: const BoxDecoration(
+                                                                  color: Color(0xFF16A34A),
+                                                                  shape: BoxShape.circle,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(width: 3),
+                                                              const Text(
+                                                                'Online',
+                                                                style: TextStyle(
+                                                                  color: Color(0xFF15803D),
+                                                                  fontSize: 9.5,
+                                                                  fontWeight: FontWeight.w700,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
                                                     ],
                                                   ),
                                                 ),
@@ -454,19 +467,37 @@ class _ServiceCenterViewState extends State<ServiceCenterView> {
                                 ),
                                 child: Row(
                                   children: [
-                                    CircleAvatar(
-                                      radius: 18,
-                                      backgroundColor: const Color(0xFF1C7BFF),
-                                      child: Text(
-                                        _selectedTicket!.customerName.isNotEmpty
-                                            ? _selectedTicket!.customerName[0]
-                                            : 'C',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
+                                    Stack(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: const Color(0xFF1C7BFF),
+                                          child: Text(
+                                            _selectedTicket!.customerName.isNotEmpty
+                                                ? _selectedTicket!.customerName[0]
+                                                : 'C',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        if (widget.repository.isCustomerOnlineForTicket(_selectedTicket!))
+                                          Positioned(
+                                            right: 0,
+                                            bottom: 0,
+                                            child: Container(
+                                              width: 10,
+                                              height: 10,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF16A34A),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(color: Colors.white, width: 2),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -486,6 +517,23 @@ class _ServiceCenterViewState extends State<ServiceCenterView> {
                                                   color: Color(0xFF0F172A),
                                                 ),
                                               ),
+                                              if (widget.repository.isCustomerOnlineForTicket(_selectedTicket!))
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFDCFCE7),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    border: Border.all(color: const Color(0xFF86EFAC)),
+                                                  ),
+                                                  child: const Text(
+                                                    '● Online in App',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: Color(0xFF15803D),
+                                                    ),
+                                                  ),
+                                                ),
                                               Text(
                                                 _selectedTicket!.customerPhone,
                                                 style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
@@ -642,6 +690,17 @@ class _ServiceCenterViewState extends State<ServiceCenterView> {
                                                     Row(
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
+                                                        if (isCustomer && widget.repository.isCustomerOnlineForTicket(_selectedTicket!)) ...[
+                                                          Container(
+                                                            width: 6,
+                                                            height: 6,
+                                                            decoration: const BoxDecoration(
+                                                              color: Color(0xFF16A34A),
+                                                              shape: BoxShape.circle,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                        ],
                                                         Flexible(
                                                           child: Text(
                                                             isCustomer

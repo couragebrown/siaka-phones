@@ -10,7 +10,7 @@ class SplashView extends StatefulWidget {
   const SplashView({
     super.key,
     required this.onLoaded,
-    this.duration = const Duration(milliseconds: 2200),
+    this.duration = const Duration(milliseconds: 5000),
   });
 
   @override
@@ -33,7 +33,7 @@ class _SplashViewState extends State<SplashView>
 
     _progressAnimation = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.05, 0.95, curve: Curves.easeInOutCubic),
+      curve: Curves.easeInOutCubic,
     );
 
     _controller.forward();
@@ -85,125 +85,192 @@ class _SplashViewState extends State<SplashView>
             builder: (context, _) {
               final progress = _progressAnimation.value;
               final percentage = (progress * 100).toInt();
+              // Ensure the loading bar is always visible at the beginning of the bar (minimum 6% indicator so the starting edge of the bar is never empty)
+              final barFillFactor = (0.06 + (progress * 0.94)).clamp(0.06, 1.0);
 
-              return Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Official Siaka Phones Logo (matched to native Android splash size for seamless transition)
-                      Container(
-                        width: 175,
-                        alignment: Alignment.center,
-                        child: Image.asset(
-                          'assets/images/siaka_logo.png',
-                          width: 175,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.phone_android_rounded,
-                                  size: 70,
-                                  color: Color(0xFF1C7BFF),
-                                ),
-                                SizedBox(height: 10),
-                                Text(
-                                  'SIAKA PHONES',
-                                  style: TextStyle(
-                                    color: Color(0xFF1C7BFF),
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 18,
-                                    letterSpacing: 2,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Modern Loading Bar Under Logo (matched to logo width)
-                      Column(
+              return Stack(
+                children: [
+                  // Centered Logo, Progress Bar, and Status
+                  Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Progress Track & Animated Fill
+                          // Official Siaka Phones Logo (matched to native Android splash size for seamless transition)
                           Container(
                             width: 175,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color(0xFFDBEAFE),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Stack(
-                              children: [
-                                FractionallySizedBox(
-                                  widthFactor: progress.clamp(0.0, 1.0),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFF1C7BFF),
-                                          Color(0xFF3B82F6),
-                                        ],
-                                        begin: Alignment.centerLeft,
-                                        end: Alignment.centerRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF1C7BFF)
-                                              .withValues(alpha: 0.35),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 1),
-                                        ),
-                                      ],
+                            alignment: Alignment.center,
+                            child: Image.asset(
+                              'assets/images/siaka_logo.png',
+                              width: 175,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.phone_android_rounded,
+                                      size: 70,
+                                      color: Color(0xFF1C7BFF),
                                     ),
-                                  ),
-                                ),
-                              ],
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'SIAKA PHONES',
+                                      style: TextStyle(
+                                        color: Color(0xFF1C7BFF),
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 18,
+                                        letterSpacing: 2,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ),
 
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 20),
 
-                          // Status text & Percentage Counter
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          // Sleek, refined Loading Bar Under Logo (compact 160x4 dimensions)
+                          Column(
                             children: [
-                              Text(
-                                _getStatusText(progress),
-                                style: const TextStyle(
-                                  color: Color(0xFF64748B),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                              // Progress Track & Animated Fill
+                              Container(
+                                width: 160,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE2E8F0),
+                                  borderRadius: BorderRadius.circular(100),
+                                  border: Border.all(
+                                    color: const Color(0xFFCBD5E1),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(100),
+                                  child: Stack(
+                                    alignment: Alignment.centerLeft,
+                                    children: [
+                                      // Track background ensuring full bar is visible from frame 0
+                                      Container(
+                                        color: const Color(0xFFE2E8F0),
+                                      ),
+                                      // Animated fill anchored from the beginning (left)
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: FractionallySizedBox(
+                                          alignment: Alignment.centerLeft,
+                                          widthFactor: barFillFactor,
+                                          heightFactor: 1.0,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [
+                                                  Color(0xFF1C7BFF),
+                                                  Color(0xFF3B82F6),
+                                                  Color(0xFF60A5FA),
+                                                ],
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(100),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: const Color(0xFF1C7BFF)
+                                                      .withValues(alpha: 0.35),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '$percentage%',
-                                style: const TextStyle(
-                                  color: Color(0xFF1C7BFF),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
+
+                              const SizedBox(height: 12),
+
+                              // Status text & Percentage Counter
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _getStatusText(progress),
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '$percentage%',
+                                    style: const TextStyle(
+                                      color: Color(0xFF1C7BFF),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+
+                  // Bottom copyright protection notice
+                  Positioned(
+                    bottom: 24,
+                    left: 20,
+                    right: 20,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.verified_user_rounded,
+                              size: 14,
+                              color: Color(0xFF1C7BFF),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '© ${DateTime.now().year} Siaka Phones Ltd.',
+                              style: const TextStyle(
+                                color: Color(0xFF334155),
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'All rights reserved. Protected by copyright law.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               );
             },
           ),

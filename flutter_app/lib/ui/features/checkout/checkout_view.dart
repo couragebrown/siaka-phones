@@ -9,12 +9,14 @@ class CheckoutView extends StatefulWidget {
   final CheckoutViewModel viewModel;
   final ValueChanged<int> onTabSelected;
   final Function(OrderModel) onOrderPlaced;
+  final int wishlistBadgeCount;
 
   const CheckoutView({
     super.key,
     required this.viewModel,
     required this.onTabSelected,
     required this.onOrderPlaced,
+    this.wishlistBadgeCount = 0,
   });
 
   @override
@@ -191,6 +193,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                   currentIndex: 2,
                   onTabSelected: widget.onTabSelected,
                   cartBadgeCount: widget.viewModel.itemCount,
+                  wishlistBadgeCount: widget.wishlistBadgeCount,
                 ),
               ],
             ),
@@ -819,7 +822,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${item.selectedStorage} • ${item.selectedColor}',
+                            item.specsDescription,
                             style: const TextStyle(
                               color: Color(0xFF6B7280),
                               fontSize: 11,
@@ -893,7 +896,6 @@ class _CheckoutViewState extends State<CheckoutView> {
     final subtotal = widget.viewModel.subtotal;
     final discount = widget.viewModel.discountAmount;
     final shipping = widget.viewModel.shipping;
-    final tax = widget.viewModel.tax;
     final total = widget.viewModel.total;
 
     return Container(
@@ -933,8 +935,6 @@ class _CheckoutViewState extends State<CheckoutView> {
                 ? const Color(0xFF059669)
                 : const Color(0xFF1F2937),
           ),
-          const SizedBox(height: 6),
-          _summaryRow('Estimated Tax (8.25%)', '₵${tax.toStringAsFixed(2)}'),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 10),
             child: Divider(height: 1, color: Color(0xFFE5E7EB)),
@@ -1288,7 +1288,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                           ),
                         ),
                         Text(
-                          'Inclusive of all taxes & insurance',
+                          'Includes official warranty & insurance',
                           style: TextStyle(
                             color: Color(0xFF94A3B8),
                             fontSize: 10.5,

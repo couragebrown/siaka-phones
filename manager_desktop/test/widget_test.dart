@@ -114,6 +114,13 @@ void main() {
       expect(newProduct.color, equals('Titanium Violet'));
       expect(newProduct.colors.length, equals(2));
 
+      newProduct.storages = ['256GB', '512GB', '1TB'];
+      newProduct.rams = ['12GB', '16GB'];
+      expect(newProduct.storages.length, equals(3));
+      expect(newProduct.rams.length, equals(2));
+      expect(newProduct.storages, contains('512GB'));
+      expect(newProduct.rams, contains('16GB'));
+
       repository.addProduct(newProduct);
       expect(repository.products.length, equals(initialCount + 1));
       expect(repository.products.first.name, equals('Samsung Galaxy S24 Ultra'));
@@ -168,11 +175,11 @@ void main() {
       final initialSentCount = repository.sentMessages.length;
       final newMessage = CustomerMessage(
         id: 'msg_test_01',
-        customerId: 'CUST-001',
+        customerId: 'SK-90001',
         customerName: 'Kofi Mensah',
         customerPhone: '+233 24 412 3456',
         customerEmail: 'kofi.mensah@gmail.com',
-        channel: MessageChannel.whatsapp,
+        channel: MessageChannel.inApp,
         category: MessageCategory.orderUpdate,
         subject: 'Order Dispatched for Circle Delivery',
         message: 'Hello Kofi, your iPhone 15 Pro is on the way with our dispatch rider.',
@@ -182,7 +189,27 @@ void main() {
       repository.sendCustomerMessage(newMessage);
       expect(repository.sentMessages.length, equals(initialSentCount + 1));
       expect(repository.sentMessages.first.subject, equals('Order Dispatched for Circle Delivery'));
-      expect(repository.sentMessages.first.channel, equals(MessageChannel.whatsapp));
+      expect(repository.sentMessages.first.channel, equals(MessageChannel.inApp));
+    });
+
+    test('Incoming customer reply marks customer online, sets lastLogin, and adds message to sentMessages', () {
+      final initialCount = repository.sentMessages.length;
+      final customer = repository.customers.first;
+      repository.setCustomerOnline(customer.id, false);
+      expect(repository.customers.firstWhere((c) => c.id == customer.id).isOnline, isFalse);
+
+      repository.addIncomingCustomerReply(
+        customer.id,
+        'Hello Manager, I have arrived at the Circle boutique!',
+        customerName: customer.fullName,
+        customerPhone: customer.phone,
+        customerEmail: customer.email,
+      );
+
+      expect(repository.sentMessages.length, equals(initialCount + 1));
+      expect(repository.sentMessages.first.message, equals('Hello Manager, I have arrived at the Circle boutique!'));
+      expect(repository.sentMessages.first.isFromCustomer, isTrue);
+      expect(repository.customers.firstWhere((c) => c.id == customer.id).isOnline, isTrue);
     });
 
     test('Can manage service tickets (reply, update status, simulate inbound app message)', () {
@@ -213,13 +240,31 @@ void main() {
       expect(ticket.unreadCountForManager, equals(0));
     });
 
-    test('MessageChannel order is In-App Notification first, then Email, then SMS, then WhatsApp', () {
+    test('Customer message from mobile app automatically synchronizes to Service Center tickets', () {
+      final customer = repository.customers.first;
+      final uniqueMsg = 'Inquiry from mobile app #${DateTime.now().millisecondsSinceEpoch}';
+
+      repository.addIncomingCustomerReply(
+        customer.id,
+        uniqueMsg,
+        customerName: customer.fullName,
+        customerPhone: customer.phone,
+        customerEmail: customer.email,
+      );
+
+      final matchingTicket = repository.serviceTickets.firstWhere(
+        (t) => t.customerId == customer.id || t.customerPhone == customer.phone,
+      );
+      expect(matchingTicket.messages.any((m) => m.text == uniqueMsg), isTrue);
+      expect(matchingTicket.status, equals(ServiceTicketStatus.open));
+    });
+
+    test('MessageChannel contains In-App Notification and Email', () {
+      expect(MessageChannel.values.length, equals(2));
       expect(MessageChannel.values[0], equals(MessageChannel.inApp));
       expect(MessageChannel.values[0].label, equals('In-App Notification'));
       expect(MessageChannel.values[1], equals(MessageChannel.email));
       expect(MessageChannel.values[1].label, equals('Email'));
-      expect(MessageChannel.values[2], equals(MessageChannel.sms));
-      expect(MessageChannel.values[3], equals(MessageChannel.whatsapp));
     });
 
     test('BNPL models contain applicant location data', () {
@@ -237,6 +282,32 @@ void main() {
       expect(repository.activeMessagingCustomer!.fullName, equals('Akwasi Mensah'));
       expect(repository.activeMessagingCustomer!.phone, equals('+233 24 555 1234'));
       expect(repository.activeMessagingCustomer!.email, equals('akwasi@example.com'));
+      expect(repository.activeMessagingCustomer!.id, startsWith('SK-'));
+    });
+
+    test('Chronological customer ID generates and increases by 1 for each customer', () {
+      final initialNextId = repository.generateNextCustomerId();
+      expect(initialNextId, startsWith('SK-'));
+      final num1 = int.parse(initialNextId.replaceAll(RegExp(r'[^0-9]'), ''));
+
+      final c1 = repository.registerCustomer(
+        fullName: 'New Customer One',
+        phone: '+233 50 111 2222',
+        email: 'customer1@siakaphones.com',
+      );
+      expect(c1.id, equals(initialNextId));
+
+      final secondNextId = repository.generateNextCustomerId();
+      final num2 = int.parse(secondNextId.replaceAll(RegExp(r'[^0-9]'), ''));
+      expect(num2, equals(num1 + 1));
+
+      final c2 = repository.registerCustomer(
+        fullName: 'New Customer Two',
+        phone: '+233 50 333 4444',
+        email: 'customer2@siakaphones.com',
+      );
+      expect(c2.id, equals(secondNextId));
+      expect(c2.id, equals('SK-${num1 + 1}'));
     });
 
     test('Can dynamically add brand device models', () {
@@ -387,7 +458,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Service Center & Customer Support Desk'), findsOneWidget);
-      expect(find.text('Simulate App Message'), findsOneWidget);
+      expect(find.text('Live App Sync Active'), findsOneWidget);
+      expect(find.text('Online'), findsWidgets);
+      expect(find.text('● Online in App'), findsWidgets);
 
       // Tap Orders in sidebar (verify full width layout loaded)
       await tester.tap(find.text('Orders'));
@@ -460,7 +533,9 @@ void main() {
       await tester.tap(find.text('Customer Activity'));
       await tester.pumpAndSettle();
 
+      expect(find.text('CUSTOMER ID'), findsOneWidget);
       expect(find.text('EMAIL ADDRESS'), findsOneWidget);
+      expect(find.text('ID: SK-90001'), findsWidgets);
     });
 
     testWidgets('Clicking message icon in Orders navigates to Customer Messaging with customer selected', (WidgetTester tester) async {
@@ -563,7 +638,7 @@ void main() {
 
       expect(find.text('Advertisement & Video Banner Hub'), findsOneWidget);
       expect(find.text('New Video Advertisement'), findsOneWidget);
-      expect(find.text('Live Mobile Banner Simulator'), findsOneWidget);
+      expect(find.text('The 5 Mobile Banner Playlists'), findsOneWidget);
 
       // Open New Video Ad dialog
       await tester.tap(find.text('New Video Advertisement'));
@@ -629,6 +704,33 @@ void main() {
       expect(find.text('Add New Category'), findsNothing);
     });
 
+    testWidgets('Can open Add New Product dialog and select multiple storage and RAM options', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(const SiakaManagerApp());
+      await tester.pumpAndSettle();
+
+      // Navigate to Inventory
+      await tester.tap(find.text('Inventory'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add New Product'), findsOneWidget);
+      await tester.tap(find.text('Add New Product'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add New Inventory SKU'), findsOneWidget);
+      expect(find.text('4. HARDWARE MEMORY & STORAGE (SELECT 1 OR MORE OPTIONS)'), findsOneWidget);
+      expect(find.text('Internal Storage (ROM):'), findsOneWidget);
+      expect(find.text('System RAM Memory:'), findsOneWidget);
+
+      // Dismiss dialog
+      await tester.tap(find.byIcon(Icons.close_rounded).first);
+      await tester.pumpAndSettle();
+      expect(find.text('Add New Inventory SKU'), findsNothing);
+    });
+
     testWidgets('App renders without overflow and supports scrolling when window is minimized', (WidgetTester tester) async {
       // Simulate minimized window: narrow width and short height
       tester.view.physicalSize = const Size(700, 480);
@@ -668,6 +770,152 @@ void main() {
         expect(find.text(expectedTitles[i]), findsOneWidget);
         expect(find.byType(Scrollbar), findsWidgets);
       }
+    });
+
+    testWidgets('Can click Customer Messaging KPI banners to view detailed message audit dialogs', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(const SiakaManagerApp());
+      await tester.pumpAndSettle();
+
+      // Tap Customer Messaging in sidebar
+      await tester.tap(find.text('Customer Messaging'));
+      await tester.pumpAndSettle();
+
+      // Click ALL SENT banner
+      await tester.tap(find.byTooltip('Click to view ALL SENT message details & audit trail'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('All Sent Customer Messages'), findsOneWidget);
+      expect(find.text('Order Dispatch Notice'), findsWidgets);
+      expect(find.text('Screen Repair Diagnostic Complete'), findsOneWidget);
+
+      // Scroll dialog list to verify remaining items
+      await tester.drag(find.byType(ListView).last, const Offset(0, -400));
+      await tester.pumpAndSettle();
+      expect(find.text('Installment Reminder'), findsOneWidget);
+
+      // Close dialog
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+
+      // Click IN-APP banner
+      await tester.tap(find.byTooltip('Click to view IN-APP message details & audit trail'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('In-App Notification Messages'), findsOneWidget);
+      expect(find.text('TOTAL SENT'), findsOneWidget);
+      expect(find.text('DELIVERY RATE'), findsOneWidget);
+      expect(find.text('Kwame Mensah'), findsWidgets);
+
+      // Close dialog
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+
+      // Click EMAIL banner
+      await tester.tap(find.byTooltip('Click to view EMAIL message details & audit trail'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Email Communications'), findsOneWidget);
+      expect(find.text('TOTAL SENT'), findsOneWidget);
+      expect(find.text('Abena Osei'), findsWidgets);
+
+      // Close dialog
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Can click Customer Activity KPI banners to view detailed customer activity intelligence dialogs', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(const SiakaManagerApp());
+      await tester.pumpAndSettle();
+
+      // Tap Customer Activity in sidebar
+      await tester.tap(find.text('Customer Activity'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Customer Activity & Registration Intelligence'), findsOneWidget);
+
+      // 1. Click USERS ONLINE NOW banner
+      await tester.tap(find.byTooltip('Click to view USERS ONLINE NOW details & breakdown'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Users Online Now (Live Store Telemetry)'), findsOneWidget);
+      expect(find.text('USERS ONLINE NOW'), findsWidgets);
+      expect(find.text('TOTAL REGISTERED'), findsOneWidget);
+      expect(find.text('ONLINE SHARE'), findsOneWidget);
+
+      // Close dialog
+      await tester.tap(find.byIcon(Icons.close_rounded).last);
+      await tester.pumpAndSettle();
+
+      // 2. Click NEW SIGNUPS banner
+      await tester.tap(find.byTooltip('Click to view NEW SIGNUPS (THIS MONTH) details & breakdown'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('New Customer Signups (This Month)'), findsOneWidget);
+      expect(find.text('NEW SIGNUPS'), findsWidgets);
+      expect(find.text('NEW VALUE'), findsOneWidget);
+
+      // Close dialog
+      await tester.tap(find.byIcon(Icons.close_rounded).last);
+      await tester.pumpAndSettle();
+
+      // 3. Click TOTAL LOGINS RECORDED banner
+      await tester.tap(find.byTooltip('Click to view TOTAL LOGINS RECORDED details & breakdown'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Total Logins & Session Intelligence'), findsOneWidget);
+      expect(find.text('TOTAL LOGINS'), findsWidgets);
+      expect(find.text('TOP USER LOGINS'), findsOneWidget);
+
+      // Close dialog
+      await tester.tap(find.byIcon(Icons.close_rounded).last);
+      await tester.pumpAndSettle();
+
+      // 4. Click AVG LOGINS PER USER banner
+      await tester.tap(find.byTooltip('Click to view AVG LOGINS PER USER details & breakdown'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Average Logins & Session Frequency'), findsOneWidget);
+      expect(find.text('AVG LOGINS'), findsWidgets);
+      expect(find.text('POWER USERS (10+)'), findsOneWidget);
+
+      // Close dialog
+      await tester.tap(find.byIcon(Icons.close_rounded).last);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Customer Activity and Business Analytics expose custom date range options', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(const SiakaManagerApp());
+      await tester.pumpAndSettle();
+
+      // Tap Customer Activity
+      await tester.tap(find.text('Customer Activity'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('FROM'), findsOneWidget);
+      expect(find.text('TO'), findsOneWidget);
+      expect(find.text('Reset'), findsOneWidget);
+
+      // Tap Business Analytics
+      await tester.tap(find.text('Business Analytics'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Business Intelligence & Growth Analytics'), findsOneWidget);
+      expect(find.text('YTD 2026'), findsOneWidget);
+      expect(find.text('FROM'), findsOneWidget);
+      expect(find.text('TO'), findsOneWidget);
+      expect(find.text('Reset'), findsOneWidget);
     });
   });
 }

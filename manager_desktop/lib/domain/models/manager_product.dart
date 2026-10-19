@@ -10,7 +10,9 @@ class ManagerProduct {
   int stock;
   String specs;
   String storage;
+  List<String> storages;
   String ram;
+  List<String> rams;
   String color;
   List<String> colors;
   bool isFeatured;
@@ -30,7 +32,9 @@ class ManagerProduct {
     required this.stock,
     required this.specs,
     this.storage = '128GB',
+    List<String>? storages,
     this.ram = '8GB',
+    List<String>? rams,
     this.color = 'Natural Titanium',
     List<String>? colors,
     this.isFeatured = false,
@@ -39,7 +43,9 @@ class ManagerProduct {
     this.imageBytes,
     List<String>? specsList,
     this.createdAt,
-  }) : colors = colors ?? (color.isNotEmpty ? [color] : ['Natural Titanium']),
+  }) : storages = storages ?? _parseMultiValue(storage, '128GB'),
+       rams = rams ?? _parseMultiValue(ram, '8GB'),
+       colors = colors ?? (color.isNotEmpty ? [color] : ['Natural Titanium']),
        specsList = specsList ?? _parseSpecs(specs);
 
   // Convenient pricing aliases matching Siaka Phones B2B terminology
@@ -63,7 +69,14 @@ class ManagerProduct {
         id.startsWith('REPAIR_') ||
         id.startsWith('SWAP_') ||
         id.startsWith('SP-') ||
-        id.startsWith('TRK-')) {
+        id.startsWith('TRK-') ||
+        id.startsWith('BANNER_') ||
+        id.startsWith('BANNER_PLAYLIST_') ||
+        name.toLowerCase().contains('homepage banner') ||
+        name.toLowerCase().contains('search banner') ||
+        name.toLowerCase().startsWith('banner') ||
+        brand.toLowerCase() == 'home' ||
+        brand.toLowerCase() == 'search') {
       return false;
     }
     final catUpper = category.trim().toUpperCase();
@@ -72,9 +85,12 @@ class ManagerProduct {
         catUpper == 'REPAIR_RECORD' ||
         catUpper == 'SWAP_RECORD' ||
         catUpper == 'CATEGORY' ||
+        catUpper == 'BANNER_PLAYLIST' ||
+        catUpper.startsWith('BANNER_') ||
         catUpper.startsWith('ORDER_') ||
         catUpper.startsWith('BNPL_') ||
-        catUpper.startsWith('REPAIR_')) {
+        catUpper.startsWith('REPAIR_') ||
+        catUpper.contains('BANNER')) {
       return false;
     }
     return true;
@@ -89,5 +105,11 @@ class ManagerProduct {
       return specsStr.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     }
     return [specsStr.trim()];
+  }
+
+  static List<String> _parseMultiValue(String raw, String fallback) {
+    if (raw.trim().isEmpty) return [fallback];
+    final parts = raw.split(RegExp(r'[,/•|]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    return parts.isNotEmpty ? parts : [fallback];
   }
 }

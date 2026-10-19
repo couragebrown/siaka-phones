@@ -489,7 +489,7 @@ class ProductDetailView extends StatelessWidget {
                           const SizedBox(width: 8),
                           const Expanded(
                             child: Text(
-                              'Inclusive of all taxes & warranty',
+                              'Official brand warranty included',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -550,6 +550,55 @@ class ProductDetailView extends StatelessWidget {
                           );
                         }).toList(),
                       ),
+
+                      if (product.ramOptions.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        const Text(
+                          'RAM',
+                          style: TextStyle(
+                            color: Color(0xFF111827),
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: product.ramOptions.map((ram) {
+                            final selected = ram == viewModel.selectedRam;
+                            return GestureDetector(
+                              onTap: () => viewModel.selectRam(ram),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? const Color(0xFF1C7BFF)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: selected
+                                        ? const Color(0xFF1C7BFF)
+                                        : const Color(0xFFE5E7EB),
+                                    width: 1.0,
+                                  ),
+                                ),
+                                child: Text(
+                                  ram,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: selected
+                                        ? Colors.white
+                                        : const Color(0xFF1F2937),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
 
                       const SizedBox(height: 12),
 
@@ -807,6 +856,7 @@ class ProductDetailView extends StatelessWidget {
                 currentIndex: currentTabIndex,
                 onTabSelected: onTabSelected,
                 cartBadgeCount: viewModel.cartItemCount,
+                wishlistBadgeCount: wishlistRepo?.itemCount ?? 0,
               ),
             ],
           ),

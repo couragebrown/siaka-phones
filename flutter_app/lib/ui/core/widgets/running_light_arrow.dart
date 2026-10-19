@@ -134,26 +134,27 @@ class RunningLightArrowPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
 
-      if (useGoogleColors) {
-        beamPaint.shader = SweepGradient(
-          startAngle: tailAngle,
-          endAngle: headAngle,
-          colors: [tailColor, headColor],
-        ).createShader(arcRect);
-        glowPaint.shader = SweepGradient(
-          startAngle: tailAngle,
-          endAngle: headAngle,
-          colors: [
-            tailColor.withValues(alpha: 0.30),
-            headColor.withValues(alpha: 0.75),
-          ],
-        ).createShader(arcRect);
-      } else {
-        glowPaint.color = glowColor.withValues(alpha: 0.65);
-        beamPaint.color = glowColor;
-      }
-
       if (actualSweep > 0.01) {
+        if (useGoogleColors) {
+          final safeEndAngle = math.max(tailAngle + 0.001, headAngle);
+          beamPaint.shader = SweepGradient(
+            startAngle: tailAngle,
+            endAngle: safeEndAngle,
+            colors: [tailColor, headColor],
+          ).createShader(arcRect);
+          glowPaint.shader = SweepGradient(
+            startAngle: tailAngle,
+            endAngle: safeEndAngle,
+            colors: [
+              tailColor.withValues(alpha: 0.30),
+              headColor.withValues(alpha: 0.75),
+            ],
+          ).createShader(arcRect);
+        } else {
+          glowPaint.color = glowColor.withValues(alpha: 0.65);
+          beamPaint.color = glowColor;
+        }
+
         canvas.drawArc(arcRect, tailAngle, actualSweep, false, glowPaint);
         canvas.drawArc(arcRect, tailAngle, actualSweep, false, beamPaint);
       }

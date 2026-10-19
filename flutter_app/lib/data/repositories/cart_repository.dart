@@ -13,18 +13,20 @@ class CartRepository extends ChangeNotifier {
 
   double get subtotal => _items.fold(0.0, (sum, item) => sum + item.totalPrice);
   double get discountAmount => subtotal * _discountPercent;
-  double get tax => (subtotal - discountAmount) * 0.0825;
+  double get tax => 0.0;
   double get shipping => subtotal > 500 || _items.isEmpty ? 0.0 : 15.0;
-  double get total => (subtotal - discountAmount) + tax + shipping;
+  double get total => (subtotal - discountAmount) + shipping;
 
-  void addToCart(Product product, {String? color, String? storage, int quantity = 1}) {
-    final selColor = color ?? product.colors.first;
-    final selStorage = storage ?? product.storageOptions.first;
+  void addToCart(Product product, {String? color, String? storage, String? ram, int quantity = 1}) {
+    final selColor = color ?? (product.colors.isNotEmpty ? product.colors.first : 'Natural Titanium');
+    final selStorage = storage ?? (product.storageOptions.isNotEmpty ? product.storageOptions.first : '128 GB');
+    final selRam = ram ?? (product.ramOptions.isNotEmpty ? product.ramOptions.first : '');
 
     final existingIndex = _items.indexWhere(
       (item) => item.product.id == product.id &&
           item.selectedColor == selColor &&
-          item.selectedStorage == selStorage,
+          item.selectedStorage == selStorage &&
+          item.selectedRam == selRam,
     );
 
     if (existingIndex >= 0) {
@@ -36,6 +38,7 @@ class CartRepository extends ChangeNotifier {
           product: product,
           selectedColor: selColor,
           selectedStorage: selStorage,
+          selectedRam: selRam,
           quantity: quantity,
         ),
       );

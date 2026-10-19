@@ -2,6 +2,7 @@ import '../domain/models/product.dart';
 import '../domain/models/store_location.dart';
 import '../domain/models/review.dart';
 import '../domain/models/user_profile.dart';
+import '../domain/models/banner_playlist.dart';
 
 class MockData {
   static const List<Product> products = [
@@ -1227,7 +1228,7 @@ class MockData {
   ];
 
   static const UserProfile profile = UserProfile(
-    id: 'usr-902',
+    id: 'SK-90001',
     name: 'Courage Brown',
     email: 'courage@siakaphones.com',
     phone: '+233 (024) 555-0192',
@@ -1240,4 +1241,154 @@ class MockData {
     region: 'Greater Accra',
     country: 'Ghana',
   );
+
+  static List<BannerPlaylist> getInitialBannerPlaylists() {
+    final now = DateTime.now();
+    return [
+      BannerPlaylist(
+        id: 'banner_home_1',
+        name: 'Homepage Banner 1',
+        subtitle: 'Hero Video Ad Loop (Slide 1)',
+        targetPage: 'home',
+        bannerIndex: 0,
+        bannerType: 'video',
+        isActive: true,
+        images: const [],
+        videos: [
+          BannerVideoItem(
+            id: 'VID-H1-01',
+            videoUrl: 'assets/videos/phone_promo.mp4',
+            title: 'iPhone 16 Pro Max • Official Launch Promo',
+            description: 'Ultra titanium finish, Apple Intelligence & A18 Pro chip',
+            badgeText: 'HOT DEAL',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 4)),
+          ),
+        ],
+      ),
+      BannerPlaylist(
+        id: 'banner_home_2',
+        name: 'Homepage Banner 2',
+        subtitle: 'Flagship Deals & New Arrivals (Slide 2)',
+        targetPage: 'home',
+        bannerIndex: 1,
+        bannerType: 'image',
+        isActive: true,
+        videos: const [],
+        images: [
+          BannerImageItem(
+            id: 'IMG-H2-01',
+            imageUrl:
+                'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
+            title: 'Google Pixel 9 Pro XL • Hazel Glass',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 5)),
+          ),
+          BannerImageItem(
+            id: 'IMG-H2-02',
+            imageUrl:
+                'https://images.unsplash.com/photo-1511707171634-5f897ff02560?auto=format&fit=crop&w=800&q=80',
+            title: 'Tecno Camon 30 Premier 5G',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 3)),
+          ),
+        ],
+      ),
+      BannerPlaylist(
+        id: 'banner_home_3',
+        name: 'Homepage Banner 3',
+        subtitle: 'Trade-in Deals (Instant Upgrade Credit)',
+        targetPage: 'home',
+        bannerIndex: 2,
+        bannerType: 'image',
+        isActive: true,
+        videos: const [],
+        images: [
+          BannerImageItem(
+            id: 'IMG-H3-01',
+            imageUrl:
+                'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=800&q=80',
+            title: 'Apple iPhone 15 Plus • Pastel Blue',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 6)),
+          ),
+          BannerImageItem(
+            id: 'IMG-H3-02',
+            imageUrl:
+                'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=800&q=80',
+            title: 'Galaxy Z Fold 6 • Silver Shadow',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 1)),
+          ),
+        ],
+      ),
+      BannerPlaylist(
+        id: 'banner_home_4',
+        name: 'Homepage Banner 4',
+        subtitle: 'Premium Care (Screen & Hardware Protection)',
+        targetPage: 'home',
+        bannerIndex: 3,
+        bannerType: 'image',
+        isActive: true,
+        videos: const [],
+        images: [
+          BannerImageItem(
+            id: 'IMG-H4-01',
+            imageUrl:
+                'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=800&q=80',
+            title: 'Screen & AMOLED Diamond Glass Guard',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 7)),
+          ),
+          BannerImageItem(
+            id: 'IMG-H4-02',
+            imageUrl:
+                'https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=800&q=80',
+            title: 'OEM 1-Year Certified Store Warranty',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 2)),
+          ),
+        ],
+      ),
+      BannerPlaylist(
+        id: 'banner_search_1',
+        name: 'Search Page Banner',
+        subtitle: 'Catalog Top Video Ad Stream',
+        targetPage: 'search',
+        bannerIndex: 0,
+        bannerType: 'video',
+        isActive: true,
+        images: const [],
+        videos: [
+          BannerVideoItem(
+            id: 'VID-S1-01',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+            title: 'Search Spotlight • Fast Smartphone Catalog',
+            description: 'Explore Ghana\'s best device deals with instant store warranty',
+            badgeText: 'FEATURED',
+            isActive: true,
+            displayOrder: 1,
+            createdAt: now.subtract(const Duration(days: 5)),
+          ),
+          BannerVideoItem(
+            id: 'VID-S1-02',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+            title: 'Express Repairs & Genuine Screen Replacements',
+            description: 'Walk in or ship to Circle & Madina hubs for express turnaround',
+            badgeText: 'SERVICE',
+            isActive: true,
+            displayOrder: 2,
+            createdAt: now.subtract(const Duration(days: 1)),
+          ),
+        ],
+      ),
+    ];
+  }
 }

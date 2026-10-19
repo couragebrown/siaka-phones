@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Color, Icons;
 
 import '../../domain/models/customer_activity.dart';
 import '../../domain/models/customer_message.dart';
@@ -15,14 +16,18 @@ import '../../domain/models/manager_shipping.dart';
 import '../../domain/models/manager_swap.dart';
 import '../../domain/models/service_ticket.dart';
 import '../../domain/models/advertisement_banner.dart';
+import '../../domain/models/banner_playlist.dart';
 import '../mock_manager_data.dart';
 import '../services/supabase_service.dart';
+import '../services/local_sync_server.dart';
 
 class ManagerRepository extends ChangeNotifier {
   Timer? _syncPollTimer;
+  int _categoryRevenueSyncTick = 0;
   List<ManagerProduct> _products = [];
   List<ManagerOrder> _orders = [];
   List<AdvertisementBanner> _advertisements = [];
+  List<BannerPlaylist> _bannerPlaylists = [];
   List<ManagerBnpl> _bnplApplications = [];
   List<ManagerRepair> _repairs = [];
   List<ManagerSwap> _swaps = [];
@@ -31,6 +36,7 @@ class ManagerRepository extends ChangeNotifier {
   List<ServiceTicket> _serviceTickets = [];
   List<ManagerShippingItem> _shipments = [];
   List<ManagerNotification> _notifications = [];
+  List<Map<String, dynamic>> _customerNotifications = [];
   Map<String, List<String>> _brandModels = {};
   final List<String> _categories = [
     'Smartphones',
@@ -45,6 +51,10 @@ class ManagerRepository extends ChangeNotifier {
 
   final SupabaseService _supabase = SupabaseService();
   SupabaseService get supabase => _supabase;
+
+  bool _isCategoryRevenueDbSynced = false;
+  bool get isCategoryRevenueDbSynced => _isCategoryRevenueDbSynced;
+  bool get isDatabaseQuotaExceeded => _supabase.isQuotaExceeded;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -80,21 +90,47 @@ class ManagerRepository extends ChangeNotifier {
     }
   }
 
-  void _purgeStaleProductCache() {
+  void _saveCachedProducts(List<ManagerProduct> products) {
     try {
       final file = _getCacheFile();
-      if (file != null && file.existsSync()) {
-        file.deleteSync();
-        debugPrint('🧹 Stale local product cache file purged: ${file.path}');
+      if (file != null) {
+        final list = products
+            .where((p) => p.isMerchandise)
+            .map((p) => SupabaseService.productToMap(p))
+            .toList();
+        file.writeAsStringSync(jsonEncode(list));
       }
     } catch (e) {
-      debugPrint('Error purging stale product cache: $e');
+      debugPrint('Error saving cached products: $e');
     }
   }
 
-  void _saveCachedProducts(List<ManagerProduct> products) {
-    // No-op: product catalog is sourced directly and purely from live Supabase database
+  List<ManagerProduct> _loadCachedProducts() {
+    try {
+      final file = _getCacheFile();
+      if (file != null && file.existsSync()) {
+        final content = file.readAsStringSync();
+        if (content.trim().isNotEmpty) {
+          final list = jsonDecode(content) as List;
+          final seenIds = <String>{};
+          final items = <ManagerProduct>[];
+          for (final m in list) {
+            final p = SupabaseService.productFromMap(Map<String, dynamic>.from(m));
+            if (p.isMerchandise && !p.id.startsWith('prod_sort_') && !p.id.startsWith('test_')) {
+              if (seenIds.add(p.id)) {
+                items.add(p);
+              }
+            }
+          }
+          return items;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading cached products: $e');
+    }
+    return [];
   }
+
 
   File? _getManagerStateCacheFile() {
     try {
@@ -114,6 +150,58 @@ class ManagerRepository extends ChangeNotifier {
     }
   }
 
+  File? _getCategoryRevenueCacheFile() {
+    try {
+      final appData = Platform.environment['APPDATA'] ??
+          Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['HOME'];
+      final baseDir = appData != null
+          ? Directory('$appData/SiakaPhonesManager')
+          : Directory.systemTemp;
+      if (!baseDir.existsSync()) {
+        baseDir.createSync(recursive: true);
+      }
+      return File('${baseDir.path}/cached_category_revenue.json');
+    } catch (e) {
+      debugPrint('Error getting category revenue cache file: $e');
+      return null;
+    }
+  }
+
+  void _saveCachedCategoryRevenue(List<Map<String, dynamic>> list) {
+    try {
+      final f = _getCategoryRevenueCacheFile();
+      if (f != null) {
+        final toSave = list.map((item) => {
+          'category': item['category'],
+          'amount': item['amount'],
+          'units': item['units'],
+          'percentage': item['percentage'],
+          'updated_at': DateTime.now().toIso8601String(),
+        }).toList();
+        f.writeAsStringSync(jsonEncode(toSave));
+      }
+    } catch (e) {
+      debugPrint('Error saving cached category revenue: $e');
+    }
+  }
+
+  List<Map<String, dynamic>> _loadCachedCategoryRevenue() {
+    try {
+      final f = _getCategoryRevenueCacheFile();
+      if (f != null && f.existsSync()) {
+        final str = f.readAsStringSync();
+        if (str.trim().isNotEmpty) {
+          final decoded = jsonDecode(str) as List;
+          return decoded.map((d) => Map<String, dynamic>.from(d as Map)).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading cached category revenue: $e');
+    }
+    return [];
+  }
+
   void _saveCachedManagerState() {
     try {
       final file = _getManagerStateCacheFile();
@@ -122,6 +210,9 @@ class ManagerRepository extends ChangeNotifier {
           'orders': _orders.map((o) => _orderToMap(o)).toList(),
           'bnpl': _bnplApplications.map((b) => _bnplToMap(b)).toList(),
           'repairs': _repairs.map((r) => _repairToMap(r)).toList(),
+          'bannerPlaylists': _bannerPlaylists.map((b) => b.toJson()).toList(),
+          'customerNotifications': _customerNotifications,
+          'sentMessages': _sentMessages.map((m) => m.toJson()).toList(),
         };
         file.writeAsStringSync(jsonEncode(data));
       }
@@ -153,7 +244,34 @@ class ManagerRepository extends ChangeNotifier {
                 .map((m) => _repairFromMap(Map<String, dynamic>.from(m)))
                 .toList();
           }
+          if (data['bannerPlaylists'] is List) {
+            _bannerPlaylists = (data['bannerPlaylists'] as List)
+                .map((m) => BannerPlaylist.fromJson(Map<String, dynamic>.from(m)))
+                .map(_sanitizePlaylistImages)
+                .toList();
+          }
+          if (data['customerNotifications'] is List) {
+            _customerNotifications = (data['customerNotifications'] as List)
+                .map((m) => Map<String, dynamic>.from(m))
+                .toList();
+          }
+          if (data['sentMessages'] is List) {
+            final cachedMsgs = (data['sentMessages'] as List)
+                .map((m) => CustomerMessage.fromJson(Map<String, dynamic>.from(m)))
+                .toList();
+            if (cachedMsgs.isNotEmpty) {
+              for (final cm in cachedMsgs) {
+                if (!_sentMessages.any((m) => m.id == cm.id)) {
+                  _sentMessages.add(cm);
+                }
+              }
+            }
+          }
         }
+      }
+      final cachedRev = _loadCachedCategoryRevenue();
+      if (cachedRev.isNotEmpty) {
+        debugPrint('Loaded ${cachedRev.length} cached category revenue records.');
       }
     } catch (e) {
       debugPrint('Error loading manager state: $e');
@@ -517,6 +635,145 @@ class ManagerRepository extends ChangeNotifier {
     );
   }
 
+  CustomerActivity _customerFromSupabase(ManagerProduct p) {
+    Map<String, dynamic> extra = {};
+    try {
+      if (p.specs.isNotEmpty && p.specs.startsWith('{')) {
+        extra = jsonDecode(p.specs);
+      }
+    } catch (_) {}
+
+    final custId = extra['customerId']?.toString() ??
+        (p.id.startsWith('CUSTOMER_') ? p.id.substring('CUSTOMER_'.length) : p.id);
+    final fullName = extra['fullName']?.toString() ?? p.name;
+    final phone = extra['phone']?.toString() ?? (p.ram.isNotEmpty ? p.ram : '+233 24 000 0000');
+    final email = extra['email']?.toString() ?? (p.color.isNotEmpty ? p.color : '');
+    final signupDate = extra['signupDate'] != null
+        ? DateTime.tryParse(extra['signupDate'].toString()) ?? p.createdAt ?? DateTime.now()
+        : p.createdAt ?? DateTime.now();
+    final loginCount = (extra['loginCount'] as num?)?.toInt() ?? 1;
+    final lastLogin = extra['lastLogin'] != null
+        ? DateTime.tryParse(extra['lastLogin'].toString()) ?? DateTime.now()
+        : DateTime.now();
+    final primaryDevice = extra['primaryDevice']?.toString() ?? (p.brand.isNotEmpty ? p.brand : 'Mobile App User');
+    final status = extra['status']?.toString() ?? (p.condition.isNotEmpty ? p.condition : 'Active');
+    final totalSpend = (extra['totalSpend'] as num?)?.toDouble() ?? p.price;
+    final totalOrders = (extra['totalOrders'] as num?)?.toInt() ?? p.stock;
+    final branch = extra['branch']?.toString() ?? 'Accra Central (Circle)';
+    final isOnline = extra['isOnline'] == true;
+
+    return CustomerActivity(
+      id: custId,
+      fullName: fullName,
+      phone: phone,
+      email: email,
+      signupDate: signupDate,
+      loginCount: loginCount,
+      lastLogin: lastLogin,
+      primaryDevice: primaryDevice,
+      status: status,
+      totalSpend: totalSpend,
+      totalOrders: totalOrders,
+      branch: branch,
+      isOnline: isOnline,
+    );
+  }
+
+  CustomerActivity _customerFromRecordMap(Map<String, dynamic> map) {
+    final custId = map['id']?.toString() ?? '';
+    final fullName = map['full_name']?.toString() ?? map['name']?.toString() ?? 'Customer';
+    final phone = map['phone']?.toString() ?? '';
+    final email = map['email']?.toString() ?? '';
+    final signupDate = map['signup_date'] != null
+        ? DateTime.tryParse(map['signup_date'].toString()) ?? DateTime.now()
+        : DateTime.now();
+    final loginCount = (map['login_count'] as num?)?.toInt() ?? 1;
+    final lastLogin = map['last_login'] != null
+        ? DateTime.tryParse(map['last_login'].toString()) ?? DateTime.now()
+        : DateTime.now();
+    final primaryDevice = map['primary_device']?.toString() ?? map['device']?.toString() ?? 'Mobile App User';
+    final status = map['status']?.toString() ?? 'Active';
+    final totalSpend = (map['total_spend'] as num?)?.toDouble() ?? 0.0;
+    final totalOrders = (map['total_orders'] as num?)?.toInt() ?? 0;
+    final branch = map['branch']?.toString() ?? 'Accra Central (Circle)';
+    final isOnline = map['is_online'] == true;
+
+    return CustomerActivity(
+      id: custId,
+      fullName: fullName,
+      phone: phone,
+      email: email,
+      signupDate: signupDate,
+      loginCount: loginCount,
+      lastLogin: lastLogin,
+      primaryDevice: primaryDevice,
+      status: status,
+      totalSpend: totalSpend,
+      totalOrders: totalOrders,
+      branch: branch,
+      isOnline: isOnline,
+    );
+  }
+
+  Future<void> _syncCustomerToSupabase(CustomerActivity customer) async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final token = ManagerProduct(
+        id: 'CUSTOMER_${customer.id}',
+        name: customer.fullName,
+        brand: customer.primaryDevice,
+        category: 'CUSTOMER_RECORD',
+        price: customer.totalSpend,
+        originalPrice: customer.totalSpend,
+        stock: customer.totalOrders,
+        specs: jsonEncode({
+          'customerId': customer.id,
+          'fullName': customer.fullName,
+          'phone': customer.phone,
+          'email': customer.email,
+          'signupDate': customer.signupDate.toIso8601String(),
+          'loginCount': customer.loginCount,
+          'lastLogin': customer.lastLogin.toIso8601String(),
+          'primaryDevice': customer.primaryDevice,
+          'status': customer.status,
+          'totalSpend': customer.totalSpend,
+          'totalOrders': customer.totalOrders,
+          'branch': customer.branch,
+          'isOnline': customer.isOnline,
+        }),
+        storage: customer.id,
+        ram: customer.phone,
+        color: customer.email,
+        condition: customer.status,
+        isFeatured: false,
+        imageUrl: '',
+        createdAt: customer.signupDate,
+      );
+
+      // 1. Upsert to universal products table (guaranteed table)
+      _supabase.upsertProduct(token);
+
+      // 2. Also upsert to dedicated customers table if schema created
+      _supabase.upsertCustomerRaw({
+        'id': customer.id,
+        'full_name': customer.fullName,
+        'phone': customer.phone,
+        'email': customer.email,
+        'signup_date': customer.signupDate.toIso8601String(),
+        'login_count': customer.loginCount,
+        'last_login': customer.lastLogin.toIso8601String(),
+        'primary_device': customer.primaryDevice,
+        'status': customer.status,
+        'total_spend': customer.totalSpend,
+        'total_orders': customer.totalOrders,
+        'branch': customer.branch,
+        'is_online': customer.isOnline,
+      });
+    } catch (e) {
+      debugPrint('ℹ️ Supabase customer sync deferred (quota/offline): $e');
+    }
+  }
+
   ManagerRepository() {
     final isTest = Platform.environment.containsKey('FLUTTER_TEST');
     if (isTest) {
@@ -524,14 +781,24 @@ class ManagerRepository extends ChangeNotifier {
       _orders = MockManagerData.getInitialOrders();
       _bnplApplications = MockManagerData.getInitialBnplApplications();
       _repairs = MockManagerData.getInitialRepairs();
+      _bannerPlaylists = MockManagerData.getInitialBannerPlaylists();
       _isLoading = false;
     } else {
-      _products = [];
+      final cached = _loadCachedProducts();
+      if (cached.isNotEmpty) {
+        _products = cached;
+      } else {
+        _products = MockManagerData.getInitialProducts();
+        _saveCachedProducts(_products);
+      }
+      if (_products.where((p) => p.isMerchandise).isEmpty) {
+        _products = MockManagerData.getInitialProducts();
+        _saveCachedProducts(_products);
+      }
       _orders = [];
       _bnplApplications = [];
       _repairs = [];
-      _isLoading = true;
-      _purgeStaleProductCache();
+      _isLoading = false;
       _loadCachedManagerState();
       // Initial balance is 0.0 — orders start empty until real customer purchases are made/synced
       if (_bnplApplications.isEmpty) {
@@ -539,6 +806,16 @@ class ManagerRepository extends ChangeNotifier {
       }
       if (_repairs.isEmpty) {
         _repairs = MockManagerData.getInitialRepairs();
+      }
+      final initialPlaylists = MockManagerData.getInitialBannerPlaylists();
+      if (_bannerPlaylists.isEmpty) {
+        _bannerPlaylists = List.from(initialPlaylists);
+      } else {
+        for (final initP in initialPlaylists) {
+          if (!_bannerPlaylists.any((p) => p.id == initP.id)) {
+            _bannerPlaylists.add(initP);
+          }
+        }
       }
     }
     _swaps = MockManagerData.getInitialSwaps();
@@ -550,6 +827,9 @@ class ManagerRepository extends ChangeNotifier {
     _notifications = MockManagerData.getInitialNotifications();
     _advertisements = MockManagerData.getInitialAdvertisements();
     _initSupabaseSync();
+    if (!isTest) {
+      LocalSyncServer.start(this);
+    }
     _brandModels = {
       'Apple': [
         'iPhone 16 Pro Max',
@@ -641,15 +921,222 @@ class ManagerRepository extends ChangeNotifier {
   // Getters
   List<ManagerProduct> get products =>
       List.unmodifiable(_products.where((p) => p.isMerchandise));
+  List<ManagerProduct> get allCatalogTokens => List.unmodifiable(_products);
   List<ManagerOrder> get orders => List.unmodifiable(_orders);
   List<ManagerBnpl> get bnplApplications => List.unmodifiable(_bnplApplications);
   List<ManagerRepair> get repairs => List.unmodifiable(_repairs);
   List<ManagerSwap> get swaps => List.unmodifiable(_swaps);
   List<CustomerActivity> get customers => List.unmodifiable(_customers);
+
+  /// Generates the next chronological customer ID (e.g., SK-90015) based on highest existing ID
+  String generateNextCustomerId() {
+    int maxId = 90000;
+    for (final c in _customers) {
+      final clean = c.id.replaceAll(RegExp(r'[^0-9]'), '');
+      if (clean.isNotEmpty) {
+        final parsed = int.tryParse(clean);
+        if (parsed != null && parsed > maxId) {
+          maxId = parsed;
+        }
+      }
+    }
+    return 'SK-${maxId + 1}';
+  }
+
+  /// Registers a customer from app sign-up or inbound order with a chronological ID
+  CustomerActivity registerCustomer({
+    String? id,
+    required String fullName,
+    required String phone,
+    required String email,
+    DateTime? signupDate,
+    String? primaryDevice,
+    String branch = 'Accra Central (Circle)',
+    String status = 'Active',
+    double totalSpend = 0.0,
+    int totalOrders = 0,
+    bool isOnline = true,
+  }) {
+    // Check if customer already exists by phone or email
+    final matchIdx = _customers.indexWhere((c) =>
+        (phone.isNotEmpty && c.phone.replaceAll(' ', '') == phone.replaceAll(' ', '')) ||
+        (email.isNotEmpty && c.email.trim().toLowerCase() == email.trim().toLowerCase()));
+
+    if (matchIdx != -1) {
+      final existing = _customers[matchIdx];
+      final updated = CustomerActivity(
+        id: existing.id,
+        fullName: fullName.isNotEmpty ? fullName : existing.fullName,
+        phone: phone.isNotEmpty ? phone : existing.phone,
+        email: email.isNotEmpty ? email : existing.email,
+        signupDate: existing.signupDate,
+        loginCount: existing.loginCount + 1,
+        lastLogin: DateTime.now(),
+        primaryDevice: primaryDevice ?? existing.primaryDevice,
+        status: existing.status,
+        totalSpend: existing.totalSpend,
+        totalOrders: existing.totalOrders,
+        branch: branch,
+        isOnline: true,
+      );
+      _customers[matchIdx] = updated;
+      _syncCustomerToSupabase(updated);
+      notifyListeners();
+      return updated;
+    }
+
+    final newId = (id != null && id.trim().isNotEmpty) ? id.trim() : generateNextCustomerId();
+    final newCustomer = CustomerActivity(
+      id: newId,
+      fullName: fullName,
+      phone: phone,
+      email: email,
+      signupDate: signupDate ?? DateTime.now(),
+      loginCount: 1,
+      lastLogin: DateTime.now(),
+      primaryDevice: primaryDevice ?? 'Mobile App User',
+      status: status,
+      totalSpend: totalSpend,
+      totalOrders: totalOrders,
+      branch: branch,
+      isOnline: isOnline,
+    );
+
+    _customers.add(newCustomer);
+    _syncCustomerToSupabase(newCustomer);
+    syncCustomerActivityMetricsToSupabase();
+    notifyListeners();
+    return newCustomer;
+  }
+
+  /// Records customer session or login activity and syncs updated telemetry to Supabase
+  void recordCustomerSession({
+    required String customerId,
+    String? name,
+    String? email,
+    String? phone,
+    String? device,
+    bool isLogin = false,
+  }) {
+    final idx = _customers.indexWhere((c) =>
+        c.id.toLowerCase() == customerId.toLowerCase() ||
+        (phone != null && phone.isNotEmpty && c.phone.replaceAll(' ', '') == phone.replaceAll(' ', '')) ||
+        (email != null && email.isNotEmpty && c.email.trim().toLowerCase() == email.trim().toLowerCase()));
+
+    if (idx != -1) {
+      final existing = _customers[idx];
+      final updated = CustomerActivity(
+        id: existing.id,
+        fullName: (name != null && name.isNotEmpty) ? name : existing.fullName,
+        phone: (phone != null && phone.isNotEmpty) ? phone : existing.phone,
+        email: (email != null && email.isNotEmpty) ? email : existing.email,
+        signupDate: existing.signupDate,
+        loginCount: isLogin ? existing.loginCount + 1 : existing.loginCount,
+        lastLogin: DateTime.now(),
+        primaryDevice: (device != null && device.isNotEmpty) ? device : existing.primaryDevice,
+        status: existing.status,
+        totalSpend: existing.totalSpend,
+        totalOrders: existing.totalOrders,
+        branch: existing.branch,
+        isOnline: true,
+      );
+      _customers[idx] = updated;
+      _syncCustomerToSupabase(updated);
+      syncCustomerActivityMetricsToSupabase();
+      _saveCachedManagerState();
+      notifyListeners();
+    } else if (name != null && name.isNotEmpty) {
+      final newCust = registerCustomer(
+        id: customerId,
+        fullName: name,
+        phone: phone ?? '',
+        email: email ?? '',
+        primaryDevice: device ?? 'Mobile App User',
+        isOnline: true,
+      );
+      _syncCustomerToSupabase(newCust);
+      syncCustomerActivityMetricsToSupabase();
+    }
+  }
+
+  /// Synchronizes the 5 top customer activity intelligence banner metrics to Supabase
+  Future<void> syncCustomerActivityMetricsToSupabase() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final totalSignups = _customers.length;
+      final totalLogins = _customers.fold<int>(0, (sum, c) => sum + c.loginCount);
+      final avgLogins = totalSignups > 0 ? (totalLogins / totalSignups).toStringAsFixed(1) : '0';
+      final activeCount = _customers.where((c) => c.status != 'Dormant').length;
+      final activeRate = totalSignups > 0 ? ((activeCount / totalSignups) * 100).toStringAsFixed(0) : '100';
+      final online = onlineCustomersCount;
+
+      final metricsRecord = {
+        'id': 'METRICS_CUSTOMER_ACTIVITY',
+        'name': 'Customer Activity Metrics Summary',
+        'category': 'METRICS_RECORD',
+        'price': totalLogins.toDouble(),
+        'original_price': totalSignups.toDouble(),
+        'stock': online,
+        'specs': jsonEncode({
+          'usersOnlineNow': online,
+          'newSignups': totalSignups,
+          'totalLoginsRecorded': totalLogins,
+          'avgLoginsPerUser': avgLogins,
+          'engagedRetentionRate': activeRate,
+          'activeVipCount': activeCount,
+          'lastSynced': DateTime.now().toIso8601String(),
+        }),
+        'storage': '$online',
+        'ram': '$totalSignups',
+        'color': '$totalLogins',
+        'condition': '$activeRate%',
+        'is_featured': true,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      _supabase.upsertRawRecord(metricsRecord);
+    } catch (e) {
+      debugPrint('ℹ️ Metrics sync deferred: $e');
+    }
+  }
+
+  /// Refreshes customer activity and banner metrics directly from Supabase
+  Future<void> refreshCustomerActivityFromDatabase() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final liveProducts = await _supabase.fetchProducts();
+      if (liveProducts != null) {
+        _applyRemoteData(liveProducts);
+      }
+      final dedicatedCustomers = await _supabase.fetchCustomerRecords();
+      if (dedicatedCustomers != null && dedicatedCustomers.isNotEmpty) {
+        for (final m in dedicatedCustomers) {
+          final cust = _customerFromRecordMap(m);
+          final idx = _customers.indexWhere((c) => c.id == cust.id);
+          if (idx != -1) {
+            _customers[idx] = cust;
+          } else {
+            _customers.add(cust);
+          }
+        }
+        notifyListeners();
+      }
+      final dedicatedChatMsgs = await _supabase.fetchChatMessageRecords();
+      if (dedicatedChatMsgs != null && dedicatedChatMsgs.isNotEmpty) {
+        for (final m in dedicatedChatMsgs) {
+          _applyInboundChatMessageMap(m);
+        }
+      }
+      await syncCustomerActivityMetricsToSupabase();
+    } catch (e) {
+      debugPrint('ℹ️ Database refresh notice: $e');
+    }
+  }
   List<CustomerMessage> get sentMessages => List.unmodifiable(_sentMessages);
   List<ServiceTicket> get serviceTickets => List.unmodifiable(_serviceTickets);
   List<ManagerShippingItem> get shipments => List.unmodifiable(_shipments);
   List<ManagerNotification> get notifications => List.unmodifiable(_notifications);
+  List<Map<String, dynamic>> get customerNotifications => List.unmodifiable(_customerNotifications);
   List<AdvertisementBanner> get advertisements => List.unmodifiable(_advertisements);
   Map<String, List<String>> get brandModels => _brandModels;
   List<String> get categories => List.unmodifiable(_categories);
@@ -718,8 +1205,238 @@ class ManagerRepository extends ChangeNotifier {
 
   double get totalProfitEarned => totalRevenue;
 
+  /// Returns current status of database connection and category revenue sync.
+  String get categoryRevenueSyncStatus {
+    if (_isCategoryRevenueDbSynced && !_supabase.isQuotaExceeded) {
+      return 'Connected & Synced';
+    }
+    if (_supabase.isQuotaExceeded) {
+      return 'Quota Standby (Auto-Reconnecting)';
+    }
+    return 'Ready to Sync';
+  }
+
+  /// Computes category-by-category revenue, volume units, and share percentages.
+  /// Combines baseline turnover with live customer orders, repairs, and device trade-ins.
+  /// Filters dynamically by custom date window ([fromDate] to [toDate]) if provided.
+  List<Map<String, dynamic>> getCategoryRevenueShare({
+    DateTime? fromDate,
+    DateTime? toDate,
+    String? branch,
+  }) {
+    // 1. Filter orders by date range and branch
+    final matchingOrders = _orders.where((o) {
+      if (o.status == OrderStatus.cancelled) return false;
+      if (fromDate != null) {
+        final start = DateTime(fromDate.year, fromDate.month, fromDate.day, 0, 0, 0);
+        if (o.date.isBefore(start)) return false;
+      }
+      if (toDate != null) {
+        final end = DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59, 999);
+        if (o.date.isAfter(end)) return false;
+      }
+      return true;
+    }).toList();
+
+    // 2. Base metrics
+    // When viewing overall period without custom date window, include established store baseline
+    final bool isCustomDate = fromDate != null || toDate != null;
+    double smartAmt = isCustomDate ? 0.0 : 345200.0;
+    int smartUnits = isCustomDate ? 0 : 1140;
+
+    double laptopAmt = isCustomDate ? 0.0 : 118400.0;
+    int laptopUnits = isCustomDate ? 0 : 195;
+
+    double accAmt = isCustomDate ? 0.0 : 55800.0;
+    int accUnits = isCustomDate ? 0 : 860;
+
+    double repairAmt = isCustomDate ? 0.0 : 33100.0;
+    int repairUnits = isCustomDate ? 0 : 320;
+
+    // 3. Accumulate from live customer orders
+    for (final order in matchingOrders) {
+      for (final item in order.items) {
+        final title = item.title.toLowerCase();
+        final brand = item.brand.toLowerCase();
+        final subtotal = item.subtotal > 0 ? item.subtotal : (item.price * item.quantity);
+        final qty = item.quantity > 0 ? item.quantity : 1;
+
+        if (title.contains('macbook') ||
+            title.contains('laptop') ||
+            title.contains('ipad') ||
+            title.contains('tablet') ||
+            brand.contains('apple mac')) {
+          laptopAmt += subtotal;
+          laptopUnits += qty;
+        } else if (title.contains('pod') ||
+            title.contains('earbud') ||
+            title.contains('watch') ||
+            title.contains('charger') ||
+            title.contains('power') ||
+            brand.contains('oraimo') ||
+            title.contains('headphone') ||
+            title.contains('audio')) {
+          accAmt += subtotal;
+          accUnits += qty;
+        } else {
+          smartAmt += subtotal;
+          smartUnits += qty;
+        }
+      }
+    }
+
+    // 4. Accumulate from repairs desk
+    final matchingRepairs = _repairs.where((r) {
+      if (fromDate != null && r.bookedDate.isBefore(fromDate)) return false;
+      if (toDate != null && r.bookedDate.isAfter(toDate.add(const Duration(days: 1)))) return false;
+      return true;
+    });
+    for (final r in matchingRepairs) {
+      repairAmt += r.estimatedCost;
+      repairUnits += 1;
+    }
+
+    // 5. Accumulate from trade-in swaps
+    final matchingSwaps = _swaps.where((s) {
+      if (fromDate != null && s.submissionDate.isBefore(fromDate)) return false;
+      if (toDate != null && s.submissionDate.isAfter(toDate.add(const Duration(days: 1)))) return false;
+      return true;
+    });
+    for (final s in matchingSwaps) {
+      repairAmt += s.customerCashTopUp;
+      repairUnits += 1;
+    }
+
+    // Proportional fallback if custom range has orders with 0 item subtotals
+    if (isCustomDate && (smartAmt + laptopAmt + accAmt + repairAmt) <= 0 && matchingOrders.isNotEmpty) {
+      final totalSales = matchingOrders.fold(0.0, (acc, o) => acc + o.totalAmount);
+      smartAmt = totalSales * 0.65;
+      smartUnits = matchingOrders.length;
+      laptopAmt = totalSales * 0.20;
+      accAmt = totalSales * 0.15;
+    }
+
+    final grandTotal = smartAmt + laptopAmt + accAmt + repairAmt;
+
+    return [
+      {
+        'category': 'Smartphones',
+        'amount': smartAmt,
+        'percentage': grandTotal > 0 ? (smartAmt / grandTotal) * 100 : 0.0,
+        'units': smartUnits,
+        'color': const Color(0xFF1C7BFF),
+        'icon': Icons.phone_android_rounded,
+      },
+      {
+        'category': 'Laptops & Tablets',
+        'amount': laptopAmt,
+        'percentage': grandTotal > 0 ? (laptopAmt / grandTotal) * 100 : 0.0,
+        'units': laptopUnits,
+        'color': const Color(0xFF8B5CF6),
+        'icon': Icons.laptop_mac_rounded,
+      },
+      {
+        'category': 'Accessories & Audio',
+        'amount': accAmt,
+        'percentage': grandTotal > 0 ? (accAmt / grandTotal) * 100 : 0.0,
+        'units': accUnits,
+        'color': const Color(0xFF10B981),
+        'icon': Icons.headphones_rounded,
+      },
+      {
+        'category': 'Repairs & Swaps Desk',
+        'amount': repairAmt,
+        'percentage': grandTotal > 0 ? (repairAmt / grandTotal) * 100 : 0.0,
+        'units': repairUnits,
+        'color': const Color(0xFFF59E0B),
+        'icon': Icons.build_circle_rounded,
+      },
+    ];
+  }
+
+  /// Synchronizes the category revenue share records to the Supabase database.
+  /// Seamlessly handles database quota limits by caching locally.
+  /// As soon as premium quota is active on Supabase, this will automatically
+  /// sync to the database without requiring any reconfiguration.
+  Future<bool> syncCategoryRevenueToDatabase() async {
+    try {
+      final categoryList = getCategoryRevenueShare();
+      _saveCachedCategoryRevenue(categoryList);
+
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        final success = await _supabase.recordCategoryRevenue(categoryList);
+        if (success) {
+          _isCategoryRevenueDbSynced = true;
+          notifyListeners();
+          debugPrint('✅ Category revenue share recorded & synchronized to Supabase database');
+          return true;
+        } else if (_supabase.isQuotaExceeded) {
+          _isCategoryRevenueDbSynced = false;
+          notifyListeners();
+          debugPrint('ℹ️ Category revenue preserved in local cache (Supabase quota standby)');
+        }
+      } else {
+        _isCategoryRevenueDbSynced = true;
+        return true;
+      }
+    } catch (e) {
+      debugPrint('ℹ️ Category revenue sync deferred: $e');
+    }
+    return false;
+  }
+
+  /// Refreshes category revenue share from Supabase database.
+  Future<void> refreshCategoryRevenueFromDatabase() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final remote = await _supabase.fetchCategoryRevenue();
+      if (remote != null && remote.isNotEmpty) {
+        _isCategoryRevenueDbSynced = true;
+        _saveCachedCategoryRevenue(remote);
+        notifyListeners();
+        debugPrint('✅ Category revenue refreshed from database (${remote.length} records)');
+      }
+    } catch (e) {
+      debugPrint('ℹ️ Category revenue refresh deferred: $e');
+    }
+  }
+
   int get onlineCustomersCount =>
       _customers.where((c) => c.isOnline || DateTime.now().difference(c.lastLogin).inMinutes < 45).length;
+
+  bool isCustomerOnline(String customerId, {String? phone, String? email}) {
+    for (final c in _customers) {
+      final idMatch = customerId.isNotEmpty &&
+          (c.id.toLowerCase() == customerId.toLowerCase() ||
+              customerId.toLowerCase().contains(c.id.toLowerCase()) ||
+              c.id.toLowerCase().contains(customerId.toLowerCase()));
+      final phoneMatch = phone != null &&
+          phone.isNotEmpty &&
+          c.phone.replaceAll(' ', '') == phone.replaceAll(' ', '');
+      final emailMatch = email != null &&
+          email.isNotEmpty &&
+          c.email.trim().toLowerCase() == email.trim().toLowerCase();
+      if (idMatch || phoneMatch || emailMatch) {
+        return c.isOnline || DateTime.now().difference(c.lastLogin).inMinutes < 45;
+      }
+    }
+    return false;
+  }
+
+  bool isCustomerOnlineForTicket(ServiceTicket ticket) {
+    if (isCustomerOnline(ticket.customerId,
+        phone: ticket.customerPhone, email: ticket.customerEmail)) {
+      return true;
+    }
+    final customerMessages =
+        ticket.messages.where((m) => m.isFromCustomer).toList();
+    if (customerMessages.isNotEmpty) {
+      if (DateTime.now().difference(customerMessages.last.timestamp).inMinutes < 45) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   int get pendingOrdersCount =>
       _orders.where((o) => o.status == OrderStatus.pending).length;
@@ -780,6 +1497,104 @@ class ManagerRepository extends ChangeNotifier {
     }
   }
 
+  void processInboundCustomerOrder(Map<String, dynamic> data) {
+    try {
+      final order = _orderFromMap(data);
+      final idx = _orders.indexWhere((o) => o.id == order.id);
+      if (idx == -1) {
+        _orders.insert(0, order);
+        _syncOrdersWithShipments();
+        _saveCachedManagerState();
+        final cleanId = order.id.replaceFirst('ORDER_', '');
+        final notifId = 'NOTIF-ORDER-$cleanId';
+        if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == order.id)) {
+          addNotification(
+            ManagerNotification(
+              id: notifId,
+              title: 'New Customer Order Placed',
+              message: 'Order #$cleanId for GH₵${order.totalAmount.toStringAsFixed(2)} by ${order.customerName}',
+              type: NotificationType.order,
+              severity: NotificationSeverity.success,
+              timestamp: order.date,
+              referenceId: cleanId,
+              actionRouteIndex: 1,
+            ),
+          );
+        }
+        notifyListeners();
+        debugPrint('📦 Inbound customer order received via LocalSync: ${order.id}');
+      }
+    } catch (e) {
+      debugPrint('Error processing inbound customer order: $e');
+    }
+  }
+
+  void processInboundNotification(Map<String, dynamic> data) {
+    try {
+      final title = data['title']?.toString() ?? 'Customer Update';
+      final message = data['message']?.toString() ?? (data['body']?.toString() ?? '');
+      final typeStr = data['type']?.toString().toLowerCase() ?? 'order';
+      final refId = data['referenceId']?.toString() ?? data['orderId']?.toString();
+      final id = data['id']?.toString() ?? 'NOTIF-${DateTime.now().millisecondsSinceEpoch}';
+
+      NotificationType notifType = NotificationType.order;
+      if (typeStr.contains('bnpl')) {
+        notifType = NotificationType.bnpl;
+      } else if (typeStr.contains('repair')) {
+        notifType = NotificationType.repair;
+      } else if (typeStr.contains('message') || typeStr.contains('inquiry')) {
+        notifType = NotificationType.customerMessage;
+      }
+
+      if (!_notifications.any((n) => n.id == id || (refId != null && n.referenceId == refId))) {
+        addNotification(
+          ManagerNotification(
+            id: id,
+            title: title,
+            message: message,
+            type: notifType,
+            severity: NotificationSeverity.success,
+            timestamp: DateTime.now(),
+            referenceId: refId,
+            actionRouteIndex: notifType == NotificationType.order ? 1 : null,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error processing inbound notification: $e');
+    }
+  }
+
+  void processInboundBnpl(Map<String, dynamic> data) {
+    try {
+      final bnpl = _bnplFromMap(data);
+      final idx = _bnplApplications.indexWhere((b) => b.id == bnpl.id);
+      if (idx == -1) {
+        _bnplApplications.insert(0, bnpl);
+        _saveCachedManagerState();
+        notifyListeners();
+        debugPrint('💳 Inbound BNPL application received via LocalSync: ${bnpl.id}');
+      }
+    } catch (e) {
+      debugPrint('Error processing inbound BNPL: $e');
+    }
+  }
+
+  void processInboundRepair(Map<String, dynamic> data) {
+    try {
+      final repair = _repairFromMap(data);
+      final idx = _repairs.indexWhere((r) => r.id == repair.id);
+      if (idx == -1) {
+        _repairs.insert(0, repair);
+        _saveCachedManagerState();
+        notifyListeners();
+        debugPrint('🔧 Inbound repair received via LocalSync: ${repair.id}');
+      }
+    } catch (e) {
+      debugPrint('Error processing inbound repair: $e');
+    }
+  }
+
   void _sortProductsList(List<ManagerProduct> list) {
     list.sort((a, b) {
       if (a.createdAt != null && b.createdAt != null) {
@@ -791,10 +1606,40 @@ class ManagerRepository extends ChangeNotifier {
     });
   }
 
+  void _normalizeProductImage(ManagerProduct product) {
+    if (product.imageBytes != null && product.imageBytes!.isNotEmpty) {
+      if (product.imageUrl.isEmpty || !product.imageUrl.startsWith('data:')) {
+        product.imageUrl = 'data:image/png;base64,${base64Encode(product.imageBytes!)}';
+      }
+    }
+    var url = product.imageUrl.trim();
+    if (url.isNotEmpty &&
+        !url.startsWith('http://') &&
+        !url.startsWith('https://') &&
+        !url.startsWith('data:')) {
+      try {
+        final clean = url.startsWith('file://') ? Uri.parse(url).toFilePath() : url;
+        final f = File(clean);
+        if (f.existsSync()) {
+          final bytes = f.readAsBytesSync();
+          final ext = f.path.contains('.') ? f.path.split('.').last.toLowerCase() : 'png';
+          final mime = (ext == 'jpg' || ext == 'jpeg') ? 'jpeg' : (ext == 'webp' ? 'webp' : 'png');
+          product.imageUrl = 'data:image/$mime;base64,${base64Encode(bytes)}';
+        }
+      } catch (_) {}
+    }
+  }
+
   // Product Actions
   void addProduct(ManagerProduct product) {
     product.createdAt ??= DateTime.now();
-    _products.insert(0, product);
+    _normalizeProductImage(product);
+    final existingIdx = _products.indexWhere((p) => p.id == product.id);
+    if (existingIdx != -1) {
+      _products[existingIdx] = product;
+    } else {
+      _products.insert(0, product);
+    }
     _sortProductsList(_products);
     _saveCachedProducts(_products);
     notifyListeners();
@@ -804,6 +1649,7 @@ class ManagerRepository extends ChangeNotifier {
   }
 
   void updateProduct(ManagerProduct product) {
+    _normalizeProductImage(product);
     final idx = _products.indexWhere((p) => p.id == product.id);
     if (idx != -1) {
       _products[idx] = product;
@@ -845,17 +1691,66 @@ class ManagerRepository extends ChangeNotifier {
       await _supabase.initialize();
       final remoteProducts = await _supabase.fetchProducts();
       if (remoteProducts != null) {
-        _applyRemoteData(remoteProducts);
+        final remoteMerchandise = remoteProducts.where((p) => p.isMerchandise).toList();
+        if (remoteMerchandise.isEmpty && _products.isNotEmpty) {
+          // Database products table is empty: seed existing catalog to Supabase in background
+          for (final p in _products) {
+            _supabase.upsertProduct(p);
+          }
+        } else {
+          _applyRemoteData(remoteProducts);
+        }
       }
 
-      // Realtime stream listener
+      // Fetch customer records from dedicated customers table if available
+      try {
+        final dedicatedCustomers = await _supabase.fetchCustomerRecords();
+        if (dedicatedCustomers != null && dedicatedCustomers.isNotEmpty) {
+          for (final m in dedicatedCustomers) {
+            final cust = _customerFromRecordMap(m);
+            final idx = _customers.indexWhere((c) => c.id == cust.id);
+            if (idx != -1) {
+              _customers[idx] = cust;
+            } else {
+              _customers.add(cust);
+            }
+          }
+        } else if (_customers.isNotEmpty) {
+          for (final c in _customers) {
+            _syncCustomerToSupabase(c);
+          }
+        }
+      } catch (_) {}
+
+      // Realtime stream listener for products & catalog
       _supabase.streamProducts()?.listen((liveProducts) {
         _applyRemoteData(liveProducts);
       }, onError: (e) {
         debugPrint('Supabase products stream error: $e');
       });
 
-      // Continuous 3-second auto-poll guarantees live purchases in customer app are immediately fetched
+      // Realtime stream listener for live chat messages
+      try {
+        _supabase.streamChatMessageRecords()?.listen((chatRecords) {
+          for (final m in chatRecords) {
+            _applyInboundChatMessageMap(m);
+          }
+        }, onError: (e) {
+          debugPrint('Supabase chat message stream error: $e');
+        });
+      } catch (_) {}
+
+      // Initial fetch of chat messages from database
+      try {
+        final initialChatRecords = await _supabase.fetchChatMessageRecords();
+        if (initialChatRecords != null && initialChatRecords.isNotEmpty) {
+          for (final m in initialChatRecords) {
+            _applyInboundChatMessageMap(m);
+          }
+        }
+      } catch (_) {}
+
+      // Continuous 3-second auto-poll guarantees live customer, activity metrics, & chat messages from customer app are fetched
       _syncPollTimer?.cancel();
       _syncPollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
         try {
@@ -863,8 +1758,42 @@ class ManagerRepository extends ChangeNotifier {
           if (live != null) {
             _applyRemoteData(live);
           }
+          final dedicatedCustomers = await _supabase.fetchCustomerRecords();
+          if (dedicatedCustomers != null && dedicatedCustomers.isNotEmpty) {
+            for (final m in dedicatedCustomers) {
+              final cust = _customerFromRecordMap(m);
+              final idx = _customers.indexWhere((c) => c.id == cust.id);
+              if (idx != -1) {
+                _customers[idx] = cust;
+              } else {
+                _customers.add(cust);
+              }
+            }
+            notifyListeners();
+          }
+          final dedicatedNotifs = await _supabase.fetchNotificationRecords();
+          if (dedicatedNotifs != null && dedicatedNotifs.isNotEmpty) {
+            for (final m in dedicatedNotifs) {
+              if (m['target'] == 'manager' || m['type'] == 'order') {
+                processInboundNotification(m);
+              }
+            }
+          }
+          final dedicatedChatMsgs = await _supabase.fetchChatMessageRecords();
+          if (dedicatedChatMsgs != null && dedicatedChatMsgs.isNotEmpty) {
+            for (final m in dedicatedChatMsgs) {
+              _applyInboundChatMessageMap(m);
+            }
+          }
+          // Periodic check: automatically reconnects category revenue to Supabase as soon as quota is restored
+          _categoryRevenueSyncTick = (_categoryRevenueSyncTick + 1) % 10;
+          if (_categoryRevenueSyncTick == 0) {
+            syncCategoryRevenueToDatabase();
+          }
         } catch (_) {}
       });
+      syncCustomerActivityMetricsToSupabase();
+      syncCategoryRevenueToDatabase();
     } catch (e) {
       debugPrint('ℹ️ Supabase sync deferred: $e');
     } finally {
@@ -873,10 +1802,41 @@ class ManagerRepository extends ChangeNotifier {
     }
   }
 
+  void seedInitialCatalogIfEmpty({bool force = false}) {
+    if (force || _products.where((p) => p.isMerchandise).isEmpty) {
+      final initial = MockManagerData.getInitialProducts();
+      for (final it in initial) {
+        if (!_products.any((p) => p.id == it.id)) {
+          _products.add(it);
+        }
+      }
+      _sortProductsList(_products);
+      _saveCachedProducts(_products);
+      _isLoading = false;
+      notifyListeners();
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        for (final p in _products) {
+          _supabase.upsertProduct(p);
+        }
+      }
+    }
+  }
+
   void _applyRemoteData(List<ManagerProduct> list) {
     final items = list.where((p) => p.isMerchandise).toList();
-    _sortProductsList(items);
-    _products = items;
+    if (items.isNotEmpty) {
+      for (final it in items) {
+        final idx = _products.indexWhere((p) => p.id == it.id);
+        if (idx != -1) {
+          _products[idx] = it;
+        } else {
+          _products.add(it);
+        }
+      }
+      _sortProductsList(_products);
+      _saveCachedProducts(_products);
+      notifyListeners();
+    }
 
     for (final p in items) {
       if (p.category.trim().isNotEmpty) {
@@ -896,6 +1856,23 @@ class ManagerRepository extends ChangeNotifier {
           _orders[idx] = parsedOrder;
         } else {
           _orders.add(parsedOrder);
+          final cleanId = parsedOrder.id.replaceFirst('ORDER_', '');
+          final notifId = 'NOTIF-ORDER-$cleanId';
+          if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == parsedOrder.id)) {
+            _notifications.insert(
+              0,
+              ManagerNotification(
+                id: notifId,
+                title: 'New Customer Order Placed',
+                message: 'Order #$cleanId for GH₵${parsedOrder.totalAmount.toStringAsFixed(2)} by ${parsedOrder.customerName}',
+                type: NotificationType.order,
+                severity: NotificationSeverity.success,
+                timestamp: parsedOrder.date,
+                referenceId: cleanId,
+                actionRouteIndex: 1,
+              ),
+            );
+          }
         }
       }
       _orders.sort((a, b) => b.date.compareTo(a.date));
@@ -934,8 +1911,158 @@ class ManagerRepository extends ChangeNotifier {
       _repairs.sort((a, b) => b.bookedDate.compareTo(a.bookedDate));
     }
 
+    final remoteBannerPlaylists = list.where((p) =>
+        p.id.startsWith('BANNER_PLAYLIST_') ||
+        p.category.toUpperCase() == 'BANNER_PLAYLIST').toList();
+    if (remoteBannerPlaylists.isNotEmpty) {
+      for (final p in remoteBannerPlaylists) {
+        try {
+          if (p.condition.isNotEmpty && p.condition.startsWith('{')) {
+            final map = jsonDecode(p.condition) as Map<String, dynamic>;
+            final playlist = BannerPlaylist.fromJson(map);
+            final idx = _bannerPlaylists.indexWhere((bp) => bp.id == playlist.id);
+            if (idx != -1) {
+              _bannerPlaylists[idx] = playlist;
+            } else {
+              _bannerPlaylists.add(playlist);
+            }
+          }
+        } catch (e) {
+          debugPrint('Error parsing remote banner playlist: $e');
+        }
+      }
+    }
+
+    final remoteCustomerProducts = list.where((p) =>
+        p.id.startsWith('CUSTOMER_') ||
+        p.category.toUpperCase() == 'CUSTOMER_RECORD').toList();
+    if (remoteCustomerProducts.isNotEmpty) {
+      for (final p in remoteCustomerProducts) {
+        final parsedCustomer = _customerFromSupabase(p);
+        final idx = _customers.indexWhere((c) => c.id == parsedCustomer.id);
+        if (idx != -1) {
+          _customers[idx] = parsedCustomer;
+        } else {
+          _customers.add(parsedCustomer);
+        }
+      }
+    }
+
+    final remoteNotifs = list.where((p) =>
+        p.id.startsWith('NOTIF_') ||
+        p.category.toUpperCase() == 'NOTIFICATION_RECORD').toList();
+    for (final p in remoteNotifs) {
+      try {
+        Map<String, dynamic> extra = {};
+        if (p.specs.isNotEmpty && p.specs.startsWith('{')) {
+          extra = jsonDecode(p.specs);
+        }
+        if (extra['target'] == 'manager' || extra['type'] == 'order') {
+          final notifId = p.id;
+          final refId = extra['referenceId']?.toString() ?? extra['orderId']?.toString();
+          if (!_notifications.any((n) => n.id == notifId || (refId != null && n.referenceId == refId))) {
+            _notifications.insert(
+              0,
+              ManagerNotification(
+                id: notifId,
+                title: extra['title']?.toString() ?? p.name,
+                message: extra['message']?.toString() ?? (extra['body']?.toString() ?? ''),
+                type: NotificationType.order,
+                severity: NotificationSeverity.success,
+                timestamp: p.createdAt ?? DateTime.now(),
+                referenceId: refId,
+                actionRouteIndex: 1,
+              ),
+            );
+          }
+        }
+      } catch (_) {}
+    }
+
+    final remoteChatMsgs = list.where((p) =>
+        p.id.startsWith('MSG_') ||
+        p.category.toUpperCase() == 'CHAT_MESSAGE').toList();
+    for (final p in remoteChatMsgs) {
+      _applyInboundChatMessageMap(SupabaseService.productToMap(p));
+    }
+
     _saveCachedManagerState();
     notifyListeners();
+  }
+
+  void _applyInboundChatMessageMap(Map<String, dynamic> rawMap) {
+    try {
+      Map<String, dynamic> extra = {};
+      if (rawMap['specs'] != null && rawMap['specs'].toString().startsWith('{')) {
+        try {
+          extra = jsonDecode(rawMap['specs'].toString());
+        } catch (_) {}
+      }
+
+      final msgId = (extra['id'] ?? rawMap['id'] ?? '').toString();
+      final cleanId = msgId.startsWith('MSG_') ? msgId.substring(4) : msgId;
+      if (cleanId.isEmpty) return;
+
+      if (_sentMessages.any((m) => m.id == cleanId || m.id == msgId || m.id == 'MSG_$cleanId')) {
+        return;
+      }
+
+      final isCustomer = extra['isFromCustomer'] == true ||
+          extra['is_from_customer'] == true ||
+          rawMap['is_from_customer'] == true ||
+          rawMap['isFromCustomer'] == true ||
+          rawMap['sender']?.toString().toLowerCase() == 'customer';
+
+      final custId = (extra['customerId'] ?? rawMap['customer_id'] ?? rawMap['customerId'] ?? rawMap['storage'] ?? '').toString();
+      final messageText = (extra['message'] ?? rawMap['message'] ?? rawMap['name'] ?? '').toString();
+      if (messageText.trim().isEmpty) return;
+
+      final sentAtStr = (extra['sentAt'] ?? rawMap['created_at'] ?? rawMap['sentAt'])?.toString();
+      final sentAt = sentAtStr != null ? DateTime.tryParse(sentAtStr) ?? DateTime.now() : DateTime.now();
+
+      final customer = _customers.cast<CustomerActivity?>().firstWhere(
+        (c) => c != null && c.id == custId,
+        orElse: () => null,
+      );
+      final custName = extra['customerName']?.toString() ??
+          rawMap['customer_name']?.toString() ??
+          customer?.fullName ??
+          (isCustomer ? 'Customer' : 'Store Manager');
+      final custPhone = extra['customerPhone']?.toString() ?? customer?.phone ?? '';
+      final custEmail = extra['customerEmail']?.toString() ?? customer?.email ?? '';
+
+      final newMsg = CustomerMessage(
+        id: cleanId,
+        customerId: custId,
+        customerName: custName,
+        customerPhone: custPhone,
+        customerEmail: custEmail,
+        message: messageText,
+        subject: (extra['subject'] ?? rawMap['subject'] ?? 'Direct Chat').toString(),
+        category: MessageCategory.general,
+        channel: MessageChannel.inApp,
+        sentAt: sentAt,
+        isFromCustomer: isCustomer,
+        status: MessageDeliveryStatus.delivered,
+      );
+
+      _sentMessages.insert(0, newMsg);
+      if (isCustomer && custId.isNotEmpty) {
+        setCustomerOnline(custId, true);
+        _syncInboundMessageToServiceTickets(
+          customerId: custId,
+          customerName: custName,
+          customerPhone: custPhone,
+          customerEmail: custEmail,
+          messageText: messageText,
+          timestamp: sentAt,
+        );
+      }
+      _saveCachedManagerState();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error applying inbound chat message map: $e');
+    }
   }
 
   // BNPL Actions
@@ -1054,7 +2181,7 @@ class ManagerRepository extends ChangeNotifier {
       }
     } else {
       final newCustomer = CustomerActivity(
-        id: 'CUST-${DateTime.now().millisecondsSinceEpoch}',
+        id: generateNextCustomerId(),
         fullName: customerName,
         phone: phone ?? '+233 24 000 0000',
         email: email ?? '${customerName.toLowerCase().replaceAll(' ', '.')}@gmail.com',
@@ -1066,33 +2193,158 @@ class ManagerRepository extends ChangeNotifier {
         totalSpend: 0.0,
       );
       _customers.insert(0, newCustomer);
+      _syncCustomerToSupabase(newCustomer);
       _activeMessagingCustomer = newCustomer;
     }
     notifyListeners();
   }
 
-  // Customer Messaging Actions (Outbound & Inbound Simulation)
+  // Customer Messaging Actions (Outbound & Inbound Real-Time Chat)
   void sendCustomerMessage(CustomerMessage message) {
     _sentMessages.insert(0, message);
+    LocalSyncServer.broadcast('chat_message', message.toJson());
+    _dispatchCustomerNotification(message);
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _supabase.upsertChatMessageRaw(message.toJson());
+    }
+    _saveCachedManagerState();
     notifyListeners();
   }
 
-  void addIncomingCustomerReply(String customerId, String replyText, {MessageChannel channel = MessageChannel.inApp}) {
-    final cust = _customers.firstWhere(
-      (c) => c.id == customerId,
-      orElse: () => CustomerActivity(
+  void _dispatchCustomerNotification(CustomerMessage message) {
+    final notifMap = {
+      'id': 'NOTIF_MSG_${message.id}',
+      'name': message.subject.isNotEmpty ? message.subject : 'Message from Store Manager',
+      'brand': message.channel.label,
+      'category': 'NOTIFICATION_RECORD',
+      'price': 0.0,
+      'specs': jsonEncode({
+        'id': message.id,
+        'title': message.subject.isNotEmpty ? message.subject : 'Message from Store Manager',
+        'body': message.message,
+        'customerId': message.customerId,
+        'customerPhone': message.customerPhone,
+        'customerEmail': message.customerEmail,
+        'channel': message.channel.name,
+        'channelLabel': message.channel.label,
+        'sentBy': message.sentBy,
+        'target': 'customer',
+        'timestamp': message.sentAt.toIso8601String(),
+        'isUnread': true,
+      }),
+      'condition': 'unread',
+      'storage': message.customerId,
+      'ram': message.customerPhone,
+      'color': message.customerEmail,
+      'created_at': message.sentAt.toIso8601String(),
+    };
+
+    _customerNotifications.insert(0, notifMap);
+    LocalSyncServer.broadcast('notification', notifMap);
+
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _supabase.upsertRawRecord(notifMap);
+      _supabase.upsertNotificationRaw({
+        'id': 'NOTIF_MSG_${message.id}',
+        'customer_id': message.customerId,
+        'title': message.subject.isNotEmpty ? message.subject : 'Message from Store Manager',
+        'message': message.message,
+        'channel': message.channel.name,
+        'target': 'customer',
+        'is_read': false,
+        'created_at': message.sentAt.toIso8601String(),
+      });
+    }
+  }
+
+  void setCustomerOnline(String customerId, bool isOnline) {
+    final idx = _customers.indexWhere((c) =>
+        c.id.toLowerCase() == customerId.toLowerCase() ||
+        c.phone.replaceAll(' ', '') == customerId.replaceAll(' ', ''));
+    if (idx != -1) {
+      final existing = _customers[idx];
+      final updated = CustomerActivity(
+        id: existing.id,
+        fullName: existing.fullName,
+        phone: existing.phone,
+        email: existing.email,
+        signupDate: existing.signupDate,
+        loginCount: existing.loginCount,
+        lastLogin: DateTime.now(),
+        primaryDevice: existing.primaryDevice,
+        status: existing.status,
+        totalSpend: existing.totalSpend,
+        totalOrders: existing.totalOrders,
+        branch: existing.branch,
+        isOnline: isOnline,
+      );
+      _customers[idx] = updated;
+      if (_activeMessagingCustomer?.id == existing.id) {
+        _activeMessagingCustomer = updated;
+      }
+      notifyListeners();
+    }
+  }
+
+  CustomerMessage addIncomingCustomerReply(
+    String customerId,
+    String replyText, {
+    MessageChannel channel = MessageChannel.inApp,
+    String? customerName,
+    String? customerPhone,
+    String? customerEmail,
+  }) {
+    final custIdx = _customers.indexWhere(
+      (c) =>
+          c.id.toLowerCase() == customerId.toLowerCase() ||
+          (customerPhone != null &&
+              customerPhone.isNotEmpty &&
+              c.phone.replaceAll(' ', '') == customerPhone.replaceAll(' ', '')) ||
+          (customerEmail != null &&
+              customerEmail.isNotEmpty &&
+              c.email.trim().toLowerCase() == customerEmail.trim().toLowerCase()),
+    );
+
+    CustomerActivity cust;
+    if (custIdx != -1) {
+      final existing = _customers[custIdx];
+      final updated = CustomerActivity(
+        id: existing.id,
+        fullName: (customerName != null && customerName.isNotEmpty) ? customerName : existing.fullName,
+        phone: (customerPhone != null && customerPhone.isNotEmpty) ? customerPhone : existing.phone,
+        email: (customerEmail != null && customerEmail.isNotEmpty) ? customerEmail : existing.email,
+        signupDate: existing.signupDate,
+        loginCount: existing.loginCount,
+        lastLogin: DateTime.now(),
+        primaryDevice: existing.primaryDevice,
+        status: existing.status,
+        totalSpend: existing.totalSpend,
+        totalOrders: existing.totalOrders,
+        branch: existing.branch,
+        isOnline: true,
+      );
+      _customers[custIdx] = updated;
+      if (_activeMessagingCustomer?.id == existing.id) {
+        _activeMessagingCustomer = updated;
+      }
+      cust = updated;
+    } else {
+      cust = CustomerActivity(
         id: customerId,
-        fullName: 'Customer',
-        phone: '+233 24 000 0000',
-        email: 'customer@gmail.com',
+        fullName: customerName ?? 'Customer',
+        phone: customerPhone ?? '+233 24 000 0000',
+        email: customerEmail ?? 'customer@gmail.com',
         signupDate: DateTime.now(),
         loginCount: 1,
         lastLogin: DateTime.now(),
         primaryDevice: 'Mobile App',
         status: 'Active',
         totalSpend: 0.0,
-      ),
-    );
+        isOnline: true,
+      );
+      _customers.insert(0, cust);
+      _syncCustomerToSupabase(cust);
+    }
 
     final newMsg = CustomerMessage(
       id: 'MSG-IN-${DateTime.now().millisecondsSinceEpoch}',
@@ -1110,7 +2362,79 @@ class ManagerRepository extends ChangeNotifier {
       isFromCustomer: true,
     );
     _sentMessages.insert(0, newMsg);
+    _syncInboundMessageToServiceTickets(
+      customerId: cust.id,
+      customerName: cust.fullName,
+      customerPhone: cust.phone,
+      customerEmail: cust.email,
+      messageText: replyText,
+      timestamp: DateTime.now(),
+    );
+    LocalSyncServer.broadcast('chat_message', newMsg.toJson());
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _supabase.upsertChatMessageRaw(newMsg.toJson());
+    }
+    _saveCachedManagerState();
     notifyListeners();
+    return newMsg;
+  }
+
+  void _syncInboundMessageToServiceTickets({
+    required String customerId,
+    required String customerName,
+    required String customerPhone,
+    required String customerEmail,
+    required String messageText,
+    required DateTime timestamp,
+  }) {
+    final ticketIdx = _serviceTickets.indexWhere(
+      (t) =>
+          t.customerId.toLowerCase() == customerId.toLowerCase() ||
+          (customerPhone.isNotEmpty &&
+              t.customerPhone.replaceAll(' ', '') == customerPhone.replaceAll(' ', '')) ||
+          (customerEmail.isNotEmpty &&
+              t.customerEmail.trim().toLowerCase() == customerEmail.trim().toLowerCase()),
+    );
+
+    if (ticketIdx != -1) {
+      final ticket = _serviceTickets[ticketIdx];
+      if (!ticket.messages.any((m) => m.text == messageText && m.timestamp.difference(timestamp).inSeconds.abs() < 5)) {
+        final newMsg = ServiceMessage(
+          id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+          senderType: ServiceSenderType.customer,
+          senderName: customerName.isNotEmpty ? customerName : ticket.customerName,
+          text: messageText,
+          timestamp: timestamp,
+          isRead: false,
+        );
+        ticket.messages.add(newMsg);
+        ticket.status = ServiceTicketStatus.open;
+      }
+    } else {
+      final newTicket = ServiceTicket(
+        id: 'TICK-${DateTime.now().millisecondsSinceEpoch}',
+        customerId: customerId,
+        customerName: customerName.isNotEmpty ? customerName : 'Customer ($customerId)',
+        customerPhone: customerPhone,
+        customerEmail: customerEmail,
+        subject: 'Mobile App Support Inquiry',
+        deviceOrTopic: 'Customer App Live Support',
+        createdAt: timestamp,
+        status: ServiceTicketStatus.open,
+        priority: ServiceTicketPriority.normal,
+        messages: [
+          ServiceMessage(
+            id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+            senderType: ServiceSenderType.customer,
+            senderName: customerName.isNotEmpty ? customerName : 'Customer',
+            text: messageText,
+            timestamp: timestamp,
+            isRead: false,
+          ),
+        ],
+      );
+      _serviceTickets.insert(0, newTicket);
+    }
   }
 
   // Service Center Actions (Inbound Customer Chat & Support Desk)
@@ -1128,6 +2452,30 @@ class ManagerRepository extends ChangeNotifier {
       );
       ticket.messages.add(newMsg);
       ticket.status = ServiceTicketStatus.waitingCustomer;
+
+      // Broadcast outbound manager message to customer mobile app via LocalSyncServer & Supabase
+      final outbound = CustomerMessage(
+        id: 'MSG-SRV-${DateTime.now().millisecondsSinceEpoch}',
+        customerId: ticket.customerId,
+        customerName: ticket.customerName,
+        customerPhone: ticket.customerPhone,
+        customerEmail: ticket.customerEmail,
+        channel: MessageChannel.inApp,
+        category: MessageCategory.general,
+        subject: 'Support Desk Reply: ${ticket.subject}',
+        message: replyText,
+        sentAt: DateTime.now(),
+        sentBy: 'Siaka Support Specialist',
+        status: MessageDeliveryStatus.delivered,
+        isFromCustomer: false,
+      );
+      _sentMessages.insert(0, outbound);
+
+      LocalSyncServer.broadcast('chat_message', outbound.toJson());
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        _supabase.upsertChatMessageRaw(outbound.toJson());
+      }
+      _saveCachedManagerState();
       notifyListeners();
     }
   }
@@ -1589,6 +2937,19 @@ class ManagerRepository extends ChangeNotifier {
   // Advertisement Banner Operations
   void addAdvertisement(AdvertisementBanner ad) {
     _advertisements.add(ad);
+    addVideoToPlaylist(
+      'banner_home_1',
+      BannerVideoItem(
+        id: ad.id,
+        videoUrl: ad.videoUrl,
+        title: ad.title,
+        description: ad.description,
+        badgeText: ad.badgeText,
+        isActive: ad.isActive,
+        displayOrder: ad.displayOrder,
+        createdAt: ad.createdAt,
+      ),
+    );
     notifyListeners();
   }
 
@@ -1624,5 +2985,241 @@ class ManagerRepository extends ChangeNotifier {
       _advertisements[i] = _advertisements[i].copyWith(displayOrder: i + 1);
     }
     notifyListeners();
+  }
+
+  // ==========================================
+  // 5 Banner Playlists Operations
+  // ==========================================
+
+  List<BannerPlaylist> get bannerPlaylists => List.unmodifiable(_bannerPlaylists);
+
+  BannerPlaylist? getBannerPlaylist(String id) {
+    return _bannerPlaylists.cast<BannerPlaylist?>().firstWhere(
+          (p) => p?.id == id,
+          orElse: () => null,
+        );
+  }
+
+  String _normalizeImageUrl(String input) {
+    var trimmed = input.trim();
+    if (trimmed.isEmpty ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('data:')) {
+      return trimmed;
+    }
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      trimmed = trimmed.substring(1, trimmed.length - 1).trim();
+    }
+    if (trimmed.startsWith('file://')) {
+      try {
+        trimmed = Uri.parse(trimmed).toFilePath();
+      } catch (_) {
+        trimmed = trimmed.replaceFirst('file://', '');
+      }
+    }
+    try {
+      final f = File(trimmed);
+      if (f.existsSync()) {
+        final bytes = f.readAsBytesSync();
+        final ext = f.path.contains('.') ? f.path.split('.').last.toLowerCase() : 'png';
+        final mime = (ext == 'jpg' || ext == 'jpeg') ? 'jpeg' : (ext == 'webp' ? 'webp' : 'png');
+        return 'data:image/$mime;base64,${base64Encode(bytes)}';
+      }
+    } catch (e) {
+      debugPrint('Note: Could not convert local image path: $e');
+    }
+    return trimmed;
+  }
+
+  BannerPlaylist _sanitizePlaylistImages(BannerPlaylist pl) {
+    final newImages = pl.images.map((img) {
+      final url = _normalizeImageUrl(img.imageUrl);
+      return img.copyWith(imageUrl: url);
+    }).toList();
+    return pl.copyWith(images: newImages);
+  }
+
+  void _syncBannerPlaylistRemote(BannerPlaylist playlist) {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final cleanPlaylist = _sanitizePlaylistImages(playlist);
+      final token = ManagerProduct(
+        id: 'BANNER_PLAYLIST_${cleanPlaylist.id}',
+        name: cleanPlaylist.name,
+        brand: cleanPlaylist.targetPage,
+        category: 'BANNER_PLAYLIST',
+        price: cleanPlaylist.bannerIndex.toDouble(),
+        originalPrice: 0.0,
+        stock: cleanPlaylist.images.length,
+        specs: cleanPlaylist.subtitle,
+        condition: jsonEncode(cleanPlaylist.toJson()),
+        isFeatured: false,
+      );
+      _supabase.upsertProduct(token);
+    } catch (e) {
+      debugPrint('Error syncing banner playlist to Supabase: $e');
+    }
+  }
+
+  void addImageToPlaylist(String playlistId, BannerImageItem image) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      if (current.images.length >= 3) {
+        debugPrint('⚠️ Cannot add image: Maximum limit of 3 images reached for banner playlist $playlistId.');
+        return;
+      }
+      final newImages = List<BannerImageItem>.from(current.images);
+      final url = _normalizeImageUrl(image.imageUrl);
+      final itemToAdd = image.copyWith(imageUrl: url, displayOrder: newImages.length + 1);
+      newImages.add(itemToAdd);
+      _bannerPlaylists[idx] = current.copyWith(images: newImages);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void removeImageFromPlaylist(String playlistId, String imageId) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      final newImages = current.images.where((img) => img.id != imageId).toList();
+      for (int i = 0; i < newImages.length; i++) {
+        newImages[i] = newImages[i].copyWith(displayOrder: i + 1);
+      }
+      _bannerPlaylists[idx] = current.copyWith(images: newImages);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void togglePlaylistImageStatus(String playlistId, String imageId) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      final newImages = current.images.map((img) {
+        if (img.id == imageId) {
+          return img.copyWith(isActive: !img.isActive);
+        }
+        return img;
+      }).toList();
+      _bannerPlaylists[idx] = current.copyWith(images: newImages);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void reorderPlaylistImages(String playlistId, int oldIndex, int newIndex) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      final newImages = List<BannerImageItem>.from(current.images);
+      if (oldIndex < 0 || oldIndex >= newImages.length || newIndex < 0 || newIndex >= newImages.length) {
+        return;
+      }
+      final item = newImages.removeAt(oldIndex);
+      newImages.insert(newIndex, item);
+      for (int i = 0; i < newImages.length; i++) {
+        newImages[i] = newImages[i].copyWith(displayOrder: i + 1);
+      }
+      _bannerPlaylists[idx] = current.copyWith(images: newImages);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void togglePlaylistActive(String playlistId) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      _bannerPlaylists[idx] = current.copyWith(isActive: !current.isActive);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void addVideoToPlaylist(String playlistId, BannerVideoItem video) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      final newVideos = List<BannerVideoItem>.from(current.videos);
+      final itemToAdd = video.copyWith(displayOrder: newVideos.length + 1);
+      newVideos.add(itemToAdd);
+      _bannerPlaylists[idx] = current.copyWith(videos: newVideos);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void removeVideoFromPlaylist(String playlistId, String videoId) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      final newVideos = current.videos.where((v) => v.id != videoId).toList();
+      for (int i = 0; i < newVideos.length; i++) {
+        newVideos[i] = newVideos[i].copyWith(displayOrder: i + 1);
+      }
+      _bannerPlaylists[idx] = current.copyWith(videos: newVideos);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void togglePlaylistVideoStatus(String playlistId, String videoId) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      final newVideos = current.videos.map((v) {
+        if (v.id == videoId) {
+          return v.copyWith(isActive: !v.isActive);
+        }
+        return v;
+      }).toList();
+      _bannerPlaylists[idx] = current.copyWith(videos: newVideos);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void reorderPlaylistVideos(String playlistId, int oldIndex, int newIndex) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      final newVideos = List<BannerVideoItem>.from(current.videos);
+      if (oldIndex < 0 || oldIndex >= newVideos.length || newIndex < 0 || newIndex >= newVideos.length) {
+        return;
+      }
+      final item = newVideos.removeAt(oldIndex);
+      newVideos.insert(newIndex, item);
+      for (int i = 0; i < newVideos.length; i++) {
+        newVideos[i] = newVideos[i].copyWith(displayOrder: i + 1);
+      }
+      _bannerPlaylists[idx] = current.copyWith(videos: newVideos);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
+  }
+
+  void updatePlaylistVideo(String playlistId, BannerVideoItem video) {
+    final idx = _bannerPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final current = _bannerPlaylists[idx];
+      final newVideos = current.videos.map((v) => v.id == video.id ? video : v).toList();
+      _bannerPlaylists[idx] = current.copyWith(videos: newVideos);
+      _saveCachedManagerState();
+      _syncBannerPlaylistRemote(_bannerPlaylists[idx]);
+      notifyListeners();
+    }
   }
 }

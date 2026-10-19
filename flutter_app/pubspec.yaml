@@ -25,6 +25,7 @@ flutter:
   assets:
     - assets/images/
     - assets/videos/
+    - assets/sounds/
 
 
 dependency_overrides:

@@ -5,6 +5,7 @@ import 'package:siaka_phones_flutter/data/mock_data.dart';
 import 'package:siaka_phones_flutter/data/repositories/cart_repository.dart';
 import 'package:siaka_phones_flutter/data/repositories/product_repository.dart';
 import 'package:siaka_phones_flutter/data/repositories/user_repository.dart';
+import 'package:siaka_phones_flutter/domain/models/product.dart';
 import 'package:siaka_phones_flutter/main.dart';
 import 'package:siaka_phones_flutter/ui/core/app_colors.dart';
 import 'package:siaka_phones_flutter/ui/features/auth/login_view.dart';
@@ -35,6 +36,7 @@ import 'package:siaka_phones_flutter/data/repositories/repair_repository.dart';
 import 'package:siaka_phones_flutter/ui/features/repairs/repairs_view.dart';
 import 'package:siaka_phones_flutter/ui/features/repairs/repairs_view_model.dart';
 import 'package:siaka_phones_flutter/ui/features/support/support_view.dart';
+import 'package:siaka_phones_flutter/ui/features/support/support_view_model.dart';
 import 'package:siaka_phones_flutter/ui/features/bnpl/bnpl_view.dart';
 import 'package:siaka_phones_flutter/ui/features/bnpl/bnpl_view_model.dart';
 import 'package:siaka_phones_flutter/ui/features/repairs/my_repairs_view.dart';
@@ -362,7 +364,9 @@ void main() {
 
     // Verify User Details & Tier
     expect(find.text(userRepo.profile.name), findsOneWidget);
+    expect(find.text('ID: ${userRepo.profile.id}'), findsOneWidget);
     expect(find.text(userRepo.profile.email), findsOneWidget);
+    expect(find.text(userRepo.profile.phone), findsOneWidget);
     expect(find.text(userRepo.profile.membershipTier), findsOneWidget);
 
     // Verify Stats
@@ -1227,6 +1231,7 @@ void main() {
             currentIndex: 0,
             onTabSelected: (_) {},
             cartBadgeCount: 2,
+            wishlistBadgeCount: 3,
           ),
         ),
       ),
@@ -1239,6 +1244,7 @@ void main() {
     expect(find.text('Cart'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('2'), findsOneWidget); // cart badge
+    expect(find.text('3'), findsOneWidget); // wishlist badge
     expect(tester.takeException(), isNull);
   });
 
@@ -2509,7 +2515,112 @@ void main() {
     final filtered = repo.filterProducts(category: 'Drones');
     expect(filtered.every((p) => !p.id.startsWith('CAT_')), isTrue);
   });
+
+  test('SupportViewModel manages messages, handles customer input, and integrates user profile', () async {
+    final vm = SupportViewModel();
+    expect(vm.messages.isNotEmpty, isTrue);
+    expect(vm.messages.first.isUser, isFalse);
+
+    // Send a message
+    await vm.sendMessage('Hello manager, is Samsung S24 Ultra in stock?');
+    expect(vm.messages.length, greaterThanOrEqualTo(2));
+    final userMsg = vm.messages.firstWhere((m) => m.text == 'Hello manager, is Samsung S24 Ultra in stock?');
+    expect(userMsg.isUser, isTrue);
+  });
+
+  testWidgets('SupportView displays Support Team header with live online presence status badge', (WidgetTester tester) async {
+    final vm = SupportViewModel();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SupportView(viewModel: vm),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Support Team'), findsOneWidget);
+    expect(find.text('Online • Ready to help'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+
+    // Send chat text via UI
+    await tester.enterText(find.byType(TextField), 'Testing live chat sync');
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Testing live chat sync'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('ProductDetailView reflects multiple storage and RAM options parsed from database', (WidgetTester tester) async {
+    final dbMap = {
+      'id': 'test_multi_specs_phone',
+      'name': 'Galaxy Ultra Pro',
+      'brand': 'Samsung',
+      'category': 'Smartphones',
+      'price': 12000.0,
+      'original_price': 14000.0,
+      'storage': '256GB, 512GB, 1TB',
+      'storages': ['256GB', '512GB', '1TB'],
+      'ram': '12GB, 16GB',
+      'rams': ['12GB', '16GB'],
+      'colors': ['Phantom Black', 'Titanium Gray'],
+      'condition': 'New',
+    };
+
+    final product = Product.fromMap(dbMap);
+    expect(product.storageOptions, ['256GB', '512GB', '1TB']);
+    expect(product.ramOptions, ['12GB', '16GB']);
+
+    final cartRepo = CartRepository();
+    final vm = ProductDetailViewModel(product: product, cartRepository: cartRepo);
+
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProductDetailView(
+          viewModel: vm,
+          onTabSelected: (_) {},
+          onReviewsTap: () {},
+          onGoToCart: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify all 3 storage options are displayed
+    expect(find.text('256GB'), findsOneWidget);
+    expect(find.text('512GB'), findsOneWidget);
+    expect(find.text('1TB'), findsOneWidget);
+
+    // Verify all RAM options are displayed
+    expect(find.text('12GB'), findsOneWidget);
+    expect(find.text('16GB'), findsOneWidget);
+
+    // Tap to select 512GB and 16GB
+    await tester.tap(find.text('512GB'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(vm.selectedStorage, '512GB');
+
+    await tester.tap(find.text('16GB'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(vm.selectedRam, '16GB');
+
+    // Add to cart and verify cart item has selected specs
+    vm.addToCart();
+    expect(cartRepo.items.length, 1);
+    expect(cartRepo.items.first.selectedStorage, '512GB');
+    expect(cartRepo.items.first.selectedRam, '16GB');
+    expect(cartRepo.items.first.specsDescription, contains('512GB • 16GB'));
+
+    await tester.pump(const Duration(seconds: 3));
+  });
 }
+
 
 
 

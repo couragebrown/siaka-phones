@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,6 +12,8 @@ import 'data/repositories/user_repository.dart';
 import 'data/repositories/wishlist_repository.dart';
 import 'data/mock_data.dart';
 import 'data/services/session_manager.dart';
+import 'data/services/customer_id_service.dart';
+import 'data/services/customer_telemetry_service.dart';
 
 // Models
 import 'domain/models/product.dart';
@@ -66,11 +69,15 @@ void main() async {
     ),
   );
 
-  try {
-    await SupabaseService().initialize();
-  } catch (e) {
-    debugPrint('Supabase Mobile init in main: $e');
-  }
+  // Initialize Supabase in background without blocking Flutter first-frame render
+  unawaited(
+    SupabaseService().initialize().catchError((e) {
+      debugPrint('Supabase Mobile init in main: $e');
+    }),
+  );
+
+  // Keep the initial screen of the logo for half a second before the loading bar page
+  await Future.delayed(const Duration(milliseconds: 500));
 
   // Check whether the user has a valid (non-expired) session
   final hasSession = await SessionManager.hasValidSession();
@@ -129,7 +136,7 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
     _ordersVM = OrdersViewModel(orderRepository: _orderRepo);
     _repairsVM = RepairsViewModel(repairRepository: _repairRepo);
     _tradeInVM = TradeInViewModel();
-    _supportVM = SupportViewModel();
+    _supportVM = SupportViewModel(userRepository: _userRepo);
     _locationsVM = LocationsViewModel(locationRepository: _locationRepo);
     _reviewsVM = ReviewsViewModel();
     _bnplVM = BnplViewModel();
@@ -137,6 +144,15 @@ class _SiakaPhonesAppState extends State<SiakaPhonesApp> {
     // Pre-warm data in background during splash screen
     _homeVM.loadData();
     _catalogVM.loadCatalog();
+
+    // Report active session telemetry to database & manager
+    CustomerTelemetryService.pingSession(
+      customerId: _userRepo.profile.id,
+      name: _userRepo.profile.name,
+      email: _userRepo.profile.email,
+      phone: _userRepo.profile.phone,
+      isLogin: false,
+    );
   }
 
   @override
@@ -299,6 +315,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
       MaterialPageRoute(
         builder: (_) => CheckoutView(
           viewModel: checkoutVM,
+          wishlistBadgeCount: widget.wishlistRepo.itemCount,
           onTabSelected: _selectRootTab,
           onOrderPlaced: (order) => _navigateToConfirmation(order),
         ),
@@ -312,6 +329,8 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
         builder: (_) => TrackOrderView(
           order: order,
           orderRepository: widget.orderRepo,
+          cartBadgeCount: widget.cartRepo.itemCount,
+          wishlistBadgeCount: widget.wishlistRepo.itemCount,
           onTabSelected: _selectRootTab,
         ),
       ),
@@ -456,6 +475,13 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
         onBack: () {}, // no-op: sign-in is the entry gate
         onSignIn: () async {
           await SessionManager.saveSession();
+          CustomerTelemetryService.pingSession(
+            customerId: widget.profileVM.profile.id,
+            name: widget.profileVM.profile.name,
+            email: widget.profileVM.profile.email,
+            phone: widget.profileVM.profile.phone,
+            isLogin: true,
+          );
           setState(() {
             _isAuthenticated = true;
             _currentTabIndex = 0;
@@ -463,7 +489,17 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
         },
         onCreateAccount:
             (name, email, phone, address, country, region, gpsCode) async {
+          final newUserId = await CustomerIdService.registerAndGenerateId(
+            name: name,
+            email: email,
+            phone: phone,
+            address: address,
+            gpsCode: gpsCode,
+            region: region,
+            country: country,
+          );
           widget.profileVM.updateProfile(
+            id: newUserId,
             name: name,
             email: email,
             phone: phone,
@@ -485,7 +521,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
 
 
     return ListenableBuilder(
-      listenable: widget.cartRepo,
+      listenable: Listenable.merge([widget.cartRepo, widget.wishlistRepo]),
       builder: (context, _) {
         final List<Widget> pages = [
           HomeView(
@@ -570,6 +606,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
         return BottomNavScaffold(
           currentIndex: _currentTabIndex,
           cartBadgeCount: widget.cartRepo.itemCount,
+          wishlistBadgeCount: widget.wishlistRepo.itemCount,
           onTabSelected: _selectRootTab,
           body: IndexedStack(
             index: _currentTabIndex,

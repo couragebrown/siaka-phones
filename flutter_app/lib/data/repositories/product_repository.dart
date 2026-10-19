@@ -5,19 +5,33 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../mock_data.dart';
 import '../../domain/models/product.dart';
+import '../../domain/models/banner_playlist.dart';
 import '../services/supabase_service.dart';
 
 class ProductRepository with ChangeNotifier {
   List<Product> _products = [];
+  List<BannerPlaylist> _bannerPlaylists = [];
   final Set<String> _customCategories = {};
   final SupabaseService _supabase = SupabaseService();
   Timer? _syncTimer;
+  StreamSubscription<void>? _pushSub;
+  bool _resyncPending = false;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  List<BannerPlaylist> get bannerPlaylists => List.unmodifiable(_bannerPlaylists);
+
+  BannerPlaylist? getBannerPlaylist(String id) {
+    return _bannerPlaylists.cast<BannerPlaylist?>().firstWhere(
+          (p) => p?.id == id,
+          orElse: () => null,
+        );
+  }
 
   ProductRepository() {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       _products = List.from(MockData.products);
+      _bannerPlaylists = MockData.getInitialBannerPlaylists();
       _processProductList(_products);
     } else {
       _initFromStorageAndSync();
@@ -39,6 +53,21 @@ class ProductRepository with ChangeNotifier {
           notifyListeners();
         }
       }
+      if (_products.isEmpty) {
+        _processProductList(List.from(MockData.products));
+        _saveToStorage(_products);
+        notifyListeners();
+      }
+      final cachedBannersJson = prefs.getString('cached_banner_playlists_v1');
+      if (cachedBannersJson != null && cachedBannersJson.trim().isNotEmpty) {
+        final bList = jsonDecode(cachedBannersJson) as List;
+        _bannerPlaylists = bList
+            .map((item) => BannerPlaylist.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      if (_bannerPlaylists.isEmpty) {
+        _bannerPlaylists = MockData.getInitialBannerPlaylists();
+      }
     } catch (e) {
       debugPrint('ℹ️ Cache load note: $e');
     }
@@ -48,8 +77,12 @@ class ProductRepository with ChangeNotifier {
   Future<void> _saveToStorage(List<Product> products) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final data = products.map((p) => p.toMap()).toList();
+      final data = products.where((p) => p.isMerchandise).map((p) => p.toMap()).toList();
       await prefs.setString('cached_products_v1', jsonEncode(data));
+      if (_bannerPlaylists.isNotEmpty) {
+        final plData = _bannerPlaylists.map((p) => p.toJson()).toList();
+        await prefs.setString('cached_banner_playlists_v1', jsonEncode(plData));
+      }
     } catch (_) {}
   }
 
@@ -66,26 +99,60 @@ class ProductRepository with ChangeNotifier {
   ];
 
   void _processProductList(List<Product> list) {
+    final freshCats = <String>{};
     for (final p in list) {
       if (p.id.startsWith('CAT_')) {
         final catName = p.name.trim().isNotEmpty ? p.name.trim() : p.category.trim();
         if (catName.isNotEmpty && catName.toLowerCase() != 'category') {
-          _customCategories.add(catName);
+          freshCats.add(catName);
         }
-      } else {
+      } else if (p.isMerchandise) {
         final cat = p.category.trim();
         if (cat.isNotEmpty &&
             cat.toLowerCase() != 'category' &&
             !defaultCategories.any((b) => b.toLowerCase() == cat.toLowerCase())) {
-          _customCategories.add(cat);
+          freshCats.add(cat);
         }
       }
     }
-    _products = list.where((p) =>
-        !p.id.startsWith('CAT_') &&
-        !p.id.startsWith('ORDER_') &&
-        !p.id.startsWith('BNPL_') &&
-        !p.id.startsWith('REPAIR_')).toList();
+    _customCategories
+      ..clear()
+      ..addAll(freshCats);
+    final bannerProducts = list.where((p) =>
+        p.id.startsWith('BANNER_PLAYLIST_') ||
+        p.category.toUpperCase() == 'BANNER_PLAYLIST').toList();
+    if (bannerProducts.isNotEmpty) {
+      for (final bp in bannerProducts) {
+        try {
+          if (bp.condition.isNotEmpty && bp.condition.startsWith('{')) {
+            final map = jsonDecode(bp.condition) as Map<String, dynamic>;
+            final pl = BannerPlaylist.fromJson(map);
+            final idx = _bannerPlaylists.indexWhere((x) => x.id == pl.id);
+            if (idx != -1) {
+              _bannerPlaylists[idx] = pl;
+            } else {
+              _bannerPlaylists.add(pl);
+            }
+          }
+        } catch (e) {
+          debugPrint('Error decoding banner playlist on mobile: $e');
+        }
+      }
+    }
+    if (_bannerPlaylists.isEmpty) {
+      _bannerPlaylists = MockData.getInitialBannerPlaylists();
+    }
+
+    final seenIds = <String>{};
+    final uniqueProducts = <Product>[];
+    for (final p in list) {
+      if (p.isMerchandise && !p.id.startsWith('prod_sort_') && !p.id.startsWith('test_')) {
+        if (seenIds.add(p.id)) {
+          uniqueProducts.add(p);
+        }
+      }
+    }
+    _products = uniqueProducts;
   }
 
   bool _productsOrCategoriesChanged(
@@ -99,6 +166,10 @@ class ProductRepository with ChangeNotifier {
     for (final c in newCats) {
       if (!oldCats.contains(c)) return true;
     }
+    // Check ordering (e.g. newly created SKU placed at top)
+    for (int i = 0; i < oldProducts.length; i++) {
+      if (oldProducts[i].id != newProducts[i].id) return true;
+    }
     final oldMap = {for (final p in oldProducts) p.id: p};
     for (final p2 in newProducts) {
       final p1 = oldMap[p2.id];
@@ -109,42 +180,124 @@ class ProductRepository with ChangeNotifier {
           p1.category != p2.category ||
           p1.brand != p2.brand ||
           p1.isFeatured != p2.isFeatured ||
-          p1.images.length != p2.images.length) {
+          p1.isNewArrival != p2.isNewArrival ||
+          p1.stockCount != p2.stockCount ||
+          p1.inStock != p2.inStock ||
+          p1.condition != p2.condition ||
+          p1.description != p2.description ||
+          p1.images.length != p2.images.length ||
+          p1.colors.length != p2.colors.length ||
+          p1.storageOptions.length != p2.storageOptions.length ||
+          p1.highlights.length != p2.highlights.length) {
         return true;
       }
-      if (p1.images.isNotEmpty &&
-          p2.images.isNotEmpty &&
-          p1.images.first != p2.images.first) {
-        return true;
+      for (int i = 0; i < p2.images.length; i++) {
+        if (p1.images[i] != p2.images[i]) return true;
+      }
+      for (int i = 0; i < p2.colors.length; i++) {
+        if (p1.colors[i] != p2.colors[i]) return true;
+      }
+      for (int i = 0; i < p2.storageOptions.length; i++) {
+        if (p1.storageOptions[i] != p2.storageOptions[i]) return true;
       }
     }
     return false;
   }
 
+  bool _bannerPlaylistsChanged(List<BannerPlaylist> oldP, List<BannerPlaylist> newP) {
+    if (oldP.length != newP.length) return true;
+    for (int i = 0; i < newP.length; i++) {
+      final p1 = oldP[i];
+      final p2 = newP[i];
+      if (p1.id != p2.id ||
+          p1.isActive != p2.isActive ||
+          p1.images.length != p2.images.length ||
+          p1.videos.length != p2.videos.length) {
+        return true;
+      }
+      for (int j = 0; j < p2.images.length; j++) {
+        if (p1.images[j].id != p2.images[j].id ||
+            p1.images[j].imageUrl != p2.images[j].imageUrl ||
+            p1.images[j].isActive != p2.images[j].isActive) {
+          return true;
+        }
+      }
+      for (int j = 0; j < p2.videos.length; j++) {
+        if (p1.videos[j].id != p2.videos[j].id ||
+            p1.videos[j].videoUrl != p2.videos[j].videoUrl ||
+            p1.videos[j].isActive != p2.videos[j].isActive) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _isSyncing = false;
+
   Future<void> refreshFromSupabase({bool silent = false}) async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    if (_isSyncing) {
+      // A change arrived mid-refresh: run once more right after so it is never missed.
+      _resyncPending = true;
+      return;
+    }
+    _isSyncing = true;
     try {
       if (!_supabase.isInitialized) {
         await _supabase.initialize();
       }
-      final remote = await _supabase.fetchProducts();
+
+      // 1. High-speed unified sync round-trip (products + banners in one fast call)
+      final fullSync = await _supabase.fetchFullSyncState();
+      List<Product>? remote = fullSync.products;
+      List<BannerPlaylist>? remoteBanners = fullSync.banners;
+
+      // 2. Fallback to individual parallel fetches if unified sync was unavailable
+      if (remote == null || remoteBanners == null) {
+        final results = await Future.wait([
+          if (remote == null) _supabase.fetchProducts() else Future.value(remote),
+          if (remoteBanners == null) _supabase.fetchBannerPlaylists() else Future.value(remoteBanners),
+        ]);
+        remote = results[0] as List<Product>?;
+        remoteBanners = results[1] as List<BannerPlaylist>?;
+      }
+
+      bool changed = false;
+      final oldProducts = List<Product>.from(_products);
+      final oldCustomCats = Set<String>.from(_customCategories);
+      final oldBanners = List<BannerPlaylist>.from(_bannerPlaylists);
+
       if (remote != null && remote.isNotEmpty) {
-        final oldProducts = List<Product>.from(_products);
-        final oldCustomCats = Set<String>.from(_customCategories);
         _processProductList(remote);
+        if (!silent || _productsOrCategoriesChanged(oldProducts, _products, oldCustomCats, _customCategories)) {
+          changed = true;
+        }
+      }
+
+      if (remoteBanners != null && remoteBanners.isNotEmpty) {
+        _bannerPlaylists = remoteBanners;
+        if (!silent || _bannerPlaylistsChanged(oldBanners, _bannerPlaylists)) {
+          changed = true;
+        }
+      }
+
+      if (changed) {
         _isLoading = false;
         _saveToStorage(_products);
-        if (_productsOrCategoriesChanged(
-            oldProducts, _products, oldCustomCats, _customCategories)) {
-          notifyListeners();
-        }
+        notifyListeners();
       }
     } catch (e) {
       if (!silent) {
-        debugPrint('ℹ️ Supabase fetch note: $e');
+        debugPrint('ℹ️ Sync note: $e');
       }
     } finally {
       _isLoading = false;
+      _isSyncing = false;
+      if (_resyncPending) {
+        _resyncPending = false;
+        unawaited(refreshFromSupabase(silent: true));
+      }
     }
   }
 
@@ -158,11 +311,13 @@ class ProductRepository with ChangeNotifier {
           if (liveList.isNotEmpty) {
             final oldProducts = List<Product>.from(_products);
             final oldCustomCats = Set<String>.from(_customCategories);
+            final oldBanners = List<BannerPlaylist>.from(_bannerPlaylists);
             _processProductList(liveList);
             _isLoading = false;
             _saveToStorage(_products);
-            if (_productsOrCategoriesChanged(
-                oldProducts, _products, oldCustomCats, _customCategories)) {
+            if (_bannerPlaylistsChanged(oldBanners, _bannerPlaylists) ||
+                _productsOrCategoriesChanged(
+                    oldProducts, _products, oldCustomCats, _customCategories)) {
               notifyListeners();
             }
           }
@@ -171,10 +326,18 @@ class ProductRepository with ChangeNotifier {
           debugPrint('ℹ️ Supabase stream note: $err');
         },
       );
-      // Periodic fallback sync so any updates made in Manager Desktop auto-reflect
-      _syncTimer?.cancel();
-      _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      // Instant push: the PC Manager app announces every inventory change over a live
+      // connection, so adds/edits/deletes appear on the phone immediately.
+      _pushSub?.cancel();
+      _pushSub = _supabase.localChangeEvents().listen((_) {
         refreshFromSupabase(silent: true);
+      });
+      // Safety-net poll in case the live connection drops (e.g. PC app restarted).
+      _syncTimer?.cancel();
+      _syncTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+        if (!_isSyncing && !SupabaseService.isQuotaRestricted) {
+          refreshFromSupabase(silent: true);
+        }
       });
     } catch (e) {
       debugPrint('ℹ️ Supabase sync note: $e');
@@ -184,6 +347,7 @@ class ProductRepository with ChangeNotifier {
   @override
   void dispose() {
     _syncTimer?.cancel();
+    _pushSub?.cancel();
     super.dispose();
   }
 

@@ -10,8 +10,9 @@ class ProductDetailViewModel extends ChangeNotifier {
     required this.product,
     required CartRepository cartRepository,
   })  : _cartRepository = cartRepository,
-        _selectedColor = product.colors.first,
-        _selectedStorage = product.storageOptions.first;
+        _selectedColor = product.colors.isNotEmpty ? product.colors.first : 'Natural Titanium',
+        _selectedStorage = product.storageOptions.isNotEmpty ? product.storageOptions.first : '128 GB',
+        _selectedRam = product.ramOptions.isNotEmpty ? product.ramOptions.first : '';
 
   int _selectedImageIndex = 0;
   int get selectedImageIndex => _selectedImageIndex;
@@ -73,6 +74,9 @@ class ProductDetailViewModel extends ChangeNotifier {
   String _selectedStorage;
   String get selectedStorage => _selectedStorage;
 
+  String _selectedRam;
+  String get selectedRam => _selectedRam;
+
   int _quantity = 1;
   int get quantity => _quantity;
 
@@ -99,6 +103,11 @@ class ProductDetailViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void selectRam(String ram) {
+    _selectedRam = ram;
+    notifyListeners();
+  }
+
   void updateQuantity(int delta) {
     final next = _quantity + delta;
     if (next >= 1 && next <= product.stockCount) {
@@ -112,6 +121,7 @@ class ProductDetailViewModel extends ChangeNotifier {
       product,
       color: _selectedColor,
       storage: _selectedStorage,
+      ram: _selectedRam,
       quantity: _quantity,
     );
     _isAddedSuccess = true;

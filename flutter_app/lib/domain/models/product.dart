@@ -11,6 +11,7 @@ class Product {
   final List<String> images;
   final List<String> colors;
   final List<String> storageOptions;
+  final List<String> ramOptions;
   final Map<String, String> specs;
   final List<String> highlights;
   final bool isFeatured;
@@ -32,6 +33,7 @@ class Product {
     required this.images,
     required this.colors,
     required this.storageOptions,
+    this.ramOptions = const [],
     required this.specs,
     this.highlights = const [],
     this.isFeatured = false,
@@ -41,6 +43,9 @@ class Product {
     this.condition = 'New',
   });
 
+  String get storage => storageOptions.join(', ');
+  String get ram => ramOptions.join(', ');
+
   bool get isMerchandise {
     if (id.startsWith('CAT_') ||
         id.startsWith('ORDER_') ||
@@ -48,7 +53,14 @@ class Product {
         id.startsWith('REPAIR_') ||
         id.startsWith('SWAP_') ||
         id.startsWith('SP-') ||
-        id.startsWith('TRK-')) {
+        id.startsWith('TRK-') ||
+        id.startsWith('BANNER_') ||
+        id.startsWith('BANNER_PLAYLIST_') ||
+        name.toLowerCase().contains('homepage banner') ||
+        name.toLowerCase().contains('search banner') ||
+        name.toLowerCase().startsWith('banner') ||
+        brand.toLowerCase() == 'home' ||
+        brand.toLowerCase() == 'search') {
       return false;
     }
     final catUpper = category.trim().toUpperCase();
@@ -57,9 +69,12 @@ class Product {
         catUpper == 'REPAIR_RECORD' ||
         catUpper == 'SWAP_RECORD' ||
         catUpper == 'CATEGORY' ||
+        catUpper == 'BANNER_PLAYLIST' ||
+        catUpper.startsWith('BANNER_') ||
         catUpper.startsWith('ORDER_') ||
         catUpper.startsWith('BNPL_') ||
-        catUpper.startsWith('REPAIR_')) {
+        catUpper.startsWith('REPAIR_') ||
+        catUpper.contains('BANNER')) {
       return false;
     }
     return true;
@@ -98,6 +113,11 @@ class Product {
       'images': images,
       'colors': colors,
       'storage_options': storageOptions,
+      'storages': storageOptions,
+      'storage': storageOptions.join(', '),
+      'ram_options': ramOptions,
+      'rams': ramOptions,
+      'ram': ramOptions.join(', '),
       'specs': specs,
       'highlights': highlights,
       'is_featured': isFeatured,
@@ -127,10 +147,50 @@ class Product {
     }
 
     List<String> storageOptions = [];
-    if (map['storage_options'] != null && map['storage_options'] is List) {
-      storageOptions = (map['storage_options'] as List).map((s) => s.toString()).toList();
+    if (map['storages'] != null && map['storages'] is List) {
+      storageOptions = (map['storages'] as List)
+          .map((s) => s.toString().trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    } else if (map['storage_options'] != null && map['storage_options'] is List) {
+      storageOptions = (map['storage_options'] as List)
+          .map((s) => s.toString().trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
     } else if (map['storage'] != null) {
-      storageOptions = [map['storage'].toString()];
+      final raw = map['storage'].toString().trim();
+      if (raw.isNotEmpty) {
+        storageOptions = raw
+            .split(RegExp(r'[,/•|]'))
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+      }
+    }
+    if (storageOptions.isEmpty) {
+      storageOptions = ['128 GB', '256 GB'];
+    }
+
+    List<String> ramOptions = [];
+    if (map['rams'] != null && map['rams'] is List) {
+      ramOptions = (map['rams'] as List)
+          .map((r) => r.toString().trim())
+          .where((r) => r.isNotEmpty)
+          .toList();
+    } else if (map['ram_options'] != null && map['ram_options'] is List) {
+      ramOptions = (map['ram_options'] as List)
+          .map((r) => r.toString().trim())
+          .where((r) => r.isNotEmpty)
+          .toList();
+    } else if (map['ram'] != null) {
+      final raw = map['ram'].toString().trim();
+      if (raw.isNotEmpty) {
+        ramOptions = raw
+            .split(RegExp(r'[,/•|]'))
+            .map((r) => r.trim())
+            .where((r) => r.isNotEmpty)
+            .toList();
+      }
     }
 
     Map<String, String> specs = {};
@@ -158,6 +218,7 @@ class Product {
       images: images,
       colors: parsedColors,
       storageOptions: storageOptions,
+      ramOptions: ramOptions,
       specs: specs,
       highlights: highlights,
       isFeatured: map['is_featured'] == true || map['is_featured']?.toString() == 'true',

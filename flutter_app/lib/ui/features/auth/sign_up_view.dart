@@ -250,6 +250,8 @@ class _SignUpViewState extends State<SignUpView> {
                   _buildSocialIconsRow(),
                   const SizedBox(height: 26),
                   _buildFooterSwitch(),
+                  const SizedBox(height: 16),
+                  _buildCopyrightNotice(),
                   const SizedBox(height: 12),
                 ],
               ),
@@ -820,6 +822,49 @@ class _SignUpViewState extends State<SignUpView> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCopyrightNotice() {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.verified_user_rounded,
+                size: 13,
+                color: Color(0xFF1C7BFF),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '© ${DateTime.now().year} Siaka Phones Ltd.',
+                style: const TextStyle(
+                  color: Color(0xFF475569),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          const Text(
+            'All rights reserved. Protected by copyright law.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }

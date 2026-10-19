@@ -1,9 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 import '../../../data/repositories/manager_repository.dart';
 import '../../../domain/models/advertisement_banner.dart';
+import '../../../domain/models/banner_playlist.dart';
 
 class AdvertisementsManagementView extends StatefulWidget {
   final ManagerRepository repository;
@@ -20,61 +23,59 @@ class AdvertisementsManagementView extends StatefulWidget {
 
 class _AdvertisementsManagementViewState
     extends State<AdvertisementsManagementView> {
-  final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  String _searchQuery = '';
-  String _selectedCategory = 'All';
-  String _selectedStatus = 'All'; // All, Active Only, Inactive Only
-  int _selectedPreviewIndex = 0;
-  bool _simulatorPlaying = true;
+  // 5 Banner Playlists State
+  String _selectedPlaylistId = 'banner_home_1';
 
   @override
   void dispose() {
-    _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  List<AdvertisementBanner> _getFilteredAdvertisements() {
-    final ads = widget.repository.advertisements;
-    return ads.where((ad) {
-      if (_selectedStatus == 'Active Only' && !ad.isActive) return false;
-      if (_selectedStatus == 'Inactive Only' && ad.isActive) return false;
-
-      if (_selectedCategory != 'All' &&
-          ad.targetCategoryOrProduct.toLowerCase() !=
-              _selectedCategory.toLowerCase()) {
-        return false;
-      }
-
-      if (_searchQuery.isNotEmpty) {
-        final query = _searchQuery.toLowerCase();
-        final matchesTitle = ad.title.toLowerCase().contains(query);
-        final matchesDesc = ad.description.toLowerCase().contains(query);
-        final matchesBadge = ad.badgeText.toLowerCase().contains(query);
-        final matchesUrl = ad.videoUrl.toLowerCase().contains(query);
-        if (!matchesTitle && !matchesDesc && !matchesBadge && !matchesUrl) {
-          return false;
-        }
-      }
-
-      return true;
-    }).toList();
+  /// Backwards-compatible router for New Video Advertisement dialog
+  void _showAddEditAdDialog(BuildContext context, [AdvertisementBanner? existingAd]) {
+    _showAddEditVideoDialog(
+      context,
+      initialPlaylistId: _selectedPlaylistId == 'banner_search_1' ? 'banner_search_1' : 'banner_home_1',
+      existingAd: existingAd,
+    );
   }
 
-  void _showAddEditAdDialog(BuildContext context, [AdvertisementBanner? existingAd]) {
-    final isEditing = existingAd != null;
-    final titleController = TextEditingController(text: existingAd?.title ?? '');
-    final descController = TextEditingController(text: existingAd?.description ?? '');
-    final videoUrlController = TextEditingController(
-      text: existingAd?.videoUrl ?? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  void _showAddEditVideoDialog(
+    BuildContext context, {
+    String? initialPlaylistId,
+    BannerVideoItem? existingVideo,
+    AdvertisementBanner? existingAd,
+  }) {
+    final isEditing = existingVideo != null || existingAd != null;
+    final initialId = (initialPlaylistId == 'banner_search_1')
+        ? 'banner_search_1'
+        : 'banner_home_1';
+    String targetBanner = initialId;
+
+    final titleController = TextEditingController(
+      text: existingVideo?.title ?? existingAd?.title ?? '',
     );
-    final backupAssetController = TextEditingController(text: existingAd?.backupAsset ?? 'assets/videos/phone_promo.mp4');
-    final badgeController = TextEditingController(text: existingAd?.badgeText ?? 'PROMO');
-    final ctaController = TextEditingController(text: existingAd?.callToActionText ?? 'Shop Now');
-    String target = existingAd?.targetCategoryOrProduct ?? 'Smartphones';
-    bool isActive = existingAd?.isActive ?? true;
+    final descController = TextEditingController(
+      text: existingVideo?.description ?? existingAd?.description ?? '',
+    );
+    final videoUrlController = TextEditingController(
+      text: existingVideo?.videoUrl ??
+          existingAd?.videoUrl ??
+          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    );
+    final badgeController = TextEditingController(
+      text: existingVideo?.badgeText ?? existingAd?.badgeText ?? 'PROMO',
+    );
+    final ctaController = TextEditingController(
+      text: existingVideo?.callToActionText ?? existingAd?.callToActionText ?? 'Shop Now',
+    );
+    String target = existingVideo?.targetCategoryOrProduct ??
+        existingAd?.targetCategoryOrProduct ??
+        'Smartphones';
+    bool isActive = existingVideo?.isActive ?? existingAd?.isActive ?? true;
 
     final formKey = GlobalKey<FormState>();
 
@@ -96,7 +97,7 @@ class _AdvertisementsManagementViewState
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
-                      isEditing ? Icons.edit_note_rounded : Icons.campaign_rounded,
+                      isEditing ? Icons.edit_note_rounded : Icons.videocam_rounded,
                       color: const Color(0xFF1C7BFF),
                       size: 22,
                     ),
@@ -116,7 +117,7 @@ class _AdvertisementsManagementViewState
                         ),
                         const SizedBox(height: 2),
                         const Text(
-                          'Configure banner video link, title, and call to action',
+                          'Configure banner video link, headline, badge, and call to action',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
@@ -137,6 +138,53 @@ class _AdvertisementsManagementViewState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 8),
+
+                        // Target Video Banner Selection (Only banner_home_1 and banner_search_1)
+                        const Text(
+                          'Target Video Banner Slot *',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: targetBanner,
+                              isExpanded: true,
+                              style: const TextStyle(
+                                color: Color(0xFF1E293B),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'banner_home_1',
+                                  child: Text('Homepage Banner 1 (Discover Smartphones - Video Slide 1)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'banner_search_1',
+                                  child: Text('Search Page Banner (Catalog Search - Video Banner)'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setDialogState(() => targetBanner = val);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Note: Only Homepage Slide 1 and the Search Page Banner support video ads.',
+                          style: TextStyle(fontSize: 11, color: Colors.blue.shade700, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 16),
 
                         // Title
                         const Text(
@@ -427,7 +475,7 @@ class _AdvertisementsManagementViewState
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Active in Video Playlist',
+                                    'Active in Video Banner',
                                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                                   ),
                                   const SizedBox(height: 6),
@@ -442,7 +490,7 @@ class _AdvertisementsManagementViewState
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          isActive ? 'Active (Playing)' : 'Disabled (Skipped)',
+                                          isActive ? 'Active (Streaming)' : 'Disabled (Paused)',
                                           style: TextStyle(
                                             fontSize: 12.5,
                                             fontWeight: FontWeight.w600,
@@ -477,40 +525,53 @@ class _AdvertisementsManagementViewState
                 ElevatedButton(
                   onPressed: () {
                     if (formKey.currentState?.validate() ?? false) {
-                      if (isEditing) {
-                        final updated = existingAd.copyWith(
-                          title: titleController.text.trim(),
-                          description: descController.text.trim(),
-                          videoUrl: videoUrlController.text.trim(),
-                          backupAsset: backupAssetController.text.trim(),
-                          badgeText: badgeController.text.trim(),
-                          callToActionText: ctaController.text.trim(),
+                      final title = titleController.text.trim();
+                      final desc = descController.text.trim();
+                      final videoUrl = videoUrlController.text.trim();
+                      final badge = badgeController.text.trim().isNotEmpty
+                          ? badgeController.text.trim()
+                          : 'PROMO';
+                      final cta = ctaController.text.trim().isNotEmpty
+                          ? ctaController.text.trim()
+                          : 'Shop Now';
+
+                      if (existingVideo != null) {
+                        final updated = existingVideo.copyWith(
+                          title: title,
+                          description: desc,
+                          videoUrl: videoUrl,
+                          badgeText: badge,
+                          callToActionText: cta,
                           targetCategoryOrProduct: target,
                           isActive: isActive,
                         );
-                        widget.repository.updateAdvertisement(updated);
+                        widget.repository.updatePlaylistVideo(targetBanner, updated);
                       } else {
-                        final newId = 'AD-2026-${widget.repository.advertisements.length + 1}'.padLeft(3, '0');
-                        final newAd = AdvertisementBanner(
-                          id: newId,
-                          title: titleController.text.trim(),
-                          description: descController.text.trim(),
-                          videoUrl: videoUrlController.text.trim(),
-                          backupAsset: backupAssetController.text.trim(),
-                          badgeText: badgeController.text.trim(),
-                          callToActionText: ctaController.text.trim(),
+                        final newVideo = BannerVideoItem(
+                          id: 'VID-${DateTime.now().millisecondsSinceEpoch}',
+                          videoUrl: videoUrl,
+                          title: title,
+                          description: desc,
+                          badgeText: badge,
+                          callToActionText: cta,
                           targetCategoryOrProduct: target,
                           isActive: isActive,
-                          displayOrder: widget.repository.advertisements.length + 1,
                           createdAt: DateTime.now(),
                         );
-                        widget.repository.addAdvertisement(newAd);
+                        widget.repository.addVideoToPlaylist(targetBanner, newVideo);
                       }
+
+                      setState(() {
+                        _selectedPlaylistId = targetBanner;
+                      });
+
                       Navigator.of(dialogCtx).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            isEditing ? 'Advertisement updated successfully' : 'New advertisement added to playlist',
+                            isEditing
+                                ? 'Video advertisement updated successfully'
+                                : 'New video advertisement added to ${targetBanner == "banner_home_1" ? "Homepage Banner 1" : "Search Page Banner"}',
                           ),
                           backgroundColor: const Color(0xFF059669),
                           behavior: SnackBarBehavior.floating,
@@ -524,7 +585,7 @@ class _AdvertisementsManagementViewState
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
                   ),
-                  child: Text(isEditing ? 'Save Changes' : 'Add to Playlist'),
+                  child: Text(isEditing ? 'Save Changes' : 'Add to Video Banner'),
                 ),
               ],
             );
@@ -534,45 +595,508 @@ class _AdvertisementsManagementViewState
     );
   }
 
-  void _confirmDeleteAd(BuildContext context, AdvertisementBanner ad) {
+  Widget _buildSmartBannerImage(
+    String url, {
+    BoxFit fit = BoxFit.cover,
+    double? width,
+    double? height,
+  }) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) {
+      return Container(
+        width: width,
+        height: height,
+        color: const Color(0xFF0F172A),
+        child: const Center(
+          child: Icon(Icons.broken_image_rounded, size: 20, color: Colors.white38),
+        ),
+      );
+    }
+
+    if (trimmed.startsWith('data:image')) {
+      try {
+        final commaIdx = trimmed.indexOf(',');
+        final base64Str = commaIdx != -1 ? trimmed.substring(commaIdx + 1) : trimmed;
+        final bytes = base64Decode(base64Str);
+        return Image.memory(
+          bytes,
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) => _errorBannerWidget(width, height),
+        );
+      } catch (_) {}
+    }
+
+    if (trimmed.startsWith('file://')) {
+      try {
+        final file = File(Uri.parse(trimmed).toFilePath());
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            width: width,
+            height: height,
+            fit: fit,
+            errorBuilder: (context, error, stackTrace) => _errorBannerWidget(width, height),
+          );
+        }
+      } catch (_) {}
+    }
+
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      try {
+        final file = File(trimmed);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            width: width,
+            height: height,
+            fit: fit,
+            errorBuilder: (context, error, stackTrace) => _errorBannerWidget(width, height),
+          );
+        }
+      } catch (_) {}
+    }
+
+    return Image.network(
+      trimmed,
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) => _errorBannerWidget(width, height),
+    );
+  }
+
+  Widget _errorBannerWidget(double? width, double? height) {
+    return Container(
+      width: width,
+      height: height,
+      color: const Color(0xFF0F172A),
+      child: const Center(
+        child: Icon(Icons.broken_image_rounded, size: 20, color: Colors.white38),
+      ),
+    );
+  }
+
+  void _showAddImageDialog(BuildContext context, [String? initialPlaylistId]) {
+    String targetPlaylist = (initialPlaylistId == 'banner_home_1' ||
+            initialPlaylistId == 'banner_home_2' ||
+            initialPlaylistId == 'banner_home_3' ||
+            initialPlaylistId == 'banner_home_4')
+        ? initialPlaylistId!
+        : 'banner_home_2';
+
+    final urlController = TextEditingController();
+    final titleController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    String previewUrl = '';
+
+    final presets = [
+      (
+        label: 'iPhone 15 Pro Max',
+        url: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80',
+        title: 'iPhone 15 Pro Max • Natural Titanium',
+      ),
+      (
+        label: 'Galaxy S24 Ultra',
+        url: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=800&q=80',
+        title: 'Samsung Galaxy S24 Ultra • Titanium Gray',
+      ),
+      (
+        label: 'Pixel 9 Pro XL',
+        url: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
+        title: 'Google Pixel 9 Pro XL • Hazel Glass',
+      ),
+      (
+        label: 'Galaxy Z Fold 6',
+        url: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=800&q=80',
+        title: 'Galaxy Z Fold 6 • Silver Shadow',
+      ),
+      (
+        label: 'Screen Protector',
+        url: 'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=800&q=80',
+        title: 'Diamond Glass Screen & Lens Guard',
+      ),
+      (
+        label: 'High-Res Camera',
+        url: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=800&q=80',
+        title: 'Ultra High-Res Camera Series',
+      ),
+    ];
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Advertisement?'),
-        content: Text(
-          'Are you sure you want to remove "${ad.title}" from the video playlist? This action cannot be undone.',
-          style: const TextStyle(color: Color(0xFF475569)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              widget.repository.deleteAdvertisement(ad.id);
-              Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Removed "${ad.title}" from playlist'),
-                  backgroundColor: const Color(0xFFDC2626),
-                  behavior: SnackBarBehavior.floating,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.add_photo_alternate_rounded,
+                      color: Color(0xFF059669),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add Image to Banner Playlist',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'This image will cycle inside the selected promotional image banner slide',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 580,
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+
+                        // Playlist Destination Dropdown (Only Image Banners: 2, 3, 4)
+                        const Text(
+                          'Select Target Image Banner Slide *',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: targetPlaylist,
+                              isExpanded: true,
+                              style: const TextStyle(
+                                color: Color(0xFF1E293B),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'banner_home_1',
+                                  child: Text('Homepage Banner 1 (Discover Smartphones - Slide 1)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'banner_home_2',
+                                  child: Text('Homepage Banner 2 (Flagship Deals 20% Off - Slide 2)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'banner_home_3',
+                                  child: Text('Homepage Banner 3 (Trade-in Deals & Credit - Slide 3)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'banner_home_4',
+                                  child: Text('Homepage Banner 4 (Premium Care Protection - Slide 4)'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setDialogState(() => targetPlaylist = val);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Select which homepage promotional banner slide will display this image.',
+                          style: TextStyle(fontSize: 11, color: Colors.blue.shade700, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Image Presets
+                        const Text(
+                          'Quick Preset Images (1-Click Fill)',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: presets.map((preset) {
+                            return ActionChip(
+                              avatar: const Icon(Icons.photo_size_select_actual_outlined, size: 14, color: Color(0xFF0D62FE)),
+                              label: Text(preset.label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+                              backgroundColor: const Color(0xFFF1F5F9),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              onPressed: () {
+                                setDialogState(() {
+                                  urlController.text = preset.url;
+                                  titleController.text = preset.title;
+                                  previewUrl = preset.url;
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Choose from PC File Picker
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  try {
+                                    final file = await FilePicker.pickFile(
+                                      type: FileType.custom,
+                                      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+                                    );
+                                    if (file != null) {
+                                      final bytes = await file.xFile.readAsBytes();
+                                      if (bytes.isNotEmpty) {
+                                        final ext = file.name.contains('.') ? file.name.split('.').last.toLowerCase() : 'png';
+                                        final mimeExt = (ext == 'jpg' || ext == 'jpeg') ? 'jpeg' : (ext == 'webp' ? 'webp' : 'png');
+                                        final dataUri = 'data:image/$mimeExt;base64,${base64Encode(bytes)}';
+                                        setDialogState(() {
+                                          urlController.text = dataUri;
+                                          previewUrl = dataUri;
+                                          if (titleController.text.trim().isEmpty) {
+                                            titleController.text = file.name;
+                                          }
+                                        });
+                                      }
+                                    }
+                                  } catch (e) {
+                                    debugPrint('Error picking image file: $e');
+                                  }
+                                },
+                                icon: const Icon(Icons.computer_rounded, size: 18),
+                                label: const Text('Browse PC for Image File'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0F172A),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Image URL / Local File Path
+                        const Text(
+                          'Image Path / Web URL *',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: urlController,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Image path or URL is required' : null,
+                          onChanged: (v) {
+                            setDialogState(() {
+                              previewUrl = v.trim();
+                            });
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'PC file path (e.g. C:\\Images\\banner.png) or https:// link',
+                            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            suffixIcon: previewUrl.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, size: 18),
+                                    onPressed: () {
+                                      urlController.clear();
+                                      setDialogState(() => previewUrl = '');
+                                    },
+                                  )
+                                : null,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Image Title / Label
+                        const Text(
+                          'Image Title / Caption',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            hintText: 'e.g. iPhone 15 Pro Max • Natural Titanium',
+                            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Live Preview Box
+                        const Text(
+                          'Live Image Preview',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          height: 140,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: previewUrl.isNotEmpty
+                              ? _buildSmartBannerImage(previewUrl, fit: BoxFit.contain)
+                              : const Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.image_outlined, color: Colors.white38, size: 28),
+                                      SizedBox(height: 4),
+                                      Text('Browse PC or enter an image URL above to preview', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              elevation: 0,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogCtx).pop(),
+                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState?.validate() ?? false) {
+                      final existingImages = widget.repository.getBannerPlaylist(targetPlaylist)?.images ?? [];
+                      if (existingImages.length >= 3) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Maximum 3 images allowed for ${widget.repository.getBannerPlaylist(targetPlaylist)?.name ?? "this banner"} (Positions 1, 2, and 3). Please remove an image first.',
+                            ),
+                            backgroundColor: const Color(0xFFDC2626),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
+
+                      String imgUrl = urlController.text.trim();
+                      if (!imgUrl.startsWith('http://') &&
+                          !imgUrl.startsWith('https://') &&
+                          !imgUrl.startsWith('data:image')) {
+                        try {
+                          final pathClean = imgUrl.startsWith('file://')
+                              ? Uri.parse(imgUrl).toFilePath()
+                              : imgUrl;
+                          final localFile = File(pathClean);
+                          if (localFile.existsSync()) {
+                            final bytes = await localFile.readAsBytes();
+                            final ext = localFile.path.contains('.')
+                                ? localFile.path.split('.').last.toLowerCase()
+                                : 'png';
+                            final mimeExt = (ext == 'jpg' || ext == 'jpeg') ? 'jpeg' : (ext == 'webp' ? 'webp' : 'png');
+                            imgUrl = 'data:image/$mimeExt;base64,${base64Encode(bytes)}';
+                          }
+                        } catch (e) {
+                          debugPrint('Note: could not convert file path to data URI: $e');
+                        }
+                      }
+
+                      final newImage = BannerImageItem(
+                        id: 'IMG-${DateTime.now().millisecondsSinceEpoch}',
+                        imageUrl: imgUrl,
+                        title: titleController.text.trim().isNotEmpty
+                            ? titleController.text.trim()
+                            : 'Banner Image',
+                        isActive: true,
+                        createdAt: DateTime.now(),
+                      );
+                      widget.repository.addImageToPlaylist(targetPlaylist, newImage);
+                      if (mounted) {
+                        setState(() {
+                          _selectedPlaylistId = targetPlaylist;
+                        });
+                      }
+                      if (dialogCtx.mounted) {
+                        Navigator.of(dialogCtx).pop();
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Image added to ${widget.repository.getBannerPlaylist(targetPlaylist)?.name ?? "playlist"}!'),
+                            backgroundColor: const Color(0xFF059669),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Add Image to Playlist'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -583,22 +1107,22 @@ class _AdvertisementsManagementViewState
       builder: (context, _) {
         final screenWidth = MediaQuery.of(context).size.width;
         final isCompact = screenWidth < 1050;
-        final filteredAds = _getFilteredAdvertisements();
 
-        final totalAds = widget.repository.advertisements.length;
-        final activeAds = widget.repository.activeAdvertisementsCount;
-        final totalImpressions = widget.repository.totalAdImpressions;
-        final totalClicks = widget.repository.totalAdClicks;
-        final ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toStringAsFixed(1) : '0.0';
+        final bannerPlaylists = widget.repository.bannerPlaylists;
+        final activePlaylistsCount = bannerPlaylists.where((p) => p.isActive).length;
 
-        // Clamp selected preview index
-        if (_selectedPreviewIndex >= filteredAds.length && filteredAds.isNotEmpty) {
-          _selectedPreviewIndex = filteredAds.length - 1;
-        }
+        // Video playlists (banner_home_1 and banner_search_1)
+        final videoPlaylists = bannerPlaylists.where((p) => p.isVideoBanner);
+        final totalVideos = videoPlaylists.fold<int>(0, (sum, p) => sum + p.videos.length);
+        final activeVideos = videoPlaylists.fold<int>(0, (sum, p) => sum + p.activeVideos.length);
 
-        final currentPreviewAd = filteredAds.isNotEmpty
-            ? filteredAds[_selectedPreviewIndex.clamp(0, filteredAds.length - 1)]
-            : null;
+        // Image playlists (banner_home_2, banner_home_3, banner_home_4)
+        final imagePlaylists = bannerPlaylists.where((p) => p.isImageBanner);
+        final totalImages = imagePlaylists.fold<int>(0, (sum, p) => sum + p.images.length);
+        final activeImages = imagePlaylists.fold<int>(0, (sum, p) => sum + p.activeImages.length);
+
+        final selectedPlaylist = widget.repository.getBannerPlaylist(_selectedPlaylistId) ??
+            (bannerPlaylists.isNotEmpty ? bannerPlaylists.first : null);
 
         return Scrollbar(
           controller: _scrollController,
@@ -630,7 +1154,7 @@ class _AdvertisementsManagementViewState
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Manage video links, promotion campaigns, and sequential ads played on the mobile home banner',
+                          'Manage the 5 Mobile Banner Playlists (2 Video-only banner slots + 3 Promotional image slides)',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey.shade600,
@@ -638,17 +1162,35 @@ class _AdvertisementsManagementViewState
                         ),
                       ],
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () => _showAddEditAdDialog(context),
-                      icon: const Icon(Icons.add_rounded, size: 20),
-                      label: const Text('New Video Advertisement'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1C7BFF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        elevation: 0,
-                      ),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddImageDialog(context, _selectedPlaylistId),
+                          icon: const Icon(Icons.add_photo_alternate_rounded, size: 20),
+                          label: const Text('Add Image to Playlist'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 0,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddEditAdDialog(context),
+                          icon: const Icon(Icons.videocam_rounded, size: 20),
+                          label: const Text('New Video Advertisement'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1C7BFF),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -663,19 +1205,9 @@ class _AdvertisementsManagementViewState
                             SizedBox(
                               width: 220,
                               child: _buildMetric(
-                                label: 'ACTIVE PROMO ADS',
-                                value: '$activeAds Active',
-                                icon: Icons.play_circle_fill_rounded,
-                                color: const Color(0xFF059669),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            SizedBox(
-                              width: 220,
-                              child: _buildMetric(
-                                label: 'TOTAL PLAYLIST VIDEOS',
-                                value: '$totalAds Videos',
-                                icon: Icons.video_library_rounded,
+                                label: '5 BANNER SLOTS',
+                                value: '2 Video • 3 Image',
+                                icon: Icons.dashboard_customize_rounded,
                                 color: const Color(0xFF2563EB),
                               ),
                             ),
@@ -683,20 +1215,30 @@ class _AdvertisementsManagementViewState
                             SizedBox(
                               width: 220,
                               child: _buildMetric(
-                                label: 'TOTAL IMPRESSIONS',
-                                value: NumberFormat.compact().format(totalImpressions),
-                                icon: Icons.visibility_rounded,
-                                color: const Color(0xFF7C3AED),
+                                label: 'VIDEO ADVERTISEMENTS',
+                                value: '$activeVideos Active ($totalVideos Total)',
+                                icon: Icons.videocam_rounded,
+                                color: const Color(0xFF1C7BFF),
                               ),
                             ),
                             const SizedBox(width: 12),
                             SizedBox(
                               width: 220,
                               child: _buildMetric(
-                                label: 'CLICK-THROUGH RATE',
-                                value: '$ctr%',
-                                icon: Icons.ads_click_rounded,
-                                color: const Color(0xFFD97706),
+                                label: 'PROMOTIONAL IMAGES',
+                                value: '$activeImages Active ($totalImages Total)',
+                                icon: Icons.photo_library_rounded,
+                                color: const Color(0xFF059669),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              width: 220,
+                              child: _buildMetric(
+                                label: 'MOBILE APP SYNC',
+                                value: '$activePlaylistsCount / 5 Active',
+                                icon: Icons.sync_rounded,
+                                color: const Color(0xFF7C3AED),
                               ),
                             ),
                           ],
@@ -706,37 +1248,37 @@ class _AdvertisementsManagementViewState
                         children: [
                           Expanded(
                             child: _buildMetric(
-                              label: 'ACTIVE PROMO ADS',
-                              value: '$activeAds Active',
-                              icon: Icons.play_circle_fill_rounded,
-                              color: const Color(0xFF059669),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildMetric(
-                              label: 'TOTAL PLAYLIST VIDEOS',
-                              value: '$totalAds Videos',
-                              icon: Icons.video_library_rounded,
+                              label: '5 BANNER SLOTS',
+                              value: '2 Video • 3 Image',
+                              icon: Icons.dashboard_customize_rounded,
                               color: const Color(0xFF2563EB),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _buildMetric(
-                              label: 'TOTAL IMPRESSIONS',
-                              value: NumberFormat.compact().format(totalImpressions),
-                              icon: Icons.visibility_rounded,
-                              color: const Color(0xFF7C3AED),
+                              label: 'VIDEO ADVERTISEMENTS',
+                              value: '$activeVideos Active ($totalVideos Total)',
+                              icon: Icons.videocam_rounded,
+                              color: const Color(0xFF1C7BFF),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _buildMetric(
-                              label: 'CLICK-THROUGH RATE',
-                              value: '$ctr%',
-                              icon: Icons.ads_click_rounded,
-                              color: const Color(0xFFD97706),
+                              label: 'PROMOTIONAL IMAGES',
+                              value: '$activeImages Active ($totalImages Total)',
+                              icon: Icons.photo_library_rounded,
+                              color: const Color(0xFF059669),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildMetric(
+                              label: 'MOBILE APP SYNC',
+                              value: '$activePlaylistsCount / 5 Active',
+                              icon: Icons.sync_rounded,
+                              color: const Color(0xFF7C3AED),
                             ),
                           ),
                         ],
@@ -757,7 +1299,7 @@ class _AdvertisementsManagementViewState
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Sequential Video Player: The mobile app automatically plays video links in the order listed below. When a video reaches the end, it immediately advances to the next video before advancing the home banner.',
+                          'Banner Architecture: Homepage Slide 1 and the Search Page Banner are dedicated solely to Video Ads. Homepage Slides 2, 3 & 4 are dedicated solely to Promotional Image playlists. Managers can only add video ads to the video banners, and promotional images to the image slides.',
                           style: TextStyle(
                             color: Colors.blue.shade900,
                             fontSize: 12.5,
@@ -770,136 +1312,22 @@ class _AdvertisementsManagementViewState
                 ),
                 const SizedBox(height: 20),
 
-                // Filters & Search Bar
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      // Search box
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(minWidth: 260, maxWidth: 360),
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (v) => setState(() => _searchQuery = v),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, size: 18),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      setState(() => _searchQuery = '');
-                                    },
-                                  )
-                                : null,
-                            hintText: 'Search by headline, badge, or link...',
-                            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          ),
-                        ),
-                      ),
-
-                      // Status Dropdown
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedStatus,
-                            style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w500),
-                            items: const [
-                              DropdownMenuItem(value: 'All', child: Text('All Statuses')),
-                              DropdownMenuItem(value: 'Active Only', child: Text('Active Only')),
-                              DropdownMenuItem(value: 'Inactive Only', child: Text('Inactive Only')),
-                            ],
-                            onChanged: (v) {
-                              if (v != null) setState(() => _selectedStatus = v);
-                            },
-                          ),
-                        ),
-                      ),
-
-                      // Category Dropdown
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedCategory,
-                            style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w500),
-                            items: const [
-                              DropdownMenuItem(value: 'All', child: Text('All Categories')),
-                              DropdownMenuItem(value: 'Smartphones', child: Text('Smartphones')),
-                              DropdownMenuItem(value: 'Phones', child: Text('Phones')),
-                              DropdownMenuItem(value: 'Laptops', child: Text('Laptops')),
-                              DropdownMenuItem(value: 'Accessories', child: Text('Accessories')),
-                              DropdownMenuItem(value: 'BNPL', child: Text('BNPL')),
-                              DropdownMenuItem(value: 'TradeIn', child: Text('Trade-in')),
-                              DropdownMenuItem(value: 'Repairs', child: Text('Repairs')),
-                            ],
-                            onChanged: (v) {
-                              if (v != null) setState(() => _selectedCategory = v);
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // 5 Playlists Selector Bar
+                _buildPlaylistsSelector(bannerPlaylists, _selectedPlaylistId, isCompact),
                 const SizedBox(height: 20),
 
-                // Main Content Area: Left Queue + Right Simulator
-                if (!isCompact)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left Queue (60%)
-                      Expanded(
-                        flex: 6,
-                        child: _buildPlaylistQueue(filteredAds),
-                      ),
-                      const SizedBox(width: 20),
-                      // Right Simulator (40%)
-                      Expanded(
-                        flex: 4,
-                        child: _buildMobileSimulator(currentPreviewAd, filteredAds),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _buildMobileSimulator(currentPreviewAd, filteredAds),
+                // Selected Playlist Studio Panel (Full Width)
+                if (selectedPlaylist != null) ...[
+                  if (selectedPlaylist.isVideoBanner) ...[
+                    _buildPlaylistVideosPanel(selectedPlaylist),
+                    if (selectedPlaylist.images.isNotEmpty) ...[
                       const SizedBox(height: 20),
-                      _buildPlaylistQueue(filteredAds),
+                      _buildPlaylistImagesPanel(selectedPlaylist),
                     ],
-                  ),
+                  ] else
+                    _buildPlaylistImagesPanel(selectedPlaylist),
+                  const SizedBox(height: 24),
+                ],
               ],
             ),
           ),
@@ -908,101 +1336,212 @@ class _AdvertisementsManagementViewState
     );
   }
 
-  Widget _buildPlaylistQueue(List<AdvertisementBanner> ads) {
-    if (ads.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(40),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              const Icon(Icons.campaign_outlined, size: 48, color: Color(0xFF94A3B8)),
-              const SizedBox(height: 12),
-              const Text(
-                'No advertisements found',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Try adjusting your search query or add a new video advertisement.',
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => _showAddEditAdDialog(context),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Add Video Ad'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1C7BFF),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
-              ),
-            ],
+  Widget _buildPlaylistsSelector(
+    List<BannerPlaylist> playlists,
+    String selectedId,
+    bool isCompact,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-        ),
-      );
-    }
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (context, headerConstraints) {
+              final isHeaderNarrow = headerConstraints.maxWidth < 650;
+              if (isHeaderNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.collections_bookmark_rounded, color: Color(0xFF1C7BFF), size: 20),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'The 5 Mobile Banner Playlists',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                '1-to-1 sync with the 4 Homepage slides and 1 Search banner on the customer mobile app',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: const Text(
+                        '5 OF 5 SYNCHRONIZED',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.collections_bookmark_rounded, color: Color(0xFF1C7BFF), size: 20),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'The 5 Mobile Banner Playlists',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                '1-to-1 sync with the 4 Homepage slides and 1 Search banner on the customer mobile app',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Text(
+                      '5 OF 5 SYNCHRONIZED',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          // 5 Playlist Cards Row
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final shouldScroll = isCompact || constraints.maxWidth < 1000;
+              final cardWidth = shouldScroll ? 240.0 : (constraints.maxWidth - 48) / 5;
+              final items = playlists.map((p) => _buildPlaylistCard(p, p.id == selectedId, cardWidth)).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            Text(
-              'Sequential Video Playlist Queue (${ads.length})',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            Text(
-              'Use ▲▼ arrows to set playback order',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: ads.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final ad = ads[index];
-            final isSelected = index == _selectedPreviewIndex;
+              if (shouldScroll) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: items.map((w) => Padding(padding: const EdgeInsets.only(right: 12), child: w)).toList(),
+                  ),
+                );
+              }
 
-            return _buildAdCard(ad, index, ads.length, isSelected);
-          },
-        ),
-      ],
+              return Row(
+                children: [
+                  for (int i = 0; i < items.length; i++) ...[
+                    Expanded(child: items[i]),
+                    if (i < items.length - 1) const SizedBox(width: 12),
+                  ],
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildAdCard(AdvertisementBanner ad, int index, int totalCount, bool isSelected) {
-    final isNetworkUrl = ad.videoUrl.startsWith('http://') || ad.videoUrl.startsWith('https://');
+  Widget _buildPlaylistCard(BannerPlaylist playlist, bool isSelected, double width) {
+    final isHome = playlist.targetPage == 'home';
+    final isVideo = playlist.isVideoBanner;
+
+    final String slideBadge;
+    final Color badgeColor;
+    final IconData typeIcon;
+    final String countLabel;
+
+    if (isVideo) {
+      slideBadge = isHome ? 'VIDEO ONLY • SLIDE 1' : 'VIDEO ONLY • SEARCH';
+      badgeColor = isHome ? const Color(0xFF1C7BFF) : const Color(0xFF7C3AED);
+      typeIcon = Icons.videocam_rounded;
+      final activeCount = playlist.activeVideos.length;
+      final totalCount = playlist.videos.length;
+      countLabel = '$activeCount / $totalCount Active Videos';
+    } else {
+      slideBadge = 'IMAGES • SLIDE ${playlist.bannerIndex + 1}';
+      badgeColor = const Color(0xFF059669);
+      typeIcon = Icons.photo_library_outlined;
+      final activeCount = playlist.activeImages.length;
+      final totalCount = playlist.images.length;
+      countLabel = '$activeCount / $totalCount Active Images';
+    }
 
     return InkWell(
       onTap: () {
         setState(() {
-          _selectedPreviewIndex = index;
+          _selectedPlaylistId = playlist.id;
         });
       },
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected ? const Color(0xFFF0F7FF) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? const Color(0xFF1C7BFF) : const Color(0xFFE2E8F0),
@@ -1011,9 +1550,9 @@ class _AdvertisementsManagementViewState
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF1C7BFF).withValues(alpha: 0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    color: const Color(0xFF1C7BFF).withValues(alpha: 0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
                   ),
                 ]
               : null,
@@ -1021,245 +1560,80 @@ class _AdvertisementsManagementViewState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row 1: Order, Badge, Title, Reorder arrows, Active Switch
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Order badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(6),
+                    color: badgeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'PLAYLIST #${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10.5,
+                    slideBadge,
+                    style: TextStyle(
+                      fontSize: 9.0,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
+                      color: badgeColor,
+                      letterSpacing: 0.4,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-
-                // Promo Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
-                  ),
-                  child: Text(
-                    ad.badgeText,
-                    style: const TextStyle(
-                      color: Color(0xFF1D4ED8),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-
-                // Title
-                Expanded(
-                  child: Text(
-                    ad.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                ),
-
-                // Reorder arrows
-                IconButton(
-                  icon: const Icon(Icons.arrow_upward_rounded, size: 18),
-                  tooltip: 'Move Up in Sequence',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  color: index > 0 ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
-                  onPressed: index > 0
-                      ? () {
-                          widget.repository.reorderAdvertisement(index, index - 1);
-                        }
-                      : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.arrow_downward_rounded, size: 18),
-                  tooltip: 'Move Down in Sequence',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  color: index < totalCount - 1 ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
-                  onPressed: index < totalCount - 1
-                      ? () {
-                          widget.repository.reorderAdvertisement(index, index + 1);
-                        }
-                      : null,
-                ),
-                const SizedBox(width: 8),
-
-                // Active toggle
-                Tooltip(
-                  message: ad.isActive ? 'Active on Mobile Home' : 'Disabled from Mobile Banner',
-                  child: Switch.adaptive(
-                    value: ad.isActive,
-                    activeTrackColor: const Color(0xFF1C7BFF),
-                    onChanged: (_) {
-                      widget.repository.toggleAdvertisementStatus(ad.id);
-                    },
-                  ),
+                Switch(
+                  value: playlist.isActive,
+                  onChanged: (val) => widget.repository.togglePlaylistActive(playlist.id),
+                  activeTrackColor: const Color(0xFF16A34A),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-
-            // Description
+            const SizedBox(height: 8),
             Text(
-              ad.description,
-              maxLines: 2,
+              playlist.name,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF475569),
-                height: 1.3,
+                fontWeight: FontWeight.w800,
+                color: isSelected ? const Color(0xFF1C7BFF) : const Color(0xFF0F172A),
               ),
             ),
-            const SizedBox(height: 12),
-
-            // Video Link Box
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isNetworkUrl ? Icons.cloud_done_rounded : Icons.folder_zip_rounded,
-                    size: 16,
-                    color: isNetworkUrl ? const Color(0xFF0284C7) : const Color(0xFF64748B),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      ad.videoUrl,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                        color: Color(0xFF334155),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: ad.videoUrl));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Video link copied to clipboard!'),
-                          duration: Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(4),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      child: Row(
-                        children: [
-                          Icon(Icons.copy_rounded, size: 14, color: Color(0xFF1C7BFF)),
-                          SizedBox(width: 4),
-                          Text(
-                            'Copy',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: Color(0xFF1C7BFF),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 2),
+            Text(
+              playlist.subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
               ),
             ),
-            const SizedBox(height: 12),
-
-            // Bottom Footer: CTA Destination, Performance, Actions
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 8,
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // CTA and Target
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.touch_app_rounded, size: 13, color: Color(0xFF475569)),
-                          const SizedBox(width: 4),
-                          Text(
-                            'CTA: "${ad.callToActionText}"',
-                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                          ),
-                        ],
-                      ),
+                    Icon(
+                      typeIcon,
+                      size: 13,
+                      color: isVideo ? const Color(0xFF1C7BFF) : const Color(0xFF059669),
                     ),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.arrow_right_alt_rounded, size: 16, color: Color(0xFF94A3B8)),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     Text(
-                      ad.targetCategoryOrProduct,
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                      countLabel,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: isVideo ? const Color(0xFF1C7BFF) : const Color(0xFF059669),
+                      ),
                     ),
                   ],
                 ),
-
-                // Metrics & Action Buttons
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${NumberFormat.compact().format(ad.impressionsCount)} views • ${ad.clicksCount} clicks (${ad.clickThroughRate.toStringAsFixed(1)}% CTR)',
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 17, color: Color(0xFF475569)),
-                      tooltip: 'Edit Advertisement',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                      onPressed: () => _showAddEditAdDialog(context, ad),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 17, color: Color(0xFFDC2626)),
-                      tooltip: 'Delete',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                      onPressed: () => _confirmDeleteAd(context, ad),
-                    ),
-                  ],
-                ),
+                if (isSelected)
+                  const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF1C7BFF))
+                else
+                  const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
               ],
             ),
           ],
@@ -1268,7 +1642,14 @@ class _AdvertisementsManagementViewState
     );
   }
 
-  Widget _buildMobileSimulator(AdvertisementBanner? ad, List<AdvertisementBanner> allAds) {
+  /// Videos Panel for banner_home_1 and banner_search_1 (Solely for video ads)
+  Widget _buildPlaylistVideosPanel(BannerPlaylist playlist) {
+    final videos = playlist.videos;
+    final isHome = playlist.targetPage == 'home';
+    final targetLabel = isHome
+        ? 'Homepage Banner Slide 1 (Solely Video Ads)'
+        : 'Search Page Banner (Solely Video Ads)';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1286,375 +1667,750 @@ class _AdvertisementsManagementViewState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Header Row
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.smartphone_rounded, color: Color(0xFF1C7BFF), size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Live Mobile Banner Simulator',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 580),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.fiber_manual_record, size: 8, color: Color(0xFF16A34A)),
-                    SizedBox(width: 4),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        Text(
+                          playlist.name,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: const Color(0xFFBFDBFE)),
+                          ),
+                          child: Text(
+                            targetLabel,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1D4ED8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      'PREVIEW',
-                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
+                      'Solely video ads play sequentially inside this mobile banner slot. Only video streaming links can be added.',
+                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
                     ),
                   ],
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _showAddEditVideoDialog(context, initialPlaylistId: playlist.id),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Add Video to Banner'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1C7BFF),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Preview how this ad looks inside the 16:10 video player on mobile',
-            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
           const SizedBox(height: 16),
 
-          if (ad == null)
+          if (videos.isEmpty)
             Container(
-              height: 200,
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
               alignment: Alignment.center,
-              child: const Text('No ad selected for simulation', style: TextStyle(color: Color(0xFF94A3B8))),
-            )
-          else ...[
-            // The Simulated Mobile Hero Slide Banner
-            Container(
-              height: 175,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF0D1B2A),
-                    Color(0xFF1B263B),
-                    Color(0xFF1E3A8A),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.video_library_outlined, size: 48, color: Color(0xFF94A3B8)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'No video advertisements in ${playlist.name}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'This banner slot is solely for video ads. Add MP4 or streaming video links to play live on customer devices.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddEditVideoDialog(context, initialPlaylistId: playlist.id),
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: const Text('Add First Video Ad'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1C7BFF),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
                   ),
                 ],
               ),
-              child: Stack(
-                children: [
-                  // Subtle glow circle
-                  Positioned(
-                    top: -20,
-                    right: -20,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                      ),
-                    ),
-                  ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: videos.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final video = videos[index];
+                final isFirst = index == 0;
+                final isLast = index == videos.length - 1;
+                final isNetworkUrl = video.videoUrl.startsWith('http://') || video.videoUrl.startsWith('https://');
 
-                  // Left Side Content & Right Side 16:10 Player
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    child: Row(
-                      children: [
-                        // Left Content (flex: 10)
-                        Expanded(
-                          flex: 10,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
+                return Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: video.isActive ? Colors.white : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: video.isActive ? const Color(0xFFE2E8F0) : const Color(0xFFCBD5E1),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Row: Order Badge, Badge Tag, Title, Reorder arrows, Active Switch
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Badge
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1C7BFF),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: const Color(0xFF0F172A),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  ad.badgeText,
+                                  'VIDEO #${index + 1}',
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 9.5,
+                                    fontSize: 10.5,
                                     fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.6,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 6),
-
-                              // Title
-                              Text(
-                                ad.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.15,
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                                ),
+                                child: Text(
+                                  video.badgeText,
+                                  style: const TextStyle(
+                                    color: Color(0xFF1D4ED8),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 4),
-
-                              // Description
+                              const SizedBox(width: 10),
                               Text(
-                                ad.description,
-                                maxLines: 2,
+                                video.title,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 10,
-                                  height: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-
-                              // CTA Button
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      ad.callToActionText,
-                                      style: const TextStyle(
-                                        color: Color(0xFF0F172A),
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_forward_rounded, size: 11, color: Color(0xFF0F172A)),
-                                  ],
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: video.isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 10),
-
-                        // Right 16:10 Player Container (flex: 11)
-                        Expanded(
-                          flex: 11,
-                          child: Center(
-                            child: AspectRatio(
-                              aspectRatio: 16 / 10,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.25),
-                                    width: 1.2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.4),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                                color: isFirst ? Colors.grey.shade300 : const Color(0xFF475569),
+                                onPressed: isFirst
+                                    ? null
+                                    : () => widget.repository.reorderPlaylistVideos(playlist.id, index, index - 1),
+                                tooltip: 'Move Up',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                                color: isLast ? Colors.grey.shade300 : const Color(0xFF475569),
+                                onPressed: isLast
+                                    ? null
+                                    : () => widget.repository.reorderPlaylistVideos(playlist.id, index, index + 1),
+                                tooltip: 'Move Down',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              ),
+                              const SizedBox(width: 6),
+                              Tooltip(
+                                message: video.isActive ? 'Active on banner' : 'Disabled from banner',
+                                child: Switch.adaptive(
+                                  value: video.isActive,
+                                  activeTrackColor: const Color(0xFF1C7BFF),
+                                  onChanged: (_) => widget.repository.togglePlaylistVideoStatus(playlist.id, video.id),
                                 ),
-                                child: Stack(
-                                  alignment: Alignment.center,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Description
+                      if (video.description.isNotEmpty) ...[
+                        Text(
+                          video.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: Color(0xFF475569),
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+
+                      // Video Stream URL Box
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isNetworkUrl ? Icons.cloud_done_rounded : Icons.folder_zip_rounded,
+                              size: 16,
+                              color: isNetworkUrl ? const Color(0xFF0284C7) : const Color(0xFF64748B),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                video.videoUrl,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
+                                  color: Color(0xFF334155),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                Clipboard.setData(ClipboardData(text: video.videoUrl));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Video link copied to clipboard!'),
+                                    duration: Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(4),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                child: Row(
                                   children: [
-                                    // Simulated video frame / animation
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(9),
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            const Color(0xFF1E293B),
-                                            const Color(0xFF0F172A),
-                                            Colors.blue.shade900.withValues(alpha: 0.4),
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.play_circle_fill_rounded,
-                                              size: 32,
-                                              color: Colors.white.withValues(alpha: 0.9),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              '16:10 Video Link Player',
-                                              style: TextStyle(
-                                                color: Colors.white.withValues(alpha: 0.8),
-                                                fontSize: 8.5,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-
-                                    // Top Playlist Badge (e.g. PROMO 1/3)
-                                    Positioned(
-                                      top: 6,
-                                      left: 6,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.65),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          'PROMO ${_selectedPreviewIndex + 1}/${allAds.length}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 8,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    // Bottom controls overlay
-                                    Positioned(
-                                      bottom: 4,
-                                      left: 6,
-                                      right: 6,
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                _simulatorPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                                size: 14,
-                                                color: Colors.white,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Icon(
-                                                Icons.volume_up_rounded,
-                                                size: 14,
-                                                color: Colors.white,
-                                              ),
-                                            ],
-                                          ),
-                                          const Icon(
-                                            Icons.fullscreen_rounded,
-                                            size: 14,
-                                            color: Colors.white,
-                                          ),
-                                        ],
+                                    Icon(Icons.copy_rounded, size: 14, color: Color(0xFF1C7BFF)),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Copy',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: Color(0xFF1C7BFF),
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Footer Row: CTA + Actions
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.touch_app_rounded, size: 13, color: Color(0xFF475569)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'CTA: "${video.callToActionText}"',
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF334155),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.arrow_right_alt_rounded, size: 16, color: Color(0xFF94A3B8)),
+                              const SizedBox(width: 6),
+                              Text(
+                                video.targetCategoryOrProduct,
+                                style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 17, color: Color(0xFF475569)),
+                                tooltip: 'Edit Video Ad',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                                onPressed: () => _showAddEditVideoDialog(
+                                  context,
+                                  initialPlaylistId: playlist.id,
+                                  existingVideo: video,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, size: 17, color: Color(0xFFDC2626)),
+                                tooltip: 'Delete',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                                onPressed: () => _confirmDeletePlaylistVideo(context, playlist.id, video),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeletePlaylistVideo(BuildContext context, String playlistId, BannerVideoItem video) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Video Advertisement?'),
+        content: Text(
+          'Are you sure you want to remove "${video.title}" from this video banner? It will no longer play on customer mobile devices.',
+          style: const TextStyle(color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              widget.repository.removeVideoFromPlaylist(playlistId, video.id);
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Removed "${video.title}" from video banner'),
+                  backgroundColor: const Color(0xFFDC2626),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaylistImagesPanel(BannerPlaylist playlist) {
+    final images = playlist.images;
+    final targetLabel = 'Homepage Banner Slide ${playlist.bannerIndex + 1} (Max 3 Images: Positions 1, 2, 3)';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 580),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        Text(
+                          playlist.name,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                          ),
+                          child: Text(
+                            targetLabel,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF059669),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'Up to 3 promotional images can be added. Image 1 renders in Position 1 (Back), Image 2 in Position 2 (Middle), and Image 3 in Position 3 (Front).',
+                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => _showAddImageDialog(context, playlist.id),
+                icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
+                label: Text(images.length >= 3 ? 'Banner Full (3/3)' : 'Add Image (${images.length}/3)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: images.length >= 3 ? const Color(0xFF94A3B8) : const Color(0xFF059669),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 16),
 
-            // Simulator Control Buttons
+          if (images.isEmpty)
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Playlist Simulation Controls:',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                  const Icon(Icons.image_outlined, size: 48, color: Color(0xFF94A3B8)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'No images in ${playlist.name}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _simulatorPlaying = !_simulatorPlaying;
-                            });
-                          },
-                          icon: Icon(
-                            _simulatorPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                            size: 16,
-                          ),
-                          label: Text(_simulatorPlaying ? 'Pause Video' : 'Play Video'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1E293B),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: allAds.length > 1
-                              ? () {
-                                  setState(() {
-                                    _selectedPreviewIndex = (_selectedPreviewIndex + 1) % allAds.length;
-                                  });
-                                }
-                              : null,
-                          icon: const Icon(Icons.skip_next_rounded, size: 16),
-                          label: const Text('Next In Playlist'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0F172A),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                            elevation: 0,
-                          ),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Add up to 3 phone photos or promotional graphics to display in Positions 1, 2, and 3 on this mobile banner slide.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddImageDialog(context, playlist.id),
+                    icon: const Icon(Icons.add_photo_alternate_rounded, size: 16),
+                    label: const Text('Add First Image'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
                   ),
                 ],
               ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: images.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final img = images[index];
+                final isFirst = index == 0;
+                final isLast = index == images.length - 1;
+                final positionTag = index == 0
+                    ? 'POS 1 (BACK CARD)'
+                    : (index == 1 ? 'POS 2 (MIDDLE CARD)' : 'POS 3 (FRONT CARD)');
+
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: img.isActive ? Colors.white : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: img.isActive ? const Color(0xFFE2E8F0) : const Color(0xFFCBD5E1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Order & Position Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F172A),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '#${index + 1}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              positionTag,
+                              style: const TextStyle(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF38BDF8),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Image Thumbnail
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 54,
+                          height: 54,
+                          color: const Color(0xFF0F172A),
+                          child: _buildSmartBannerImage(
+                            img.imageUrl,
+                            fit: BoxFit.cover,
+                            width: 54,
+                            height: 54,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+
+                      // Title & URL
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              img.title.isNotEmpty ? img.title : 'Banner Image #${index + 1}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: img.isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              img.imageUrl,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF64748B),
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Reorder buttons
+                      IconButton(
+                        icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                        color: isFirst ? Colors.grey.shade300 : const Color(0xFF475569),
+                        onPressed: isFirst
+                            ? null
+                            : () => widget.repository.reorderPlaylistImages(playlist.id, index, index - 1),
+                        tooltip: 'Move Up',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                        color: isLast ? Colors.grey.shade300 : const Color(0xFF475569),
+                        onPressed: isLast
+                            ? null
+                            : () => widget.repository.reorderPlaylistImages(playlist.id, index, index + 1),
+                        tooltip: 'Move Down',
+                      ),
+                      const SizedBox(width: 4),
+
+                      // Active Switch
+                      Switch(
+                        value: img.isActive,
+                        onChanged: (val) => widget.repository.togglePlaylistImageStatus(playlist.id, img.id),
+                        activeTrackColor: const Color(0xFF16A34A),
+                      ),
+                      const SizedBox(width: 4),
+
+                      // Delete button
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 19, color: Color(0xFFDC2626)),
+                        onPressed: () => _confirmDeletePlaylistImage(context, playlist.id, img),
+                        tooltip: 'Delete Image',
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          ],
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeletePlaylistImage(BuildContext context, String playlistId, BannerImageItem img) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Image from Playlist?'),
+        content: Text(
+          'Are you sure you want to remove "${img.title.isNotEmpty ? img.title : 'this image'}" from the playlist? It will no longer be rendered on the customer mobile app banner.',
+          style: const TextStyle(color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              widget.repository.removeImageFromPlaylist(playlistId, img.id);
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Removed image from playlist'),
+                  backgroundColor: Color(0xFFDC2626),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -1708,7 +2464,7 @@ class _AdvertisementsManagementViewState
                 Text(
                   value,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF0F172A),
                   ),

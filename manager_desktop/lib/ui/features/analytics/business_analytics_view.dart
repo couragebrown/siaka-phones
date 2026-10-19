@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../../data/repositories/manager_repository.dart';
+import '../../core/custom_date_range_picker.dart';
 
 class BusinessAnalyticsView extends StatefulWidget {
   final ManagerRepository repository;
@@ -18,13 +19,26 @@ class _BusinessAnalyticsViewState extends State<BusinessAnalyticsView> {
   String _selectedPeriod = 'YTD 2026';
   String _selectedBranch = 'All Outlets (Consolidated)';
   int? _hoveredMonthIndex;
+  DateTime? _fromDate;
+  DateTime? _toDate;
 
   final List<String> _periodOptions = [
     'YTD 2026',
     'Q3 2026',
     'This Month',
     'Last 30 Days',
+    'Custom',
   ];
+
+  String _getPeriodDisplay() {
+    if (_fromDate != null || _toDate != null) {
+      final f = DateFormat('dd/MM/yyyy');
+      final fromStr = _fromDate != null ? f.format(_fromDate!) : 'Start';
+      final toStr = _toDate != null ? f.format(_toDate!) : 'Present';
+      return '$fromStr – $toStr';
+    }
+    return _selectedPeriod;
+  }
 
   final List<String> _branchOptions = [
     'All Outlets (Consolidated)',
@@ -47,41 +61,12 @@ class _BusinessAnalyticsViewState extends State<BusinessAnalyticsView> {
     {'month': 'Sep', 'revenue': 720.0, 'profit': 172.0, 'orders': 1910},
   ];
 
-  // Category Revenue Share
-  final List<Map<String, dynamic>> _categoryData = [
-    {
-      'category': 'Smartphones',
-      'amount': 345200.0,
-      'percentage': 62.5,
-      'units': 1140,
-      'color': Color(0xFF1C7BFF),
-      'icon': Icons.phone_android_rounded,
-    },
-    {
-      'category': 'Laptops & Tablets',
-      'amount': 118400.0,
-      'percentage': 21.4,
-      'units': 195,
-      'color': Color(0xFF8B5CF6),
-      'icon': Icons.laptop_mac_rounded,
-    },
-    {
-      'category': 'Accessories & Audio',
-      'amount': 55800.0,
-      'percentage': 10.1,
-      'units': 860,
-      'color': Color(0xFF10B981),
-      'icon': Icons.headphones_rounded,
-    },
-    {
-      'category': 'Repairs & Swaps Desk',
-      'amount': 33100.0,
-      'percentage': 6.0,
-      'units': 320,
-      'color': Color(0xFFF59E0B),
-      'icon': Icons.build_circle_rounded,
-    },
-  ];
+  // Category Revenue Share (dynamically computed from repository & synced with database)
+  List<Map<String, dynamic>> get _categoryData => widget.repository.getCategoryRevenueShare(
+    fromDate: _fromDate,
+    toDate: _toDate,
+    branch: _selectedBranch,
+  );
 
   // Branch Performance
   final List<Map<String, dynamic>> _branchData = [
@@ -176,7 +161,24 @@ class _BusinessAnalyticsViewState extends State<BusinessAnalyticsView> {
   final ScrollController _leaderboardHScrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    widget.repository.addListener(_onRepositoryChanged);
+    // Initial database sync for category revenue
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.repository.syncCategoryRevenueToDatabase();
+      }
+    });
+  }
+
+  void _onRepositoryChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    widget.repository.removeListener(_onRepositoryChanged);
     _pageScrollController.dispose();
     _leaderboardHScrollController.dispose();
     super.dispose();
@@ -233,23 +235,74 @@ class _BusinessAnalyticsViewState extends State<BusinessAnalyticsView> {
                   // Period Selector
                   Container(
                     height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                        color: _selectedPeriod == 'Custom'
+                            ? const Color(0xFF1C7BFF)
+                            : const Color(0xFFE2E8F0),
+                      ),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedPeriod,
-                        items: _periodOptions
-                            .map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))))
-                            .toList(),
+                        items: _periodOptions.map((p) {
+                          return DropdownMenuItem(
+                            value: p,
+                            child: Text(
+                              p,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: _selectedPeriod == p
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: _selectedPeriod == p && p == 'Custom'
+                                    ? const Color(0xFF1C7BFF)
+                                    : const Color(0xFF0F172A),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                         onChanged: (val) {
-                          if (val != null) setState(() => _selectedPeriod = val);
+                          if (val != null) {
+                            setState(() {
+                              _selectedPeriod = val;
+                              if (val != 'Custom') {
+                                _fromDate = null;
+                                _toDate = null;
+                              }
+                            });
+                          }
                         },
                       ),
                     ),
+                  ),
+
+                  // Custom Date Range Picker: [ FROM  dd/mm/yyyy  📅 ]  →  [ TO  dd/mm/yyyy  📅 ]  [ ✕ Reset ]
+                  CustomDateRangePicker(
+                    fromDate: _fromDate,
+                    toDate: _toDate,
+                    onFromDateSelected: (date) {
+                      setState(() {
+                        _fromDate = date;
+                        _selectedPeriod = 'Custom';
+                      });
+                    },
+                    onToDateSelected: (date) {
+                      setState(() {
+                        _toDate = date;
+                        _selectedPeriod = 'Custom';
+                      });
+                    },
+                    onReset: () {
+                      setState(() {
+                        _fromDate = null;
+                        _toDate = null;
+                        _selectedPeriod = 'YTD 2026';
+                      });
+                    },
                   ),
 
                   // Branch Selector
@@ -342,7 +395,7 @@ class _BusinessAnalyticsViewState extends State<BusinessAnalyticsView> {
                   SizedBox(
                     width: cardWidth,
                     child: _buildKpiCard(
-                      title: 'GROSS REVENUE ($_selectedPeriod)',
+                      title: 'GROSS REVENUE (${_getPeriodDisplay().toUpperCase()})',
                       value: currencyFormat.format(widget.repository.totalRevenue > 0 ? widget.repository.totalRevenue : 552500),
                       trend: '+21.8% vs last period',
                       isPositive: true,
@@ -523,28 +576,107 @@ class _BusinessAnalyticsViewState extends State<BusinessAnalyticsView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        const Expanded(
-                          child: Text(
-                            'Revenue Share by Product Category',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                          ),
+                        const Text(
+                          'Revenue Share by Product Category',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('4 Product Lines', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            // Database connection / quota status badge
+                            Tooltip(
+                              message: widget.repository.isCategoryRevenueDbSynced && !widget.repository.isDatabaseQuotaExceeded
+                                  ? 'Category revenue successfully synchronized with Supabase database'
+                                  : 'Database quota limit active on Supabase. Offline cache is recording all category turnover. Once premium quota is paid on your plan, it will auto-connect without any configuration.',
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: widget.repository.isCategoryRevenueDbSynced && !widget.repository.isDatabaseQuotaExceeded
+                                      ? const Color(0xFFDCFCE7)
+                                      : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: widget.repository.isCategoryRevenueDbSynced && !widget.repository.isDatabaseQuotaExceeded
+                                        ? const Color(0xFF86EFAC)
+                                        : const Color(0xFFFDE68A),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      widget.repository.isCategoryRevenueDbSynced && !widget.repository.isDatabaseQuotaExceeded
+                                          ? Icons.cloud_done_rounded
+                                          : Icons.cloud_sync_rounded,
+                                      size: 13,
+                                      color: widget.repository.isCategoryRevenueDbSynced && !widget.repository.isDatabaseQuotaExceeded
+                                          ? const Color(0xFF15803D)
+                                          : const Color(0xFFB45309),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      widget.repository.isCategoryRevenueDbSynced && !widget.repository.isDatabaseQuotaExceeded
+                                          ? 'Database Synced'
+                                          : 'Auto-Sync Standby (Quota)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: widget.repository.isCategoryRevenueDbSynced && !widget.repository.isDatabaseQuotaExceeded
+                                            ? const Color(0xFF15803D)
+                                            : const Color(0xFFB45309),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // Manual Sync Button
+                            IconButton(
+                              icon: const Icon(Icons.sync_rounded, size: 16, color: Color(0xFF1C7BFF)),
+                              tooltip: 'Record and sync category revenue to database',
+                              splashRadius: 16,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                              onPressed: () async {
+                                final success = await widget.repository.syncCategoryRevenueToDatabase();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        success
+                                            ? 'Category revenue recorded and synchronized to Supabase database'
+                                            : 'Category revenue recorded locally (Supabase quota standby: auto-reconnects when premium is paid)',
+                                      ),
+                                      backgroundColor: success ? const Color(0xFF059669) : const Color(0xFFD97706),
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text('${_categoryData.length} Product Lines', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text('Volume and turnover per inventory category segment', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    Text('Volume and turnover recorded category by category in database', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                     const SizedBox(height: 16),
 
                     // Category Distribution Bars

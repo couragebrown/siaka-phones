@@ -115,27 +115,104 @@ class ProfileView extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              profile.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF1F2937),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.3,
-                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    profile.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF1F2937),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 2.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: const Color(0xFFCBD5E1),
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.badge_outlined,
+                                        size: 11,
+                                        color: Color(0xFF475569),
+                                      ),
+                                      const SizedBox(width: 3.5),
+                                      Text(
+                                        'ID: ${profile.id}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF334155),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              profile.email,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF6B7280),
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w400,
-                              ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.email_outlined,
+                                  size: 13,
+                                  color: Color(0xFF6B7280),
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    profile.email,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF4B5563),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.phone_outlined,
+                                  size: 13,
+                                  color: Color(0xFF6B7280),
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    profile.phone.isNotEmpty
+                                        ? profile.phone
+                                        : 'No phone registered',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF4B5563),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 6),
                             Container(
@@ -251,6 +328,49 @@ class ProfileView extends StatelessWidget {
                         label: 'Devices Swapped',
                         subtitle: 'View all devices swapped or initiated',
                         onTap: onDevicesSwappedTap ?? onTradeInTap,
+                      ),
+                      _rowDivider(),
+                      _menuRow(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Personal & Profile Info',
+                        subtitle: 'ID: ${profile.id} • ${profile.phone}',
+                        onTap: null,
+                        trailing: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _showEditProfileSheet(context),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1C7BFF).withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: const Color(0xFF1C7BFF).withValues(alpha: 0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.edit_outlined,
+                                      size: 11, color: Color(0xFF1C7BFF)),
+                                  SizedBox(width: 3),
+                                  Text(
+                                    'Edit Info',
+                                    style: TextStyle(
+                                      color: Color(0xFF1C7BFF),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                       _rowDivider(),
                       _menuRow(
@@ -478,6 +598,199 @@ class ProfileView extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: content,
+    );
+  }
+
+  void _showEditProfileSheet(BuildContext context) {
+    final nameController = TextEditingController(text: viewModel.profile.name);
+    final emailController =
+        TextEditingController(text: viewModel.profile.email);
+    final phoneController =
+        TextEditingController(text: viewModel.profile.phone);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom +
+                    MediaQuery.of(context).padding.bottom +
+                    24,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE5E7EB),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Edit Profile Information',
+                          style: TextStyle(
+                            color: Color(0xFF1F2937),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                          onPressed: () => Navigator.pop(sheetContext),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Customer ID (read-only)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.badge_outlined,
+                              size: 16, color: Color(0xFF64748B)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Customer ID: ${viewModel.profile.id}',
+                            style: const TextStyle(
+                              color: Color(0xFF334155),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Full Name',
+                      style: TextStyle(
+                        color: Color(0xFF374151),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        hintText: 'Full Name',
+                        prefixIcon: const Icon(Icons.person_outline, size: 18),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Email Address',
+                      style: TextStyle(
+                        color: Color(0xFF374151),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        hintText: 'Email Address',
+                        prefixIcon: const Icon(Icons.email_outlined, size: 18),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Phone Number',
+                      style: TextStyle(
+                        color: Color(0xFF374151),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        hintText: 'Phone Number',
+                        prefixIcon: const Icon(Icons.phone_outlined, size: 18),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1C7BFF),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          viewModel.updateProfile(
+                            name: nameController.text.trim(),
+                            email: emailController.text.trim(),
+                            phone: phoneController.text.trim(),
+                          );
+                          Navigator.pop(sheetContext);
+                        },
+                        child: const Text(
+                          'Save Profile Changes',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

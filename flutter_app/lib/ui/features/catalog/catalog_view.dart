@@ -85,12 +85,14 @@ class _CatalogViewState extends State<CatalogView> {
       ]),
       builder: (context, _) {
         final bool isSearching = _searchController.text.trim().isNotEmpty;
-        final featuredProducts = widget.viewModel.products.isNotEmpty
+        final featuredProducts = (widget.viewModel.products.isNotEmpty
             ? [
-                ...widget.viewModel.products.where((p) => p.isFeatured),
-                ...widget.viewModel.products.where((p) => !p.isFeatured),
+                ...widget.viewModel.products.where((p) => p.isFeatured && p.isMerchandise),
+                ...widget.viewModel.products.where((p) => !p.isFeatured && p.isMerchandise),
               ]
-            : widget.viewModel.featuredProducts;
+            : widget.viewModel.featuredProducts)
+            .where((p) => p.isMerchandise)
+            .toList();
 
         return Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),
@@ -908,11 +910,21 @@ class _CatalogViewState extends State<CatalogView> {
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(11),
-                                    child: const BannerVideoPlayer(
-                                      isActive: true,
-                                      aspectRatio: 16 / 10,
-                                      autoReplay: true,
-                                      replayDelay: Duration(seconds: 3),
+                                    child: Builder(
+                                      builder: (context) {
+                                        final playlist = widget.viewModel.getBannerPlaylist('banner_search_1');
+                                        final activeVideos = (playlist != null && playlist.isActive && playlist.activeVideos.isNotEmpty)
+                                            ? playlist.activeVideos.map((v) => v.videoUrl).toList()
+                                            : null;
+
+                                        return BannerVideoPlayer(
+                                          isActive: true,
+                                          aspectRatio: 16 / 10,
+                                          autoReplay: true,
+                                          replayDelay: const Duration(seconds: 3),
+                                          videoSources: activeVideos,
+                                        );
+                                      },
                                     ),
                                   ),
                                 ),

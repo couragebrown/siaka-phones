@@ -3,12 +3,15 @@ import '../mock_data.dart';
 import '../../domain/models/user_profile.dart';
 
 class UserRepository extends ChangeNotifier {
+  static final UserRepository instance = UserRepository();
+
   UserProfile _profile = MockData.profile;
 
   UserProfile get profile => _profile;
 
-  void updateProfile({String? name, String? phone, String? email}) {
+  void updateProfile({String? name, String? phone, String? email, String? id}) {
     _profile = _profile.copyWith(
+      id: id ?? _profile.id,
       name: name,
       email: email,
       phone: phone,
