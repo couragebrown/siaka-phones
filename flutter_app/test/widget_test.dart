@@ -1865,6 +1865,32 @@ void main() {
     expect(initiatedNew, isTrue);
   });
 
+  test('TradeInViewModel submitSwapRequest connects to database and updates submitted applications', () async {
+    final viewModel = TradeInViewModel();
+    viewModel.setDesiredBrand('iPhone');
+    viewModel.setDesiredModel('iPhone 15 Pro Max');
+    viewModel.setDesiredStorage('256 GB');
+    viewModel.setDesiredRam('8 GB');
+    viewModel.setCurrentBrand('Samsung');
+    viewModel.setCurrentModel('Galaxy S22');
+    viewModel.setCurrentStorage('128 GB');
+    viewModel.setApplicantName('Kwame Asare');
+    viewModel.setApplicantPhone('024 999 8877');
+    viewModel.setPreferredBranch('Circle Main Branch');
+    viewModel.setNotes('Screen has protector');
+
+    final initialCount = viewModel.swapApplications.length;
+    await viewModel.submitSwapRequest();
+
+    expect(viewModel.isSubmitted, isTrue);
+    expect(viewModel.lastApplication, isNotNull);
+    expect(viewModel.lastApplication!.applicantName, 'Kwame Asare');
+    expect(viewModel.lastApplication!.applicantPhone, '024 999 8877');
+    expect(viewModel.lastApplication!.desiredModel, 'iPhone 15 Pro Max');
+    expect(viewModel.lastApplication!.currentModel, 'Galaxy S22');
+    expect(viewModel.swapApplications.length, initialCount + 1);
+  });
+
   testWidgets('SplashView displays official logo, animated loading bar state, and transitions on completion',
       (WidgetTester tester) async {
     bool loaded = false;
@@ -1909,7 +1935,8 @@ void main() {
   testWidgets(
       'TrackOrderView shows green ORDER PLACED & CONFIRMED and CONFIRMED badge on step 1 when order is placed',
       (WidgetTester tester) async {
-    final orderRepo = OrderRepository();
+    final orderRepo =
+        OrderRepository(initialOrders: OrderRepository.sampleOrders);
     orderRepo.updateOrderStatus('SP-883921', OrderStatus.placed);
     final placedOrder = orderRepo.getOrderById('SP-883921')!;
 
@@ -1950,7 +1977,8 @@ void main() {
 
   testWidgets('OrdersView displays orders with Ghanaian Cedis and triggers onTrackOrder',
       (WidgetTester tester) async {
-    final orderRepo = OrderRepository();
+    final orderRepo =
+        OrderRepository(initialOrders: OrderRepository.sampleOrders);
     final ordersVM = OrdersViewModel(orderRepository: orderRepo);
     OrderModel? trackedOrder;
 
@@ -2041,6 +2069,15 @@ void main() {
     expect(find.text('MacBooks & Dell'), findsOneWidget);
     expect(find.text('Accessories'), findsWidgets);
     expect(find.text('Audio & Power'), findsOneWidget);
+    expect(find.text('Headphones'), findsOneWidget);
+    expect(find.text('Audio & Wireless'), findsOneWidget);
+    expect(find.text('All Products'), findsOneWidget);
+    expect(find.text('Entire Store'), findsOneWidget);
+
+    // Verify Headphones appears in the list and All Products is placed under all categories
+    final headphonesTop = tester.getTopLeft(find.byKey(const ValueKey('category_card_Headphones'))).dy;
+    final allProductsTop = tester.getTopLeft(find.byKey(const ValueKey('category_card_All Products'))).dy;
+    expect(allProductsTop, greaterThanOrEqualTo(headphonesTop));
 
     // Tap Smartphones card
     final smartphonesCard =
@@ -2296,12 +2333,12 @@ void main() {
     expect(find.byType(BannerVideoPlayer), findsOneWidget);
     expect(find.text('PROMO'), findsOneWidget);
 
-    // At 5 seconds (video/fallback ended, but post-video delay is waiting), banner has not advanced yet
-    await tester.pump(const Duration(seconds: 5));
+    // At 1.5 seconds (video/fallback in progress), banner has not advanced yet
+    await tester.pump(const Duration(milliseconds: 1500));
     expect(find.text('Discover the\nLatest Smartphones'), findsOneWidget);
 
-    // After post-video delay (4s fallback + 3s post-video delay = 7s+), it advances to next banner
-    await tester.pump(const Duration(seconds: 3));
+    // After post-video delay (2s fallback + 1s post-video delay = 3s+), it advances to next banner
+    await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
 
     // Verify advances to second banner
@@ -2618,6 +2655,145 @@ void main() {
     expect(cartRepo.items.first.specsDescription, contains('512GB • 16GB'));
 
     await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('Edit Profile Information sheet only allows editing phone number, name and email are read-only',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final userRepo = UserRepository();
+    final initialName = userRepo.profile.name;
+    final initialEmail = userRepo.profile.email;
+    final profileVM = ProfileViewModel(userRepository: userRepo);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProfileView(
+          viewModel: profileVM,
+          onOrdersTap: () {},
+          onTradeInTap: () {},
+          onLocationsTap: () {},
+          onSupportTap: () {},
+          onBack: () {},
+          onSignOut: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap "Edit Info" button
+    final editInfoButton = find.text('Edit Info');
+    expect(editInfoButton, findsOneWidget);
+    await tester.tap(editInfoButton);
+    await tester.pumpAndSettle();
+
+    // Verify sheet opened
+    expect(find.text('Edit Profile Information'), findsOneWidget);
+
+    // Verify text fields
+    final textFields = tester.widgetList<TextField>(find.byType(TextField)).toList();
+    expect(textFields.length, 3);
+
+    // Full name and email must be read-only
+    expect(textFields[0].readOnly, isTrue);
+    expect(textFields[1].readOnly, isTrue);
+
+    // Phone number must NOT be read-only
+    expect(textFields[2].readOnly, isFalse);
+
+    // Enter new phone number
+    await tester.enterText(find.byWidget(textFields[2]), '+233 55 999 8888');
+    await tester.pumpAndSettle();
+
+    // Tap "Save Profile Changes"
+    await tester.tap(find.text('Save Profile Changes'));
+    await tester.pumpAndSettle();
+
+    // Verify sheet closed
+    expect(find.text('Edit Profile Information'), findsNothing);
+
+    // Verify profile updated only phone number, name and email remain unchanged
+    expect(profileVM.profile.phone, '+233 55 999 8888');
+    expect(profileVM.profile.name, initialName);
+    expect(profileVM.profile.email, initialEmail);
+  });
+
+  testWidgets(
+      'ProfileView orders and wishlist stats start at initial value zero and increment when created',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final userRepo = UserRepository();
+    final profileVM = ProfileViewModel(userRepository: userRepo);
+    final orderRepo = OrderRepository();
+    final wishlistRepo = WishlistRepository();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ListenableBuilder(
+          listenable: Listenable.merge([orderRepo, wishlistRepo]),
+          builder: (context, _) {
+            return ProfileView(
+              viewModel: profileVM,
+              ordersCount: orderRepo.orders.length.toString(),
+              wishlistCount: wishlistRepo.itemCount.toString(),
+              onOrdersTap: () {},
+              onTradeInTap: () {},
+              onLocationsTap: () {},
+              onSupportTap: () {},
+              onBack: () {},
+              onSignOut: () {},
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify initial value is zero for both Orders and Wishlist
+    expect(orderRepo.orders.length, 0);
+    expect(wishlistRepo.itemCount, 0);
+    expect(find.text('0'), findsNWidgets(2));
+    expect(find.text('Orders'), findsOneWidget);
+    expect(find.text('Wishlist'), findsOneWidget);
+
+    // Add product to wishlist
+    wishlistRepo.addToWishlist(MockData.products[0]);
+    await tester.pumpAndSettle();
+
+    // Wishlist should now show 1 and Orders still 0
+    expect(wishlistRepo.itemCount, 1);
+    expect(find.text('1'), findsWidgets); // Wishlist (1) and Addresses (1)
+
+    // Place an order
+    await orderRepo.placeOrder(
+      items: [
+        CartItem(
+          id: 'test-item-1',
+          product: MockData.products[0],
+          selectedColor: 'Natural Titanium',
+          selectedStorage: '256 GB',
+          quantity: 1,
+        ),
+      ],
+      subtotal: 1099.0,
+      tax: 0.0,
+      shippingFee: 0.0,
+      totalAmount: 1099.0,
+      shippingAddress: 'House 12, Accra',
+      paymentMethod: 'MTN Mobile Money',
+    );
+    await tester.pumpAndSettle();
+
+    // Orders is now 1!
+    expect(orderRepo.orders.length, 1);
+    expect(find.text('0'), findsNothing);
   });
 }
 

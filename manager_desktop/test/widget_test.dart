@@ -9,6 +9,7 @@ import 'package:manager_desktop/domain/models/manager_product.dart';
 import 'package:manager_desktop/domain/models/manager_repair.dart';
 import 'package:manager_desktop/domain/models/manager_shipping.dart';
 import 'package:manager_desktop/domain/models/manager_swap.dart';
+import 'package:manager_desktop/domain/models/manager_notification.dart';
 import 'package:manager_desktop/domain/models/service_ticket.dart';
 import 'package:manager_desktop/domain/models/advertisement_banner.dart';
 import 'package:manager_desktop/main.dart';
@@ -80,6 +81,49 @@ void main() {
 
       repository.updateOrderStatus(firstOrder.id, OrderStatus.dispatched);
       expect(repository.orders.first.status, equals(OrderStatus.dispatched));
+    });
+
+    test('Inbound customer orders reject notification records, customer records, and deduplicate identical orders', () {
+      final initialCount = repository.orders.length;
+
+      // 1. Notification record should be rejected
+      repository.processInboundCustomerOrder({
+        'id': 'NOTIF_ORDER_SP-999999',
+        'category': 'NOTIFICATION_RECORD',
+        'customerName': 'Spurious Notification',
+        'totalAmount': 0.0,
+      });
+      expect(repository.orders.length, equals(initialCount));
+      expect(repository.orders.any((o) => o.id.contains('999999')), isFalse);
+
+      // 2. Customer record should be rejected
+      repository.processInboundCustomerOrder({
+        'id': 'CUSTOMER_SK-99999',
+        'category': 'CUSTOMER_RECORD',
+        'customerName': 'Spurious Customer',
+        'totalAmount': 0.0,
+      });
+      expect(repository.orders.length, equals(initialCount));
+      expect(repository.orders.any((o) => o.id.contains('99999')), isFalse);
+
+      // 3. Legitimate order should be accepted
+      repository.processInboundCustomerOrder({
+        'id': 'ORDER_SP-777888',
+        'category': 'ORDER_RECORD',
+        'customerName': 'Valid Customer',
+        'totalAmount': 2500.0,
+      });
+      expect(repository.orders.length, equals(initialCount + 1));
+      expect(repository.orders.any((o) => o.id == 'ORDER_SP-777888'), isTrue);
+
+      // 4. Duplicate inbound order should be deduplicated (not create another duplicate)
+      repository.processInboundCustomerOrder({
+        'id': 'ORDER_SP-777888',
+        'category': 'ORDER_RECORD',
+        'customerName': 'Valid Customer Updated',
+        'totalAmount': 2500.0,
+      });
+      expect(repository.orders.length, equals(initialCount + 1));
     });
 
     test('Can add and update product inventory with wholesale/retail pricing, color, and specs list', () {
@@ -158,6 +202,37 @@ void main() {
       expect(repository.repairs.first.estimatedCost, equals(650.0));
     });
 
+    test('Can process inbound customer repair booking from mobile app with all details', () {
+      final initialRepairCount = repository.repairs.length;
+      final repairData = {
+        'id': 'REPAIR_REP-9988',
+        'name': 'Kwame Mensah - iPhone 14 Pro Max',
+        'brand': 'iPhone 14 Pro Max',
+        'category': 'REPAIR_RECORD',
+        'price': 0.0,
+        'original_price': 0.0,
+        'stock': 1,
+        'specs': '{"customerName":"Kwame Mensah","customerPhone":"024 999 8877","deviceModel":"iPhone 14 Pro Max","issueType":"Screen Replacement","description":"Glass shattered on corner and touch unresponsive in middle","dropOffBranch":"Siaka Phones Osu Mall","timeSlot":"Afternoon (13:00 - 16:00)","photoPath":"damage_screen.jpg","appointmentDate":"2026-10-25T14:00:00.000","status":"Confirmed"}',
+        'condition': 'received',
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      repository.processInboundRepair(repairData);
+
+      expect(repository.repairs.length, equals(initialRepairCount + 1));
+      final newRepair = repository.repairs.first;
+      expect(newRepair.id, equals('REP-9988'));
+      expect(newRepair.customerName, equals('Kwame Mensah'));
+      expect(newRepair.customerPhone, equals('024 999 8877'));
+      expect(newRepair.deviceModel, equals('iPhone 14 Pro Max'));
+      expect(newRepair.reportedIssue, equals('Screen Replacement'));
+      expect(newRepair.description, contains('touch unresponsive in middle'));
+      expect(newRepair.dropOffBranch, equals('Siaka Phones Osu Mall'));
+      expect(newRepair.timeSlot, equals('Afternoon (13:00 - 16:00)'));
+      expect(newRepair.photoPath, equals('damage_screen.jpg'));
+      expect(repository.notifications.any((n) => n.referenceId == 'REP-9988' && n.type == NotificationType.repair), isTrue);
+    });
+
     test('Can update device trade-in valuation status', () {
       final swap = repository.swaps.first;
       expect(swap.status, equals(SwapEvaluationStatus.underReview));
@@ -169,6 +244,44 @@ void main() {
       );
       expect(repository.swaps.first.status, equals(SwapEvaluationStatus.approved));
       expect(repository.swaps.first.inspectionNotes, equals('Grade A condition verified'));
+    });
+
+    test('Can process inbound customer device swap request from mobile app instantly', () {
+      final initialSwapCount = repository.swaps.length;
+      final swapData = {
+        'id': 'SWAP_SWAP-GH-5544',
+        'name': 'Ama Serwaa - iPhone 12 to iPhone 15 Pro Max',
+        'brand': 'iPhone',
+        'category': 'SWAP_RECORD',
+        'price': 15500.0,
+        'original_price': 3800.0,
+        'stock': 1,
+        'specs': '{"swapId":"SWAP-GH-5544","customerName":"Ama Serwaa","customerPhone":"024 111 2233","targetDevice":"iPhone 15 Pro Max (256 GB, 8 GB)","targetDevicePrice":15500.0,"currentDevice":"iPhone 12 (128 GB)","deviceCondition":"Good (Minor Scratches)","batteryHealth":88,"estimatedTradeInValue":3800.0,"customerCashTopUp":11700.0,"preferredBranch":"Circle Main Branch","notes":"Clean with charger","status":"Under Review by Manager"}',
+        'condition': 'underReview',
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      repository.processInboundSwap(swapData);
+
+      expect(repository.swaps.length, equals(initialSwapCount + 1));
+      final newSwap = repository.swaps.first;
+      expect(newSwap.id, equals('SWAP-GH-5544'));
+      expect(newSwap.customerName, equals('Ama Serwaa'));
+      expect(newSwap.targetDevice, contains('iPhone 15 Pro Max'));
+      expect(newSwap.currentDevice, contains('iPhone 12'));
+      expect(newSwap.estimatedTradeInValue, equals(3800.0));
+      expect(newSwap.customerCashTopUp, equals(11700.0));
+      expect(newSwap.status, equals(SwapEvaluationStatus.underReview));
+      expect(repository.notifications.any((n) => n.referenceId == 'SWAP-GH-5544' && n.type == NotificationType.swap), isTrue);
+    });
+
+    test('Can review swap request, update offered cost, and set status to approved', () {
+      final targetSwap = repository.swaps.first;
+      repository.updateSwapStatus(targetSwap.id, SwapEvaluationStatus.approved, offeredCost: 2200.0, notes: 'Screen original, clean device');
+      final swap = repository.swaps.firstWhere((s) => s.id == targetSwap.id);
+      expect(swap.offeredCost, equals(2200.0));
+      expect(swap.status, equals(SwapEvaluationStatus.approved));
+      expect(swap.inspectionNotes, equals('Screen original, clean device'));
     });
 
     test('Can send outbound direct customer messages across channels', () {

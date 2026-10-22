@@ -402,19 +402,30 @@ class SupabaseService {
   Future<bool> upsertRawRecord(Map<String, dynamic> record) async {
     // Send to local PC Manager if reachable
     try {
-      final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+      final host = _activeLocalHost ?? (Platform.isAndroid ? '10.0.2.2' : '127.0.0.1');
       final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 1500);
       final cat = record['category']?.toString().toUpperCase() ?? '';
-      String endpoint = '/api/orders';
-      if (cat.contains('BNPL')) {
+      final id = record['id']?.toString().toUpperCase() ?? '';
+      String? endpoint;
+      if (cat == 'ORDER_RECORD' || id.startsWith('ORDER_')) {
+        endpoint = '/api/orders';
+      } else if (cat.contains('BNPL') || id.startsWith('BNPL_')) {
         endpoint = '/api/bnpl';
-      } else if (cat.contains('REPAIR')) {
+      } else if (cat.contains('REPAIR') || id.startsWith('REPAIR_')) {
         endpoint = '/api/repairs';
+      } else if (cat.contains('SWAP') || id.startsWith('SWAP_') || cat.contains('TRADEIN')) {
+        endpoint = '/api/swaps';
+      } else if (cat.contains('NOTIFICATION') || id.startsWith('NOTIF_')) {
+        endpoint = '/api/notifications';
+      } else if (cat.contains('CUSTOMER') || id.startsWith('CUSTOMER_')) {
+        endpoint = '/api/customers';
       }
-      final req = await client.postUrl(Uri.parse('http://$host:8088$endpoint'));
-      req.headers.contentType = ContentType.json;
-      req.write(jsonEncode(record));
-      await req.close().timeout(const Duration(milliseconds: 1500));
+      if (endpoint != null) {
+        final req = await client.postUrl(Uri.parse('http://$host:8088$endpoint'));
+        req.headers.contentType = ContentType.json;
+        req.write(jsonEncode(record));
+        await req.close().timeout(const Duration(milliseconds: 1500));
+      }
     } catch (_) {}
 
     if (isQuotaRestricted) return false;

@@ -87,6 +87,16 @@ class RepairRepository extends ChangeNotifier {
         'price': booking.estimatedCost,
         'original_price': booking.estimatedCost,
         'stock': 1,
+        'customerName': booking.customerName,
+        'customerPhone': booking.customerPhone,
+        'deviceModel': booking.deviceModel,
+        'reportedIssue': booking.issueType,
+        'description': booking.description,
+        'dropOffBranch': booking.dropOffBranch,
+        'timeSlot': booking.timeSlot,
+        'photoPath': booking.photoPath,
+        'appointmentDate': booking.appointmentDate.toIso8601String(),
+        'bookedDate': DateTime.now().toIso8601String(),
         'specs': jsonEncode({
           'customerName': booking.customerName,
           'customerPhone': booking.customerPhone,
@@ -95,16 +105,54 @@ class RepairRepository extends ChangeNotifier {
           'description': booking.description,
           'dropOffBranch': booking.dropOffBranch,
           'timeSlot': booking.timeSlot,
+          'photoPath': booking.photoPath,
+          'appointmentDate': booking.appointmentDate.toIso8601String(),
           'status': booking.status,
         }),
         'condition': 'received',
-        'created_at': booking.appointmentDate.toIso8601String(),
+        'created_at': DateTime.now().toIso8601String(),
       };
 
       SupabaseService().upsertRawRecord(repairMap);
     }
 
     return booking;
+  }
+
+  void updateBookingCost(String id, double cost, {String? status}) {
+    final cleanId = id.replaceFirst('REPAIR_', '');
+    final idx = _bookings.indexWhere((b) => b.id.replaceFirst('REPAIR_', '') == cleanId);
+    if (idx != -1) {
+      _bookings[idx] = _bookings[idx].copyWith(
+        estimatedCost: cost,
+        status: status ?? _bookings[idx].status,
+      );
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchRemoteRepairs() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+      final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 1500);
+      final req = await client.getUrl(Uri.parse('http://$host:8088/api/repairs'));
+      final resp = await req.close().timeout(const Duration(milliseconds: 1500));
+      if (resp.statusCode == HttpStatus.ok) {
+        final body = await resp.transform(utf8.decoder).join();
+        if (body.isNotEmpty) {
+          final list = jsonDecode(body) as List;
+          for (final item in list) {
+            if (item is Map<String, dynamic>) {
+              final rawId = item['id']?.toString() ?? '';
+              final cost = (item['estimatedCost'] as num?)?.toDouble() ?? 0.0;
+              final stageLabel = item['stageLabel']?.toString();
+              updateBookingCost(rawId, cost, status: stageLabel);
+            }
+          }
+        }
+      }
+    } catch (_) {}
   }
 }
 

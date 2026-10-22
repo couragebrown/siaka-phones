@@ -210,6 +210,7 @@ class ManagerRepository extends ChangeNotifier {
           'orders': _orders.map((o) => _orderToMap(o)).toList(),
           'bnpl': _bnplApplications.map((b) => _bnplToMap(b)).toList(),
           'repairs': _repairs.map((r) => _repairToMap(r)).toList(),
+          'swaps': _swaps.map((s) => s.toMap()).toList(),
           'bannerPlaylists': _bannerPlaylists.map((b) => b.toJson()).toList(),
           'customerNotifications': _customerNotifications,
           'sentMessages': _sentMessages.map((m) => m.toJson()).toList(),
@@ -229,10 +230,21 @@ class ManagerRepository extends ChangeNotifier {
         if (content.isNotEmpty) {
           final Map<String, dynamic> data = jsonDecode(content);
           if (data['orders'] is List) {
-            _orders = (data['orders'] as List)
+            final loaded = (data['orders'] as List)
                 .map((m) => _orderFromMap(Map<String, dynamic>.from(m)))
-                .where((o) => !o.id.startsWith('SP-88'))
+                .where((o) =>
+                    !o.id.startsWith('SP-88') &&
+                    !o.id.startsWith('NOTIF_') &&
+                    !o.id.startsWith('CUSTOMER_'))
                 .toList();
+            final seenCleanIds = <String>{};
+            _orders = [];
+            for (final o in loaded) {
+              final clean = o.id.replaceFirst('ORDER_', '');
+              if (seenCleanIds.add(clean)) {
+                _orders.add(o);
+              }
+            }
           }
           if (data['bnpl'] is List) {
             _bnplApplications = (data['bnpl'] as List)
@@ -242,6 +254,11 @@ class ManagerRepository extends ChangeNotifier {
           if (data['repairs'] is List) {
             _repairs = (data['repairs'] as List)
                 .map((m) => _repairFromMap(Map<String, dynamic>.from(m)))
+                .toList();
+          }
+          if (data['swaps'] is List) {
+            _swaps = (data['swaps'] as List)
+                .map((m) => ManagerSwap.fromMap(Map<String, dynamic>.from(m)))
                 .toList();
           }
           if (data['bannerPlaylists'] is List) {
@@ -349,52 +366,142 @@ class ManagerRepository extends ChangeNotifier {
     );
   }
 
-  Map<String, dynamic> _bnplToMap(ManagerBnpl b) => {
-    'id': b.id,
-    'applicantName': b.applicantName,
-    'phone': b.phone,
-    'email': b.email,
-    'nationalId': b.nationalId,
-    'location': b.location,
-    'employer': b.employer,
-    'monthlySalary': b.monthlySalary,
-    'requestedPhone': b.requestedPhone,
-    'phonePrice': b.phonePrice,
-    'downPayment': b.downPayment,
-    'monthlyInstallment': b.monthlyInstallment,
-    'tenureMonths': b.tenureMonths,
-    'applicationDate': b.applicationDate.toIso8601String(),
-    'status': b.status.name,
-    'managerNotes': b.managerNotes,
-  };
+  Map<String, dynamic> _bnplToMap(ManagerBnpl b) => b.toMap();
 
   ManagerBnpl _bnplFromMap(Map<String, dynamic> m) {
+    Map<String, dynamic> extra = {};
+    if (m['specs'] != null) {
+      if (m['specs'] is Map) {
+        extra = Map<String, dynamic>.from(m['specs'] as Map);
+      } else if (m['specs'] is String && m['specs'].toString().trim().startsWith('{')) {
+        try {
+          extra = jsonDecode(m['specs'].toString()) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+    }
+
     BnplStatus status = BnplStatus.pending;
-    final statusStr = m['status']?.toString().toLowerCase() ?? '';
+    final statusStr = (m['status'] ?? extra['status'] ?? m['condition'] ?? '').toString().toLowerCase();
     for (final s in BnplStatus.values) {
-      if (s.name.toLowerCase() == statusStr) {
+      if (s.name.toLowerCase() == statusStr || s.label.toLowerCase() == statusStr) {
         status = s;
         break;
       }
     }
 
+    final rawId = m['id']?.toString() ?? '';
+    final cleanId = rawId.replaceFirst('BNPL_', '');
+
+    ManagerBnpl? mockFallback;
+    try {
+      mockFallback = MockManagerData.getInitialBnplApplications()
+          .where((b) => b.id == cleanId || b.id == rawId)
+          .firstOrNull;
+    } catch (_) {}
+
+    String brand = (extra['brand'] ?? m['brand'] ?? '').toString();
+    String modelName = (extra['modelName'] ?? m['modelName'] ?? '').toString();
+    String storage = (extra['storage'] ?? m['storage'] ?? '').toString();
+    String ram = (extra['ram'] ?? m['ram'] ?? '').toString();
+    String deviceCondition = (extra['condition'] ?? m['deviceCondition'] ?? m['condition'] ?? '').toString();
+    String preferredColor = (extra['preferredColor'] ?? m['preferredColor'] ?? m['color'] ?? '').toString();
+    String customerNotes = (extra['notes'] ?? m['customerNotes'] ?? m['notes'] ?? '').toString();
+    String preferredBranch = (extra['preferredBranch'] ?? m['preferredBranch'] ?? m['branch'] ?? '').toString();
+
+    if (mockFallback != null) {
+      if (brand.isEmpty) brand = mockFallback.brand;
+      if (modelName.isEmpty) modelName = mockFallback.modelName;
+      if (storage.isEmpty) storage = mockFallback.storage;
+      if (ram.isEmpty) ram = mockFallback.ram;
+      if (deviceCondition.isEmpty) deviceCondition = mockFallback.deviceCondition;
+      if (preferredColor.isEmpty) preferredColor = mockFallback.preferredColor;
+      if (customerNotes.isEmpty) customerNotes = mockFallback.customerNotes;
+      if (preferredBranch.isEmpty) preferredBranch = mockFallback.preferredBranch;
+    }
+
+    String reqPhone = m['requestedPhone']?.toString() ?? '';
+    if (reqPhone.isEmpty) {
+      if (brand.isNotEmpty || modelName.isNotEmpty) {
+        reqPhone = '$brand $modelName'.trim();
+      } else {
+        reqPhone = m['name']?.toString() ?? 'Financed Device';
+      }
+    }
+
+    if (brand.isEmpty) {
+      final lower = reqPhone.toLowerCase();
+      if (lower.contains('iphone')) {
+        brand = 'iPhone';
+      } else if (lower.contains('samsung')) {
+        brand = 'Samsung';
+      } else if (lower.contains('tecno')) {
+        brand = 'Tecno';
+      } else if (lower.contains('infinix')) {
+        brand = 'Infinix';
+      } else {
+        brand = 'Samsung';
+      }
+    }
+    if (modelName.isEmpty) {
+      modelName = reqPhone.replaceAll(RegExp(r'\s*\([^)]*\)'), '').trim();
+    }
+    if (storage.isEmpty) {
+      final match = RegExp(r'(\d+\s*(?:GB|TB))', caseSensitive: false).firstMatch(reqPhone);
+      if (match != null) {
+        storage = match.group(1)!.toUpperCase().replaceAll(RegExp(r'(\d+)(GB|TB)'), r'$1 $2');
+      } else {
+        storage = '256 GB';
+      }
+    }
+    if (ram.isEmpty) ram = '8 GB';
+    if (deviceCondition.isEmpty) deviceCondition = 'Brand New (Sealed)';
+    if (preferredColor.isEmpty) preferredColor = 'Any Available Color';
+    if (preferredBranch.isEmpty) preferredBranch = 'Siaka Phones Circle';
+    if (customerNotes.isEmpty) customerNotes = 'Customer submitted online financing application.';
+
+    final price = (m['phonePrice'] as num?)?.toDouble() ??
+        (m['price'] as num?)?.toDouble() ??
+        (extra['price'] as num?)?.toDouble() ??
+        2800.0;
+    final tenure = (m['tenureMonths'] as num?)?.toInt() ??
+        (m['stock'] as num?)?.toInt() ??
+        (extra['tenureMonths'] as num?)?.toInt() ??
+        6;
+    final downPayment = (m['downPayment'] as num?)?.toDouble() ??
+        (extra['downPayment'] as num?)?.toDouble() ??
+        (price * 0.3);
+    final monthlyInstallment = (m['monthlyInstallment'] as num?)?.toDouble() ??
+        (extra['monthlyInstallment'] as num?)?.toDouble() ??
+        ((price - downPayment) / (tenure > 0 ? tenure : 6));
+
     return ManagerBnpl(
-      id: m['id']?.toString() ?? '',
-      applicantName: m['applicantName']?.toString() ?? '',
-      phone: m['phone']?.toString() ?? '',
-      email: m['email']?.toString() ?? '',
-      nationalId: m['nationalId']?.toString() ?? '',
-      location: m['location']?.toString() ?? 'Greater Accra, Ghana',
-      employer: m['employer']?.toString() ?? 'Self Employed',
-      monthlySalary: (m['monthlySalary'] as num?)?.toDouble() ?? 0.0,
-      requestedPhone: m['requestedPhone']?.toString() ?? '',
-      phonePrice: (m['phonePrice'] as num?)?.toDouble() ?? 0.0,
-      downPayment: (m['downPayment'] as num?)?.toDouble() ?? 0.0,
-      monthlyInstallment: (m['monthlyInstallment'] as num?)?.toDouble() ?? 0.0,
-      tenureMonths: (m['tenureMonths'] as num?)?.toInt() ?? 6,
-      applicationDate: DateTime.tryParse(m['applicationDate']?.toString() ?? '') ?? DateTime.now(),
+      id: cleanId.isEmpty ? 'BNPL-${DateTime.now().millisecondsSinceEpoch % 10000}' : cleanId,
+      applicantName: extra['customerName']?.toString() ?? m['applicantName']?.toString() ?? m['customerName']?.toString() ?? m['name']?.toString() ?? 'Customer',
+      phone: extra['customerPhone']?.toString() ?? m['phone']?.toString() ?? m['customerPhone']?.toString() ?? '024 555 0192',
+      email: extra['email']?.toString() ?? m['email']?.toString() ?? m['customerEmail']?.toString() ?? 'applicant@gmail.com',
+      nationalId: extra['nationalId']?.toString() ?? m['nationalId']?.toString() ?? 'GHA-729104820-1',
+      location: extra['location']?.toString() ?? m['location']?.toString() ?? 'Greater Accra, Ghana',
+      employer: extra['employer']?.toString() ?? m['employer']?.toString() ?? 'Self Employed / Trader',
+      monthlySalary: (extra['monthlySalary'] as num?)?.toDouble() ?? (m['monthlySalary'] as num?)?.toDouble() ?? 3500.0,
+      requestedPhone: reqPhone,
+      brand: brand,
+      modelName: modelName,
+      storage: storage,
+      ram: ram,
+      deviceCondition: deviceCondition,
+      preferredColor: preferredColor,
+      planDuration: extra['planDuration']?.toString() ?? m['planDuration']?.toString() ?? 'Monthly',
+      customerNotes: customerNotes,
+      preferredBranch: preferredBranch,
+      phonePrice: price,
+      downPayment: downPayment,
+      monthlyInstallment: monthlyInstallment,
+      dailyInstallment: (m['dailyInstallment'] as num?)?.toDouble() ?? (extra['dailyInstallment'] as num?)?.toDouble(),
+      weeklyInstallment: (m['weeklyInstallment'] as num?)?.toDouble() ?? (extra['weeklyInstallment'] as num?)?.toDouble(),
+      tenureMonths: tenure,
+      applicationDate: DateTime.tryParse(m['applicationDate']?.toString() ?? m['created_at']?.toString() ?? '') ?? DateTime.now(),
       status: status,
-      managerNotes: m['managerNotes']?.toString() ?? '',
+      managerNotes: m['managerNotes']?.toString() ?? extra['managerNotes']?.toString() ?? '',
     );
   }
 
@@ -408,28 +515,52 @@ class ManagerRepository extends ChangeNotifier {
     'stage': r.stage.name,
     'estimatedCost': r.estimatedCost,
     'technicianNotes': r.technicianNotes,
+    'description': r.description,
+    'dropOffBranch': r.dropOffBranch,
+    'timeSlot': r.timeSlot,
+    'photoPath': r.photoPath,
+    'appointmentDate': r.appointmentDate?.toIso8601String(),
   };
 
   ManagerRepair _repairFromMap(Map<String, dynamic> m) {
+    Map<String, dynamic> extra = {};
+    if (m['specs'] != null) {
+      if (m['specs'] is Map) {
+        extra = Map<String, dynamic>.from(m['specs'] as Map);
+      } else if (m['specs'] is String && m['specs'].toString().trim().startsWith('{')) {
+        try {
+          extra = jsonDecode(m['specs'].toString()) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+    }
+
     RepairStage stage = RepairStage.received;
-    final stageStr = m['stage']?.toString().toLowerCase() ?? '';
+    final stageStr = (m['stage'] ?? extra['status'] ?? m['condition'] ?? '').toString().toLowerCase();
     for (final s in RepairStage.values) {
-      if (s.name.toLowerCase() == stageStr) {
+      if (s.name.toLowerCase() == stageStr || s.label.toLowerCase() == stageStr) {
         stage = s;
         break;
       }
     }
 
+    final rawId = m['id']?.toString() ?? '';
+    final cleanId = rawId.replaceFirst('REPAIR_', '');
+
     return ManagerRepair(
-      id: m['id']?.toString() ?? '',
-      customerName: m['customerName']?.toString() ?? '',
-      customerPhone: m['customerPhone']?.toString() ?? '',
-      deviceModel: m['deviceModel']?.toString() ?? '',
-      reportedIssue: m['reportedIssue']?.toString() ?? '',
-      bookedDate: DateTime.tryParse(m['bookedDate']?.toString() ?? '') ?? DateTime.now(),
+      id: cleanId.isEmpty ? 'REP-${DateTime.now().millisecondsSinceEpoch % 10000}' : cleanId,
+      customerName: extra['customerName']?.toString() ?? m['customerName']?.toString() ?? m['name']?.toString() ?? 'Customer',
+      customerPhone: extra['customerPhone']?.toString() ?? m['customerPhone']?.toString() ?? '024 555 0192',
+      deviceModel: extra['deviceModel']?.toString() ?? m['deviceModel']?.toString() ?? m['brand']?.toString() ?? 'Device',
+      reportedIssue: extra['issueType']?.toString() ?? m['reportedIssue']?.toString() ?? m['issueType']?.toString() ?? 'Hardware Diagnostic',
+      bookedDate: DateTime.tryParse(m['bookedDate']?.toString() ?? m['created_at']?.toString() ?? '') ?? DateTime.now(),
       stage: stage,
-      estimatedCost: (m['estimatedCost'] as num?)?.toDouble() ?? 0.0,
-      technicianNotes: m['technicianNotes']?.toString() ?? '',
+      estimatedCost: (m['estimatedCost'] ?? m['price'] as num?)?.toDouble() ?? 0.0,
+      technicianNotes: m['technicianNotes']?.toString() ?? extra['technicianNotes']?.toString() ?? '',
+      description: extra['description']?.toString() ?? m['description']?.toString() ?? '',
+      dropOffBranch: extra['dropOffBranch']?.toString() ?? m['dropOffBranch']?.toString() ?? 'Siaka Phones Circle',
+      timeSlot: extra['timeSlot']?.toString() ?? m['timeSlot']?.toString() ?? 'Morning (09:00 - 12:00)',
+      photoPath: extra['photoPath']?.toString() ?? m['photoPath']?.toString(),
+      appointmentDate: DateTime.tryParse(extra['appointmentDate']?.toString() ?? m['appointmentDate']?.toString() ?? ''),
     );
   }
 
@@ -577,8 +708,13 @@ class ManagerRepository extends ChangeNotifier {
     }
 
     final bnplId = p.id.replaceFirst('BNPL_', '');
-    final tenure = p.stock > 0 ? p.stock : 6;
-    final brandModel = extra['modelName']?.toString() ?? p.name;
+    final tenure = p.stock > 0 ? p.stock : (extra['tenureMonths'] as num?)?.toInt() ?? 6;
+    final brand = (extra['brand'] ?? p.brand).toString();
+    final modelName = (extra['modelName'] ?? '').toString();
+    final brandModel = modelName.isNotEmpty
+        ? (brand.isNotEmpty ? '$brand $modelName' : modelName)
+        : (extra['requestedPhone']?.toString() ?? p.name);
+
     return ManagerBnpl(
       id: bnplId,
       applicantName: extra['customerName']?.toString() ?? p.name,
@@ -589,13 +725,24 @@ class ManagerRepository extends ChangeNotifier {
       employer: extra['employer']?.toString() ?? 'Self Employed / Trader',
       monthlySalary: (extra['monthlySalary'] as num?)?.toDouble() ?? 3500.0,
       requestedPhone: brandModel,
+      brand: brand,
+      modelName: modelName,
+      storage: extra['storage']?.toString() ?? p.storage,
+      ram: extra['ram']?.toString() ?? p.ram,
+      deviceCondition: extra['condition']?.toString() ?? '',
+      preferredColor: extra['preferredColor']?.toString() ?? p.color,
+      planDuration: extra['planDuration']?.toString() ?? 'Monthly',
+      customerNotes: extra['notes']?.toString() ?? '',
+      preferredBranch: extra['preferredBranch']?.toString() ?? 'Siaka Phones Circle',
       phonePrice: p.price > 0 ? p.price : 2800.0,
       downPayment: p.price > 0 ? p.price * 0.3 : 840.0,
       monthlyInstallment: p.price > 0 ? (p.price * 0.7) / tenure : 326.0,
+      dailyInstallment: (extra['dailyInstallment'] as num?)?.toDouble(),
+      weeklyInstallment: (extra['weeklyInstallment'] as num?)?.toDouble(),
       tenureMonths: tenure,
       applicationDate: p.createdAt ?? DateTime.now(),
       status: status,
-      managerNotes: extra['notes']?.toString() ?? '',
+      managerNotes: extra['managerNotes']?.toString() ?? '',
     );
   }
 
@@ -631,7 +778,89 @@ class ManagerRepository extends ChangeNotifier {
       bookedDate: p.createdAt ?? DateTime.now(),
       stage: stage,
       estimatedCost: p.price,
-      technicianNotes: extra['description']?.toString() ?? '',
+      technicianNotes: extra['technicianNotes']?.toString() ?? '',
+      description: extra['description']?.toString() ?? '',
+      dropOffBranch: extra['dropOffBranch']?.toString() ?? 'Siaka Phones Circle',
+      timeSlot: extra['timeSlot']?.toString() ?? 'Morning (09:00 - 12:00)',
+      photoPath: extra['photoPath']?.toString(),
+      appointmentDate: DateTime.tryParse(extra['appointmentDate']?.toString() ?? ''),
+    );
+  }
+
+  ManagerSwap _swapFromSupabase(ManagerProduct p) {
+    Map<String, dynamic> extra = {};
+    try {
+      if (p.specs.isNotEmpty && p.specs.startsWith('{')) {
+        extra = jsonDecode(p.specs);
+      }
+    } catch (_) {}
+
+    SwapEvaluationStatus status = SwapEvaluationStatus.underReview;
+    final cond = p.condition.toLowerCase();
+    if (cond.contains('approv')) {
+      status = SwapEvaluationStatus.approved;
+    } else if (cond.contains('reject') || cond.contains('declin')) {
+      status = SwapEvaluationStatus.rejected;
+    } else if (cond.contains('complete') || cond.contains('swap')) {
+      status = SwapEvaluationStatus.swapped;
+    } else {
+      status = SwapEvaluationStatus.underReview;
+    }
+
+    final swapId = p.id.replaceFirst('SWAP_', '');
+    final customerName = extra['customerName']?.toString() ?? extra['applicantName']?.toString() ?? p.name;
+    final customerPhone = extra['customerPhone']?.toString() ?? extra['applicantPhone']?.toString() ?? '024 555 0192';
+    final targetDevice = extra['targetDevice']?.toString() ?? extra['desiredModel']?.toString() ?? p.name;
+    final targetPrice = (extra['targetDevicePrice'] as num?)?.toDouble() ?? (p.price > 0 ? p.price : 0.0);
+    final currentDevice = extra['currentDevice']?.toString() ?? extra['currentModel']?.toString() ?? 'Traded Device';
+    final deviceCondition = extra['deviceCondition']?.toString() ?? extra['currentCondition']?.toString() ?? 'Good (Minor Scratches)';
+    final batteryHealth = (extra['batteryHealth'] as num?)?.toInt() ?? 85;
+    final tradeInValue = (extra['estimatedTradeInValue'] as num?)?.toDouble() ??
+        (extra['estimatedTradeInCredit'] as num?)?.toDouble() ??
+        (p.originalPrice > 0 ? p.originalPrice : 0.0);
+    final cashTopUp = (extra['customerCashTopUp'] as num?)?.toDouble() ??
+        (extra['estimatedTopUp'] as num?)?.toDouble() ??
+        (targetPrice > tradeInValue ? targetPrice - tradeInValue : 0.0);
+    final notes = extra['notes']?.toString() ?? '';
+    final branch = extra['preferredBranch']?.toString() ?? 'Circle Main Branch';
+    final currentStorage = extra['currentStorage']?.toString() ?? (p.storage.isNotEmpty ? p.storage : '128 GB');
+    final turnsOn = extra['turnsOn'] is bool ? extra['turnsOn'] as bool : (extra['turnsOn']?.toString().toLowerCase() != 'false');
+    final screenIntact = extra['screenIntact'] is bool ? extra['screenIntact'] as bool : (extra['screenIntact']?.toString().toLowerCase() != 'false');
+    final desiredBrand = extra['desiredBrand']?.toString() ?? p.brand;
+    final desiredModel = extra['desiredModel']?.toString() ?? '';
+    final desiredStorage = extra['desiredStorage']?.toString() ?? p.storage;
+    final desiredRam = extra['desiredRam']?.toString() ?? p.ram;
+    final desiredCondition = extra['desiredCondition']?.toString() ?? '';
+    final desiredColor = extra['desiredColor']?.toString() ?? p.color;
+    final offeredCost = (extra['offeredCost'] as num?)?.toDouble();
+    final inspectionNotes = [if (branch.isNotEmpty) 'Branch: $branch', if (notes.isNotEmpty) notes].join(' • ');
+
+    return ManagerSwap(
+      id: swapId,
+      customerName: customerName.isNotEmpty ? customerName : 'Customer',
+      customerPhone: customerPhone,
+      targetDevice: targetDevice,
+      targetDevicePrice: targetPrice,
+      currentDevice: currentDevice,
+      deviceCondition: deviceCondition,
+      batteryHealth: batteryHealth,
+      estimatedTradeInValue: tradeInValue,
+      customerCashTopUp: cashTopUp,
+      currentStorage: currentStorage,
+      turnsOn: turnsOn,
+      screenIntact: screenIntact,
+      desiredBrand: desiredBrand,
+      desiredModel: desiredModel,
+      desiredStorage: desiredStorage,
+      desiredRam: desiredRam,
+      desiredCondition: desiredCondition,
+      desiredColor: desiredColor,
+      preferredBranch: branch,
+      customerNotes: notes,
+      offeredCost: offeredCost,
+      submissionDate: p.createdAt ?? DateTime.now(),
+      status: status,
+      inspectionNotes: inspectionNotes,
     );
   }
 
@@ -781,6 +1010,7 @@ class ManagerRepository extends ChangeNotifier {
       _orders = MockManagerData.getInitialOrders();
       _bnplApplications = MockManagerData.getInitialBnplApplications();
       _repairs = MockManagerData.getInitialRepairs();
+      _swaps = MockManagerData.getInitialSwaps();
       _bannerPlaylists = MockManagerData.getInitialBannerPlaylists();
       _isLoading = false;
     } else {
@@ -798,6 +1028,7 @@ class ManagerRepository extends ChangeNotifier {
       _orders = [];
       _bnplApplications = [];
       _repairs = [];
+      _swaps = [];
       _isLoading = false;
       _loadCachedManagerState();
       // Initial balance is 0.0 — orders start empty until real customer purchases are made/synced
@@ -806,6 +1037,9 @@ class ManagerRepository extends ChangeNotifier {
       }
       if (_repairs.isEmpty) {
         _repairs = MockManagerData.getInitialRepairs();
+      }
+      if (_swaps.isEmpty) {
+        _swaps = MockManagerData.getInitialSwaps();
       }
       final initialPlaylists = MockManagerData.getInitialBannerPlaylists();
       if (_bannerPlaylists.isEmpty) {
@@ -818,7 +1052,6 @@ class ManagerRepository extends ChangeNotifier {
         }
       }
     }
-    _swaps = MockManagerData.getInitialSwaps();
     _customers = MockManagerData.getInitialCustomerActivities();
     _sentMessages = MockManagerData.getInitialCustomerMessages();
     _serviceTickets = MockManagerData.getInitialServiceTickets();
@@ -922,7 +1155,18 @@ class ManagerRepository extends ChangeNotifier {
   List<ManagerProduct> get products =>
       List.unmodifiable(_products.where((p) => p.isMerchandise));
   List<ManagerProduct> get allCatalogTokens => List.unmodifiable(_products);
-  List<ManagerOrder> get orders => List.unmodifiable(_orders);
+  List<ManagerOrder> get orders {
+    final seen = <String>{};
+    final result = <ManagerOrder>[];
+    for (final o in _orders) {
+      if (o.id.startsWith('NOTIF_') || o.id.startsWith('CUSTOMER_')) continue;
+      final clean = o.id.replaceFirst('ORDER_', '');
+      if (seen.add(clean)) {
+        result.add(o);
+      }
+    }
+    return List.unmodifiable(result);
+  }
   List<ManagerBnpl> get bnplApplications => List.unmodifiable(_bnplApplications);
   List<ManagerRepair> get repairs => List.unmodifiable(_repairs);
   List<ManagerSwap> get swaps => List.unmodifiable(_swaps);
@@ -1499,13 +1743,26 @@ class ManagerRepository extends ChangeNotifier {
 
   void processInboundCustomerOrder(Map<String, dynamic> data) {
     try {
+      final id = data['id']?.toString() ?? '';
+      final cat = data['category']?.toString().toUpperCase() ?? '';
+      // Exclude notification or customer records from being registered as orders
+      if (id.startsWith('NOTIF_') ||
+          id.startsWith('CUSTOMER_') ||
+          cat == 'NOTIFICATION_RECORD' ||
+          cat == 'CUSTOMER_RECORD') {
+        if (id.startsWith('NOTIF_') || cat == 'NOTIFICATION_RECORD') {
+          processInboundNotification(data);
+        }
+        return;
+      }
+
       final order = _orderFromMap(data);
-      final idx = _orders.indexWhere((o) => o.id == order.id);
+      final cleanId = order.id.replaceFirst('ORDER_', '');
+      final idx = _orders.indexWhere((o) => o.id.replaceFirst('ORDER_', '') == cleanId);
       if (idx == -1) {
         _orders.insert(0, order);
         _syncOrdersWithShipments();
         _saveCachedManagerState();
-        final cleanId = order.id.replaceFirst('ORDER_', '');
         final notifId = 'NOTIF-ORDER-$cleanId';
         if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == order.id)) {
           addNotification(
@@ -1523,6 +1780,10 @@ class ManagerRepository extends ChangeNotifier {
         }
         notifyListeners();
         debugPrint('📦 Inbound customer order received via LocalSync: ${order.id}');
+      } else {
+        _orders[idx] = order;
+        _saveCachedManagerState();
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error processing inbound customer order: $e');
@@ -1568,12 +1829,33 @@ class ManagerRepository extends ChangeNotifier {
   void processInboundBnpl(Map<String, dynamic> data) {
     try {
       final bnpl = _bnplFromMap(data);
-      final idx = _bnplApplications.indexWhere((b) => b.id == bnpl.id);
+      final cleanId = bnpl.id.replaceFirst('BNPL_', '');
+      final idx = _bnplApplications.indexWhere((b) => b.id.replaceFirst('BNPL_', '') == cleanId);
       if (idx == -1) {
         _bnplApplications.insert(0, bnpl);
+        final notifId = 'NOTIF-BNPL-$cleanId';
+        if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == bnpl.id)) {
+          _notifications.insert(
+            0,
+            ManagerNotification(
+              id: notifId,
+              title: 'New BNPL Application: ${bnpl.brand} ${bnpl.modelName}'.trim(),
+              message: '${bnpl.applicantName} applied for installment plan (${bnpl.planDuration}) for ${bnpl.requestedPhone}',
+              type: NotificationType.bnpl,
+              severity: NotificationSeverity.info,
+              timestamp: bnpl.applicationDate,
+              referenceId: cleanId,
+              actionRouteIndex: 3,
+            ),
+          );
+        }
         _saveCachedManagerState();
         notifyListeners();
         debugPrint('💳 Inbound BNPL application received via LocalSync: ${bnpl.id}');
+      } else {
+        _bnplApplications[idx] = bnpl;
+        _saveCachedManagerState();
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error processing inbound BNPL: $e');
@@ -1583,15 +1865,78 @@ class ManagerRepository extends ChangeNotifier {
   void processInboundRepair(Map<String, dynamic> data) {
     try {
       final repair = _repairFromMap(data);
-      final idx = _repairs.indexWhere((r) => r.id == repair.id);
+      final cleanId = repair.id.replaceFirst('REPAIR_', '');
+      final idx = _repairs.indexWhere((r) => r.id.replaceFirst('REPAIR_', '') == cleanId);
       if (idx == -1) {
         _repairs.insert(0, repair);
+        final notifId = 'NOTIF-REPAIR-$cleanId';
+        if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == repair.id)) {
+          _notifications.insert(
+            0,
+            ManagerNotification(
+              id: notifId,
+              title: 'New Repair Order: ${repair.deviceModel}',
+              message: '${repair.customerName} submitted ${repair.reportedIssue} (${repair.dropOffBranch})',
+              type: NotificationType.repair,
+              severity: NotificationSeverity.info,
+              timestamp: repair.bookedDate,
+              referenceId: cleanId,
+              actionRouteIndex: 4,
+            ),
+          );
+        }
         _saveCachedManagerState();
         notifyListeners();
         debugPrint('🔧 Inbound repair received via LocalSync: ${repair.id}');
+      } else {
+        _repairs[idx] = repair;
+        _saveCachedManagerState();
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error processing inbound repair: $e');
+    }
+  }
+
+  void processInboundSwap(Map<String, dynamic> data) {
+    try {
+      ManagerSwap swap;
+      if (data.containsKey('specs')) {
+        final p = SupabaseService.productFromMap(data);
+        swap = _swapFromSupabase(p);
+      } else {
+        swap = ManagerSwap.fromMap(data);
+      }
+      final cleanId = swap.id.replaceFirst('SWAP_', '');
+      final idx = _swaps.indexWhere((s) => s.id.replaceFirst('SWAP_', '') == cleanId);
+      if (idx == -1) {
+        _swaps.insert(0, swap);
+        final notifId = 'NOTIF-SWAP-$cleanId';
+        if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == swap.id)) {
+          _notifications.insert(
+            0,
+            ManagerNotification(
+              id: notifId,
+              title: 'New Device Swap Request',
+              message: '${swap.customerName} requested swap of ${swap.currentDevice} for ${swap.targetDevice}',
+              type: NotificationType.swap,
+              severity: NotificationSeverity.info,
+              timestamp: swap.submissionDate,
+              referenceId: cleanId,
+              actionRouteIndex: 5,
+            ),
+          );
+        }
+        _saveCachedManagerState();
+        notifyListeners();
+        debugPrint('🔄 Inbound device swap request received via LocalSync: ${swap.id}');
+      } else {
+        _swaps[idx] = swap;
+        _saveCachedManagerState();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error processing inbound swap: $e');
     }
   }
 
@@ -1845,18 +2190,22 @@ class ManagerRepository extends ChangeNotifier {
     }
 
     final remoteOrderProducts = list.where((p) =>
-        p.id.startsWith('ORDER_') ||
-        p.category.toUpperCase() == 'ORDER_RECORD' ||
-        p.id.startsWith('SP-')).toList();
+        (p.id.startsWith('ORDER_') ||
+         p.category.toUpperCase() == 'ORDER_RECORD' ||
+         p.id.startsWith('SP-')) &&
+        !p.id.startsWith('NOTIF_') &&
+        !p.id.startsWith('CUSTOMER_') &&
+        p.category.toUpperCase() != 'NOTIFICATION_RECORD' &&
+        p.category.toUpperCase() != 'CUSTOMER_RECORD').toList();
     if (remoteOrderProducts.isNotEmpty) {
       for (final p in remoteOrderProducts) {
         final parsedOrder = _orderFromSupabase(p);
-        final idx = _orders.indexWhere((o) => o.id == parsedOrder.id);
+        final cleanId = parsedOrder.id.replaceFirst('ORDER_', '');
+        final idx = _orders.indexWhere((o) => o.id.replaceFirst('ORDER_', '') == cleanId);
         if (idx != -1) {
           _orders[idx] = parsedOrder;
         } else {
           _orders.add(parsedOrder);
-          final cleanId = parsedOrder.id.replaceFirst('ORDER_', '');
           final notifId = 'NOTIF-ORDER-$cleanId';
           if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == parsedOrder.id)) {
             _notifications.insert(
@@ -1901,14 +2250,66 @@ class ManagerRepository extends ChangeNotifier {
     if (remoteRepairProducts.isNotEmpty) {
       for (final p in remoteRepairProducts) {
         final parsedRepair = _repairFromSupabase(p);
-        final idx = _repairs.indexWhere((r) => r.id == parsedRepair.id);
+        final cleanId = parsedRepair.id.replaceFirst('REPAIR_', '');
+        final idx = _repairs.indexWhere((r) => r.id.replaceFirst('REPAIR_', '') == cleanId);
         if (idx != -1) {
           _repairs[idx] = parsedRepair;
         } else {
           _repairs.add(parsedRepair);
+          final notifId = 'NOTIF-REPAIR-$cleanId';
+          if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == parsedRepair.id)) {
+            _notifications.insert(
+              0,
+              ManagerNotification(
+                id: notifId,
+                title: 'New Repair Order: ${parsedRepair.deviceModel}',
+                message: '${parsedRepair.customerName} submitted ${parsedRepair.reportedIssue} (${parsedRepair.dropOffBranch})',
+                type: NotificationType.repair,
+                severity: NotificationSeverity.info,
+                timestamp: parsedRepair.bookedDate,
+                referenceId: cleanId,
+                actionRouteIndex: 4,
+              ),
+            );
+          }
         }
       }
       _repairs.sort((a, b) => b.bookedDate.compareTo(a.bookedDate));
+    }
+
+    final remoteSwapProducts = list.where((p) =>
+        p.id.startsWith('SWAP_') ||
+        p.category.toUpperCase() == 'SWAP_RECORD').toList();
+    if (remoteSwapProducts.isNotEmpty) {
+      for (final p in remoteSwapProducts) {
+        final parsedSwap = _swapFromSupabase(p);
+        final cleanId = parsedSwap.id.replaceFirst('SWAP_', '');
+        final idx = _swaps.indexWhere((s) => s.id.replaceFirst('SWAP_', '') == cleanId);
+        if (idx != -1) {
+          _swaps[idx] = parsedSwap;
+        } else {
+          _swaps.insert(0, parsedSwap);
+          final notifId = 'NOTIF-SWAP-$cleanId';
+          if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == parsedSwap.id)) {
+            _notifications.insert(
+              0,
+              ManagerNotification(
+                id: notifId,
+                title: 'New Device Swap Request',
+                message: '${parsedSwap.customerName} requested swap of ${parsedSwap.currentDevice} for ${parsedSwap.targetDevice}',
+                type: NotificationType.swap,
+                severity: NotificationSeverity.info,
+                timestamp: parsedSwap.submissionDate,
+                referenceId: cleanId,
+                actionRouteIndex: 5,
+              ),
+            );
+          }
+        }
+      }
+      _swaps.sort((a, b) => b.submissionDate.compareTo(a.submissionDate));
+      _saveCachedManagerState();
+      notifyListeners();
     }
 
     final remoteBannerPlaylists = list.where((p) =>
@@ -2066,8 +2467,16 @@ class ManagerRepository extends ChangeNotifier {
   }
 
   // BNPL Actions
-  void updateBnplStatus(String id, BnplStatus status, {String notes = ''}) {
-    final idx = _bnplApplications.indexWhere((b) => b.id == id);
+  void updateBnplStatus(
+    String id,
+    BnplStatus status, {
+    String notes = '',
+    double? phonePrice,
+    double? downPayment,
+    double? monthlyInstallment,
+  }) {
+    final cleanId = id.replaceFirst('BNPL_', '');
+    final idx = _bnplApplications.indexWhere((b) => b.id.replaceFirst('BNPL_', '') == cleanId);
     if (idx != -1) {
       _bnplApplications[idx].status = status;
       if (notes.isNotEmpty) {
@@ -2075,8 +2484,20 @@ class ManagerRepository extends ChangeNotifier {
       }
       _saveCachedManagerState();
       notifyListeners();
+      LocalSyncServer.broadcast('bnpl_update', {
+        'id': _bnplApplications[idx].id,
+        'status': status.name,
+        'statusLabel': status.label,
+        'applicantName': _bnplApplications[idx].applicantName,
+        'phone': _bnplApplications[idx].phone,
+        'managerNotes': _bnplApplications[idx].managerNotes,
+        'phonePrice': _bnplApplications[idx].phonePrice,
+        'downPayment': _bnplApplications[idx].downPayment,
+        'monthlyInstallment': _bnplApplications[idx].monthlyInstallment,
+        'planDuration': _bnplApplications[idx].planDuration,
+      });
       if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-        _supabase.updateRecordCondition('BNPL_$id', status.name);
+        _supabase.updateRecordCondition('BNPL_$cleanId', status.name);
       }
     }
   }
@@ -2094,21 +2515,55 @@ class ManagerRepository extends ChangeNotifier {
       }
       _saveCachedManagerState();
       notifyListeners();
+      LocalSyncServer.broadcast('repair_update', {
+        'id': id,
+        'stage': stage.name,
+        'estimatedCost': _repairs[idx].estimatedCost,
+        'technicianNotes': _repairs[idx].technicianNotes,
+        'customerPhone': _repairs[idx].customerPhone,
+        'customerName': _repairs[idx].customerName,
+      });
       if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-        _supabase.updateRecordCondition('REPAIR_$id', stage.name);
+        _supabase.updateRepairCost(
+          'REPAIR_$id',
+          _repairs[idx].estimatedCost,
+          condition: stage.name,
+          notes: notes,
+        );
       }
     }
   }
 
   // Swap Actions
-  void updateSwapStatus(String id, SwapEvaluationStatus status, {String? notes}) {
+  void updateSwapStatus(String id, SwapEvaluationStatus status, {String? notes, double? offeredCost}) {
     final idx = _swaps.indexWhere((s) => s.id == id);
     if (idx != -1) {
       _swaps[idx].status = status;
       if (notes != null && notes.isNotEmpty) {
         _swaps[idx].inspectionNotes = notes;
       }
+      if (offeredCost != null) {
+        _swaps[idx].offeredCost = offeredCost;
+      }
+      _saveCachedManagerState();
       notifyListeners();
+      LocalSyncServer.broadcast('swap_update', {
+        'id': id,
+        'status': status.name,
+        'statusLabel': status.label,
+        'offeredCost': _swaps[idx].offeredCost,
+        'inspectionNotes': _swaps[idx].inspectionNotes,
+        'customerPhone': _swaps[idx].customerPhone,
+        'customerName': _swaps[idx].customerName,
+      });
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        _supabase.updateSwapValuation(
+          'SWAP_$id',
+          _swaps[idx].offeredCost ?? 0.0,
+          status: status.name,
+          notes: notes,
+        );
+      }
     }
   }
 

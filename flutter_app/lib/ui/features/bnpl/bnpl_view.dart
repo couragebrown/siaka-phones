@@ -692,6 +692,16 @@ class _BnplViewState extends State<BnplView> {
           ),
           const Divider(height: 24, color: Color(0xFFF1F5F9)),
 
+          // Preferred Color
+          _buildSpecOptionGroup(
+            title: 'Preferred Color',
+            icon: Icons.palette_outlined,
+            options: BnplViewModel.colorOptions,
+            selectedValue: vm.selectedColor,
+            onSelected: vm.setColor,
+          ),
+          const Divider(height: 24, color: Color(0xFFF1F5F9)),
+
           // Installment Term
           _buildSpecOptionGroup(
             title: 'Installment Duration',
@@ -776,7 +786,18 @@ class _BnplViewState extends State<BnplView> {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Preferred Pickup Branch
+          _buildSpecOptionGroup(
+            title: 'Preferred Pickup Branch',
+            icon: Icons.storefront_rounded,
+            options: BnplViewModel.branchOptions,
+            selectedValue: vm.selectedBranch,
+            onSelected: vm.setBranch,
+          ),
+          const Divider(height: 24, color: Color(0xFFF1F5F9)),
+
           TextField(
             controller: _nameController,
             style: const TextStyle(fontSize: 13.5, color: Color(0xFF0F172A)),
@@ -994,7 +1015,9 @@ class _BnplViewState extends State<BnplView> {
               _buildSummaryRow('Internal Storage', application.storage),
               _buildSummaryRow('RAM / Memory', application.ram),
               _buildSummaryRow('Condition', application.condition),
+              _buildSummaryRow('Preferred Color', application.preferredColor),
               _buildSummaryRow('Financing Duration', application.planDuration),
+              _buildSummaryRow('Pickup Branch', application.preferredBranch),
               if (application.notes.isNotEmpty)
                 _buildSummaryRow('Notes', application.notes),
             ],

@@ -76,8 +76,8 @@ void main() async {
     }),
   );
 
-  // Keep the initial screen of the logo for half a second before the loading bar page
-  await Future.delayed(const Duration(milliseconds: 500));
+  // Keep the initial screen of the logo for 100ms before the loading bar page
+  await Future.delayed(const Duration(milliseconds: 100));
 
   // Check whether the user has a valid (non-expired) session
   final hasSession = await SessionManager.hasValidSession();
@@ -521,7 +521,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
 
 
     return ListenableBuilder(
-      listenable: Listenable.merge([widget.cartRepo, widget.wishlistRepo]),
+      listenable: Listenable.merge([widget.cartRepo, widget.wishlistRepo, widget.orderRepo]),
       builder: (context, _) {
         final List<Widget> pages = [
           HomeView(
@@ -585,6 +585,7 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
           ProfileView(
             viewModel: widget.profileVM,
             ordersCount: widget.orderRepo.orders.length.toString(),
+            wishlistCount: widget.wishlistRepo.itemCount.toString(),
             onOrdersTap: _navigateToOrders,
             onRepairsTap: _navigateToMyRepairs,
             onTradeInTap: _navigateToTradeIn,

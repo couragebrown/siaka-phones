@@ -181,6 +181,18 @@ class LocalSyncServer {
             request.response.headers.contentType = ContentType.json;
             request.response.write(jsonEncode({'success': true}));
             await request.response.close();
+          } else if (request.method == 'GET' && path == '/api/bnpl') {
+            final custPhone = request.uri.queryParameters['phone'] ?? '';
+            final custName = request.uri.queryParameters['name'] ?? '';
+            final list = repository.bnplApplications.where((b) {
+              if (custPhone.isEmpty && custName.isEmpty) return true;
+              return (custPhone.isNotEmpty && b.phone.replaceAll(' ', '') == custPhone.replaceAll(' ', '')) ||
+                     (custName.isNotEmpty && b.applicantName.toLowerCase() == custName.toLowerCase());
+            }).map((b) => b.toMap()).toList();
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(jsonEncode(list));
+            await request.response.close();
           } else if (request.method == 'POST' && path == '/api/repairs') {
             final body = await _readRequestBody(request);
             if (body.isNotEmpty) {
@@ -190,6 +202,68 @@ class LocalSyncServer {
             request.response.statusCode = HttpStatus.ok;
             request.response.headers.contentType = ContentType.json;
             request.response.write(jsonEncode({'success': true}));
+            await request.response.close();
+          } else if (request.method == 'GET' && path == '/api/repairs') {
+            final custPhone = request.uri.queryParameters['phone'] ?? '';
+            final custName = request.uri.queryParameters['name'] ?? '';
+            final list = repository.repairs.where((r) {
+              if (custPhone.isEmpty && custName.isEmpty) return true;
+              return (custPhone.isNotEmpty && r.customerPhone.replaceAll(' ', '') == custPhone.replaceAll(' ', '')) ||
+                     (custName.isNotEmpty && r.customerName.toLowerCase() == custName.toLowerCase());
+            }).map((r) => {
+              'id': r.id,
+              'customerName': r.customerName,
+              'customerPhone': r.customerPhone,
+              'deviceModel': r.deviceModel,
+              'reportedIssue': r.reportedIssue,
+              'description': r.description,
+              'dropOffBranch': r.dropOffBranch,
+              'timeSlot': r.timeSlot,
+              'estimatedCost': r.estimatedCost,
+              'stage': r.stage.name,
+              'stageLabel': r.stage.label,
+              'technicianNotes': r.technicianNotes,
+              'appointmentDate': r.appointmentDate?.toIso8601String(),
+              'bookedDate': r.bookedDate.toIso8601String(),
+            }).toList();
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(jsonEncode(list));
+            await request.response.close();
+          } else if (request.method == 'POST' && (path == '/api/swaps' || path == '/api/tradein')) {
+            final body = await _readRequestBody(request);
+            if (body.isNotEmpty) {
+              final data = jsonDecode(body) as Map<String, dynamic>;
+              repository.processInboundSwap(data);
+            }
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(jsonEncode({'success': true}));
+            await request.response.close();
+          } else if (request.method == 'GET' && (path == '/api/swaps' || path == '/api/tradein')) {
+            final custPhone = request.uri.queryParameters['phone'] ?? '';
+            final custName = request.uri.queryParameters['name'] ?? '';
+            final list = repository.swaps.where((s) {
+              if (custPhone.isEmpty && custName.isEmpty) return true;
+              return (custPhone.isNotEmpty && s.customerPhone.replaceAll(' ', '') == custPhone.replaceAll(' ', '')) ||
+                     (custName.isNotEmpty && s.customerName.toLowerCase() == custName.toLowerCase());
+            }).map((s) => {
+              'id': s.id,
+              'customerName': s.customerName,
+              'customerPhone': s.customerPhone,
+              'currentDevice': s.currentDevice,
+              'targetDevice': s.targetDevice,
+              'deviceCondition': s.deviceCondition,
+              'preferredBranch': s.preferredBranch,
+              'status': s.status.name,
+              'statusLabel': s.status.label,
+              'offeredCost': s.offeredCost,
+              'inspectionNotes': s.inspectionNotes,
+              'submittedDate': s.submissionDate.toIso8601String(),
+            }).toList();
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(jsonEncode(list));
             await request.response.close();
           } else if (request.method == 'GET' && path == '/api/next_customer_id') {
             final nextId = repository.generateNextCustomerId();

@@ -10,6 +10,7 @@ class BnplApplication {
   final String customerName;
   final String customerPhone;
   final String notes;
+  final String preferredBranch;
   final String status;
   final DateTime createdAt;
 
@@ -25,6 +26,7 @@ class BnplApplication {
     required this.customerName,
     required this.customerPhone,
     required this.notes,
+    this.preferredBranch = 'Siaka Phones Circle',
     this.status = 'Under Review by Manager',
     required this.createdAt,
   });

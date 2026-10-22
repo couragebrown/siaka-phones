@@ -22,6 +22,11 @@ class ManagerRepair {
   RepairStage stage;
   double estimatedCost;
   String technicianNotes;
+  final String description;
+  final String dropOffBranch;
+  final String timeSlot;
+  final String? photoPath;
+  final DateTime? appointmentDate;
 
   ManagerRepair({
     required this.id,
@@ -33,5 +38,10 @@ class ManagerRepair {
     this.stage = RepairStage.received,
     this.estimatedCost = 0.0,
     this.technicianNotes = '',
+    this.description = '',
+    this.dropOffBranch = 'Siaka Phones Circle',
+    this.timeSlot = 'Morning (09:00 - 12:00)',
+    this.photoPath,
+    this.appointmentDate,
   });
 }

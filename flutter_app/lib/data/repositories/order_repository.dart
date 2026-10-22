@@ -7,12 +7,22 @@ import '../../domain/models/cart_item.dart';
 import '../mock_data.dart';
 import '../services/supabase_service.dart';
 import 'customer_notification_repository.dart';
+import 'user_repository.dart';
 
 class OrderRepository extends ChangeNotifier {
   Timer? _syncPollTimer;
   StreamSubscription? _orderStreamSub;
 
-  final List<OrderModel> _orders = [
+  final List<OrderModel> _orders = [];
+
+  OrderRepository({List<OrderModel>? initialOrders}) {
+    if (initialOrders != null) {
+      _orders.addAll(initialOrders);
+    }
+    _initSupabaseSync();
+  }
+
+  static List<OrderModel> get sampleOrders => [
     OrderModel(
       orderId: 'SP-883921',
       date: DateTime.now().subtract(const Duration(days: 2)),
@@ -56,10 +66,6 @@ class OrderRepository extends ChangeNotifier {
       trackingNumber: 'TRK-GH-771024-SP',
     ),
   ];
-
-  OrderRepository() {
-    _initSupabaseSync();
-  }
 
   void _initSupabaseSync() {
     if (Platform.environment.containsKey('FLUTTER_TEST')) return;
@@ -150,6 +156,12 @@ class OrderRepository extends ChangeNotifier {
         }
       }
 
+      final customerId = specs['customerId']?.toString();
+      final currentUserId = UserRepository.instance.profile.id;
+      if (customerId == null || customerId.isEmpty || customerId != currentUserId) {
+        return null;
+      }
+
       final date = map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now() : DateTime.now();
       final total = (map['price'] as num?)?.toDouble() ?? 0.0;
       final subtotal = (map['original_price'] as num?)?.toDouble() ?? total;
@@ -237,7 +249,9 @@ class OrderRepository extends ChangeNotifier {
     required String shippingAddress,
     required String paymentMethod,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
     final newOrder = OrderModel(
       orderId: 'SP-${100000 + _orders.length * 1111 + DateTime.now().millisecond}',
       date: DateTime.now(),
@@ -287,9 +301,10 @@ class OrderRepository extends ChangeNotifier {
         'original_price': newOrder.subtotal,
         'stock': newOrder.items.fold(0, (sum, i) => sum + i.quantity),
         'specs': jsonEncode({
-          'customerName': 'Siaka Customer',
-          'customerEmail': 'customer@siakaphones.com',
-          'customerPhone': '024 555 0192',
+          'customerId': UserRepository.instance.profile.id,
+          'customerName': UserRepository.instance.profile.name,
+          'customerEmail': UserRepository.instance.profile.email,
+          'customerPhone': UserRepository.instance.profile.phone,
           'deliveryAddress': newOrder.shippingAddress,
           'region': 'Greater Accra',
           'gpsCode': 'GA-183-9021',
@@ -307,28 +322,6 @@ class OrderRepository extends ChangeNotifier {
       SupabaseService().upsertRawRecord(orderMap);
 
       // 2. Sync notification to Supabase for manager desktop
-      final notifRecord = {
-        'id': 'NOTIF_ORDER_${newOrder.orderId}',
-        'name': 'New Customer Order Placed',
-        'brand': 'Customer Order',
-        'category': 'NOTIFICATION_RECORD',
-        'price': newOrder.totalAmount,
-        'specs': jsonEncode({
-          'title': 'New Customer Order Placed',
-          'message': 'Order #${newOrder.orderId} for GH₵${newOrder.totalAmount.toStringAsFixed(2)} placed by customer',
-          'target': 'manager',
-          'orderId': newOrder.orderId,
-          'customerName': 'Siaka Customer',
-          'amount': newOrder.totalAmount,
-          'itemsCount': newOrder.items.length,
-          'timestamp': newOrder.date.toIso8601String(),
-        }),
-        'condition': 'unread',
-        'storage': newOrder.orderId,
-        'ram': 'manager',
-        'created_at': newOrder.date.toIso8601String(),
-      };
-      SupabaseService().upsertRawRecord(notifRecord);
       SupabaseService().upsertNotificationRaw({
         'id': 'NOTIF_ORDER_${newOrder.orderId}',
         'title': 'New Customer Order Placed',

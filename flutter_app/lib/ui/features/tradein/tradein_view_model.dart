@@ -1,8 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import '../../../data/services/supabase_service.dart';
 import '../../../domain/models/swap_model.dart';
 
 class TradeInViewModel extends ChangeNotifier {
+  final SupabaseService _supabaseService;
   // Brand list for selection
   static const List<String> desiredBrandOptions = [
     'iPhone',
@@ -218,7 +222,8 @@ class TradeInViewModel extends ChangeNotifier {
   SwapApplication? get lastApplication => _lastApplication;
   List<SwapApplication> get swapApplications => List.unmodifiable(_submittedApplications);
 
-  TradeInViewModel() {
+  TradeInViewModel({SupabaseService? supabaseService})
+      : _supabaseService = supabaseService ?? SupabaseService() {
     _recalculate();
   }
 
@@ -421,6 +426,9 @@ class TradeInViewModel extends ChangeNotifier {
     await Future.delayed(const Duration(milliseconds: 600));
 
     final randomId = 'SWAP-GH-${1000 + Random().nextInt(9000)}';
+    final applicant = _applicantName.trim().isNotEmpty ? _applicantName.trim() : 'Customer';
+    final phone = _applicantPhone.trim().isNotEmpty ? _applicantPhone.trim() : '024 555 0192';
+
     final application = SwapApplication(
       id: randomId,
       desiredBrand: _desiredBrand,
@@ -438,8 +446,8 @@ class TradeInViewModel extends ChangeNotifier {
       screenIntact: _screenIntact,
       estimatedTradeInCredit: _estimatedTradeInCredit,
       estimatedTopUp: estimatedTopUp,
-      applicantName: _applicantName,
-      applicantPhone: _applicantPhone,
+      applicantName: applicant,
+      applicantPhone: phone,
       preferredBranch: _preferredBranch,
       notes: _notes,
       createdAt: DateTime.now(),
@@ -450,6 +458,43 @@ class TradeInViewModel extends ChangeNotifier {
     _isSubmitting = false;
     _isSubmitted = true;
     notifyListeners();
+
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      final swapMap = {
+        'id': 'SWAP_${application.id}',
+        'name': '$applicant - ${application.currentBrand} ${application.currentModel} to ${application.desiredBrand} ${application.desiredModel}',
+        'brand': application.desiredBrand,
+        'category': 'SWAP_RECORD',
+        'price': application.estimatedDesiredPrice,
+        'original_price': application.estimatedTradeInCredit,
+        'stock': 1,
+        'specs': jsonEncode({
+          'swapId': application.id,
+          'customerName': applicant,
+          'customerPhone': phone,
+          'targetDevice': '${application.desiredBrand} ${application.desiredModel} (${application.desiredStorage}, ${application.desiredRam})',
+          'targetDevicePrice': application.estimatedDesiredPrice,
+          'currentDevice': '${application.currentBrand} ${application.currentModel} (${application.currentStorage})',
+          'deviceCondition': application.currentCondition,
+          'batteryHealth': 85,
+          'estimatedTradeInValue': application.estimatedTradeInCredit,
+          'customerCashTopUp': application.estimatedTopUp,
+          'preferredBranch': application.preferredBranch,
+          'notes': application.notes,
+          'turnsOn': application.turnsOn,
+          'screenIntact': application.screenIntact,
+          'status': application.status,
+          'createdAt': application.createdAt.toIso8601String(),
+        }),
+        'condition': 'underReview',
+        'storage': application.desiredStorage,
+        'ram': application.desiredRam,
+        'color': application.desiredColor,
+        'created_at': application.createdAt.toIso8601String(),
+      };
+
+      _supabaseService.upsertRawRecord(swapMap);
+    }
   }
 
   void reset() {

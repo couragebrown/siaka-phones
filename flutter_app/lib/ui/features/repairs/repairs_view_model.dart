@@ -7,7 +7,19 @@ class RepairsViewModel extends ChangeNotifier {
 
   RepairsViewModel({
     required RepairRepository repairRepository,
-  }) : _repairRepository = repairRepository;
+  }) : _repairRepository = repairRepository {
+    _repairRepository.addListener(_onRepoChanged);
+  }
+
+  void _onRepoChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _repairRepository.removeListener(_onRepoChanged);
+    super.dispose();
+  }
 
   String _deviceModel = '';
   String _selectedIssue = 'Screen Replacement / AMOLED Crack';
@@ -21,7 +33,6 @@ class RepairsViewModel extends ChangeNotifier {
   bool _isSubmitting = false;
   RepairBooking? _lastBooking;
 
-
   String get deviceModel => _deviceModel;
   String get selectedIssue => _selectedIssue;
   String get description => _description;
@@ -33,6 +44,9 @@ class RepairsViewModel extends ChangeNotifier {
   String get customerPhone => _customerPhone;
   bool get isSubmitting => _isSubmitting;
   RepairBooking? get lastBooking => _lastBooking;
+  List<RepairBooking> get bookings => _repairRepository.bookings;
+
+  Future<void> fetchRemoteRepairs() => _repairRepository.fetchRemoteRepairs();
 
   Map<String, double> get issuePricing => _repairRepository.issuePricing;
   double get estimatedCost => 0.0;

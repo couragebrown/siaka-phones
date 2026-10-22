@@ -77,6 +77,7 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   static const _heroSlideInterval = Duration(seconds: 5);
+  static const _heroVideoSafetyWatchdogInterval = Duration(seconds: 25);
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final ValueNotifier<bool> _isAiHelpVisibleNotifier = ValueNotifier<bool>(false);
   Timer? _aiHelpHideTimer;
@@ -105,8 +106,10 @@ class _HomeViewState extends State<HomeView> {
     if (!widget.isCurrentTab && oldWidget.isCurrentTab) {
       _closeMenuDrawer();
       _aiHelpHideTimer?.cancel();
+      _heroTimer?.cancel();
       _isAiHelpVisibleNotifier.value = false;
     } else if (widget.isCurrentTab && !oldWidget.isCurrentTab) {
+      _startHeroTimer();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && (_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
           _closeMenuDrawer();
@@ -155,16 +158,34 @@ class _HomeViewState extends State<HomeView> {
     return 'From ₵$formatted';
   }
 
+  void _startHeroTimer([int? activeIndex]) {
+    _heroTimer?.cancel();
+    if (!mounted || !widget.isCurrentTab) return;
+    final int index = activeIndex ?? _activeHeroIndexNotifier.value;
+    // For index 0 (the promotional video banner), the video must play to finish
+    // and wait for some seconds before moving to the next ads banner.
+    // Transition is driven by _onBannerVideoCompleted from the BannerVideoPlayer.
+    // A generous safety watchdog timer is used as a fallback if video playback is unavailable.
+    if (index == 0) {
+      _heroTimer = Timer(_heroVideoSafetyWatchdogInterval, () {
+        if (!mounted || !widget.isCurrentTab) return;
+        _advanceHero();
+      });
+      return;
+    }
+
+    _heroTimer = Timer(_heroSlideInterval, () {
+      if (!mounted || !widget.isCurrentTab) return;
+      _advanceHero();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _heroPageController = PageController();
     widget.viewModel.loadData();
-    // First banner (index 0) has a promotional video; it advances when the video ends.
-    // If starting on a non-video banner, start the 5-second timer.
-    if (_activeHeroIndexNotifier.value != 0) {
-      _heroTimer = Timer(_heroSlideInterval, _advanceHero);
-    }
+    _startHeroTimer();
   }
 
   @override
@@ -179,12 +200,7 @@ class _HomeViewState extends State<HomeView> {
 
   void _onHeroPageChanged(int index) {
     _activeHeroIndexNotifier.value = index;
-    _heroTimer?.cancel();
-    if (index != 0) {
-      // Banners 1, 2, 3 advance on standard 5-second interval
-      _heroTimer = Timer(_heroSlideInterval, _advanceHero);
-    }
-    // Banner 0 holds until video completion triggers _onBannerVideoCompleted
+    _startHeroTimer(index);
   }
 
   void _onBannerVideoCompleted() {
@@ -197,9 +213,16 @@ class _HomeViewState extends State<HomeView> {
       return;
     }
 
-    final nextIndex = (_activeHeroIndexNotifier.value + 1) % _heroPromotions.length;
+    final int currentIndex = _heroPageController.page != null
+        ? _heroPageController.page!.round()
+        : _activeHeroIndexNotifier.value;
+    final int nextIndex = (_activeHeroIndexNotifier.value + 1) % _heroPromotions.length;
+    final int targetIndex = (currentIndex + 1) % _heroPromotions.length == nextIndex
+        ? nextIndex
+        : (currentIndex + 1) % _heroPromotions.length;
+
     _heroPageController.animateToPage(
-      nextIndex,
+      targetIndex,
       duration: const Duration(milliseconds: 450),
       curve: Curves.easeInOut,
     );
@@ -1107,7 +1130,7 @@ class _HomeViewState extends State<HomeView> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
-        final baseCategories = [
+        final specificCategories = [
           (
             category: 'Smartphones',
             icon: Icons.phone_android_rounded,
@@ -1138,10 +1161,17 @@ class _HomeViewState extends State<HomeView> {
           ),
           (
             category: 'Accessories',
-            icon: Icons.headphones_rounded,
+            icon: Icons.cable_rounded,
             subtitle: 'Audio & Power',
             color: const Color(0xFFF59E0B),
             bgColor: const Color(0xFFFFFBEB),
+          ),
+          (
+            category: 'Headphones',
+            icon: Icons.headphones_rounded,
+            subtitle: 'Audio & Wireless',
+            color: const Color(0xFF0D9488),
+            bgColor: const Color(0xFFF0FDFA),
           ),
           (
             category: 'Tablets',
@@ -1164,17 +1194,18 @@ class _HomeViewState extends State<HomeView> {
             color: const Color(0xFF6366F1),
             bgColor: const Color(0xFFEEF2FF),
           ),
-          (
-            category: 'All Products',
-            icon: Icons.grid_view_rounded,
-            subtitle: 'Entire Store',
-            color: const Color(0xFF059669),
-            bgColor: const Color(0xFFECFDF5),
-          ),
         ];
 
-        final knownNames = baseCategories.map((c) => c.category.toLowerCase()).toSet();
-        knownNames.add('all');
+        const allProductsItem = (
+          category: 'All Products',
+          icon: Icons.grid_view_rounded,
+          subtitle: 'Entire Store',
+          color: Color(0xFF059669),
+          bgColor: Color(0xFFECFDF5),
+        );
+
+        final knownNames = specificCategories.map((c) => c.category.toLowerCase()).toSet()
+          ..addAll(['all products', 'all']);
 
         final dynamicCategories = widget.viewModel.categories
             .where((c) => !knownNames.contains(c.toLowerCase()))
@@ -1187,7 +1218,12 @@ class _HomeViewState extends State<HomeView> {
                 ))
             .toList();
 
-        final categories = [...baseCategories, ...dynamicCategories];
+        // All Products is ALWAYS at the very bottom under all the categories
+        final categories = [
+          ...specificCategories,
+          ...dynamicCategories,
+          allProductsItem,
+        ];
 
         final bottomInset = MediaQuery.of(ctx).padding.bottom;
         return Container(
@@ -1275,39 +1311,46 @@ class _HomeViewState extends State<HomeView> {
               const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
               const SizedBox(height: 8),
 
-              // 2-column Grid of categories
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (int i = 0; i < categories.length; i += 2) ...[
-                      Row(
-                        children: [
-                          Expanded(child: _buildCategorySheetCard(ctx, categories[i])),
-                          if (i + 1 < categories.length) ...[
-                            const SizedBox(width: 9),
-                            Expanded(child: _buildCategorySheetCard(ctx, categories[i + 1])),
+              // Scrollable 2-column Grid of categories
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (int i = 0; i < categories.length; i += 2) ...[
+                              Row(
+                                children: [
+                                  Expanded(child: _buildCategorySheetCard(ctx, categories[i])),
+                                  if (i + 1 < categories.length) ...[
+                                    const SizedBox(width: 9),
+                                    Expanded(child: _buildCategorySheetCard(ctx, categories[i + 1])),
+                                  ],
+                                ],
+                              ),
+                              if (i + 2 < categories.length) const SizedBox(height: 9),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                      if (i + 2 < categories.length) const SizedBox(height: 9),
+                      const SizedBox(height: 16),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      SizedBox(height: bottomInset + 18),
                     ],
-                  ],
+                  ),
                 ),
               ),
-
-              // Horizontal divider and generous space under All Products to move contents up significantly
-              const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Color(0xFFE2E8F0),
-                ),
-              ),
-              SizedBox(height: bottomInset + 125),
             ],
           ),
         );
@@ -1869,6 +1912,8 @@ class _HomeViewState extends State<HomeView> {
                                               _onBannerVideoCompleted,
                                           aspectRatio: 16 / 10,
                                           videoSources: activeVideos,
+                                          postVideoDelay:
+                                              const Duration(seconds: 1),
                                         );
                                       },
                                     ),

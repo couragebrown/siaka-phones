@@ -26,5 +26,35 @@ class RepairBooking {
     required this.customerPhone,
     this.status = 'Confirmed',
   });
+
+  RepairBooking copyWith({
+    String? id,
+    String? deviceModel,
+    String? issueType,
+    String? description,
+    String? photoPath,
+    String? dropOffBranch,
+    double? estimatedCost,
+    DateTime? appointmentDate,
+    String? timeSlot,
+    String? customerName,
+    String? customerPhone,
+    String? status,
+  }) {
+    return RepairBooking(
+      id: id ?? this.id,
+      deviceModel: deviceModel ?? this.deviceModel,
+      issueType: issueType ?? this.issueType,
+      description: description ?? this.description,
+      photoPath: photoPath ?? this.photoPath,
+      dropOffBranch: dropOffBranch ?? this.dropOffBranch,
+      estimatedCost: estimatedCost ?? this.estimatedCost,
+      appointmentDate: appointmentDate ?? this.appointmentDate,
+      timeSlot: timeSlot ?? this.timeSlot,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      status: status ?? this.status,
+    );
+  }
 }
 

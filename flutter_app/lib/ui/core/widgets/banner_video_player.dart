@@ -31,9 +31,9 @@ class BannerVideoPlayer extends StatefulWidget {
     this.videoUrl,
     this.videoSources,
     this.aspectRatio = 16 / 10,
-    this.postVideoDelay = const Duration(seconds: 3),
+    this.postVideoDelay = const Duration(seconds: 1),
     this.autoReplay = false,
-    this.replayDelay = const Duration(seconds: 3),
+    this.replayDelay = const Duration(seconds: 1),
   });
 
   /// Default bundled high-definition phone promo video asset
@@ -54,6 +54,7 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
   bool _hasEnded = false;
   bool _isFullscreen = false;
   bool _isDisposed = false;
+  bool _isResettingOrSeeking = false;
   Timer? _fallbackTimer;
   Timer? _endDelayTimer;
   int _lastRenderedSecond = -1;
@@ -190,7 +191,7 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
   void _scheduleFallbackTimer() {
     _fallbackTimer?.cancel();
     if (widget.isActive && !_isDisposed) {
-      _fallbackTimer = Timer(const Duration(seconds: 4), () {
+      _fallbackTimer = Timer(const Duration(seconds: 2), () {
         if (!mounted || _isDisposed || !widget.isActive) return;
 
         // Try next video in playlist if available
@@ -222,14 +223,18 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
     if (!mounted || _isDisposed || !widget.isActive) return;
     final playlist = _playlist;
     if (playlist.length > 1) {
+      _isResettingOrSeeking = true;
       setState(() {
         _hasEnded = false;
         _currentSourceIndex = 0;
       });
-      _initializeCurrentVideo();
+      _initializeCurrentVideo().then((_) {
+        _isResettingOrSeeking = false;
+      });
     } else {
       final controller = _controller;
       if (controller != null && _isInitialized && !_isDisposed) {
+        _isResettingOrSeeking = true;
         _lastRenderedSecond = -1;
         setState(() {
           _hasEnded = false;
@@ -237,7 +242,10 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
         });
         controller.seekTo(Duration.zero).then((_) {
           if (mounted && !_isDisposed && widget.isActive) {
+            _isResettingOrSeeking = false;
             controller.play();
+          } else {
+            _isResettingOrSeeking = false;
           }
         });
       }
@@ -246,16 +254,29 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
 
   void _videoListener() {
     final controller = _controller;
-    if (controller == null || !mounted || _isDisposed || !_isInitialized) return;
+    if (controller == null ||
+        !mounted ||
+        _isDisposed ||
+        !_isInitialized ||
+        _isResettingOrSeeking) {
+      return;
+    }
 
     final value = controller.value;
     final isPlaying = value.isPlaying;
     final position = value.position;
     final duration = value.duration;
 
-    // Check if video reached the end (with 150ms buffer to prevent EOS jitter/oscillation)
-    if (duration > Duration.zero &&
-        position >= (duration - const Duration(milliseconds: 150))) {
+    // Check if video reached the end (supporting isCompleted flag and relaxed buffer to prevent EOS stall)
+    final bool reachedEnd = (duration > Duration.zero &&
+            position >= (duration - const Duration(milliseconds: 350))) ||
+        (value.isCompleted) ||
+        (!isPlaying &&
+            duration > Duration.zero &&
+            position > Duration.zero &&
+            (duration - position).inMilliseconds.abs() < 500);
+
+    if (reachedEnd) {
       if (!_hasEnded) {
         _hasEnded = true;
         _isPlaying = false;
@@ -323,17 +344,23 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
                   controller.value.position >=
                       (controller.value.duration -
                           const Duration(milliseconds: 150)))) {
+            _isResettingOrSeeking = true;
             _hasEnded = false;
             final playlist = _playlist;
             if (playlist.length > 1) {
               _currentSourceIndex = 0;
-              _initializeCurrentVideo();
+              _initializeCurrentVideo().then((_) {
+                _isResettingOrSeeking = false;
+              });
             } else {
               _lastRenderedSecond = -1;
               controller.seekTo(Duration.zero).then((_) {
                 if (mounted && !_isDisposed && widget.isActive) {
+                  _isResettingOrSeeking = false;
                   controller.play();
                   setState(() => _isPlaying = true);
+                } else {
+                  _isResettingOrSeeking = false;
                 }
               });
             }
@@ -372,12 +399,16 @@ class _BannerVideoPlayerState extends State<BannerVideoPlayer>
               controller.value.position >=
                   (controller.value.duration -
                       const Duration(milliseconds: 150)))) {
+        _isResettingOrSeeking = true;
         _hasEnded = false;
         _lastRenderedSecond = -1;
         controller.seekTo(Duration.zero).then((_) {
           if (mounted && !_isDisposed) {
+            _isResettingOrSeeking = false;
             controller.play();
             setState(() => _isPlaying = true);
+          } else {
+            _isResettingOrSeeking = false;
           }
         });
       } else {

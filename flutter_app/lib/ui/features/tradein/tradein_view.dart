@@ -1289,6 +1289,16 @@ class _TradeInViewState extends State<TradeInView> {
                   return;
                 }
 
+                if (_nameController.text.trim().isNotEmpty) {
+                  vm.setApplicantName(_nameController.text.trim());
+                }
+                if (_phoneController.text.trim().isNotEmpty) {
+                  vm.setApplicantPhone(_phoneController.text.trim());
+                }
+                if (_notesController.text.trim().isNotEmpty) {
+                  vm.setNotes(_notesController.text.trim());
+                }
+
                 await vm.submitSwapRequest();
               },
         child: vm.isSubmitting

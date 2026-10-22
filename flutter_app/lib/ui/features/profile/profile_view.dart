@@ -13,6 +13,7 @@ class ProfileView extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback? onWishlistTap;
   final String? ordersCount;
+  final String? wishlistCount;
 
   const ProfileView({
     super.key,
@@ -27,6 +28,7 @@ class ProfileView extends StatelessWidget {
     required this.onBack,
     this.onWishlistTap,
     this.ordersCount,
+    this.wishlistCount,
   });
 
   String _getInitials(String name) {
@@ -263,13 +265,13 @@ class ProfileView extends StatelessWidget {
                   child: Row(
                     children: [
                       _summaryStat(
-                        ordersCount ?? '3',
+                        ordersCount ?? '0',
                         'Orders',
                         onTap: onOrdersTap,
                       ),
                       _verticalDivider(),
                       _summaryStat(
-                        '4',
+                        wishlistCount ?? '0',
                         'Wishlist',
                         onTap: onWishlistTap,
                       ),
@@ -647,12 +649,14 @@ class ProfileView extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Edit Profile Information',
-                          style: TextStyle(
-                            color: Color(0xFF1F2937),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                        const Expanded(
+                          child: Text(
+                            'Edit Profile Information',
+                            style: TextStyle(
+                              color: Color(0xFF1F2937),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         IconButton(
@@ -676,70 +680,153 @@ class ProfileView extends StatelessWidget {
                           const Icon(Icons.badge_outlined,
                               size: 16, color: Color(0xFF64748B)),
                           const SizedBox(width: 8),
-                          Text(
-                            'Customer ID: ${viewModel.profile.id}',
-                            style: const TextStyle(
-                              color: Color(0xFF334155),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                          Expanded(
+                            child: Text(
+                              'Customer ID: ${viewModel.profile.id}',
+                              style: const TextStyle(
+                                color: Color(0xFF334155),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
-                      'Full Name',
-                      style: TextStyle(
-                        color: Color(0xFF374151),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Full Name',
+                            style: TextStyle(
+                              color: Color(0xFF374151),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'Read-only',
+                          style: TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: nameController,
+                      readOnly: true,
+                      canRequestFocus: false,
+                      style: const TextStyle(
+                        color: Color(0xFF475569),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Full Name',
-                        prefixIcon: const Icon(Icons.person_outline, size: 18),
+                        prefixIcon: const Icon(Icons.person_outline, size: 18, color: Color(0xFF94A3B8)),
+                        suffixIcon: const Icon(Icons.lock_outline_rounded, size: 16, color: Color(0xFF94A3B8)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
-                      'Email Address',
-                      style: TextStyle(
-                        color: Color(0xFF374151),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Email Address',
+                            style: TextStyle(
+                              color: Color(0xFF374151),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'Read-only',
+                          style: TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: emailController,
+                      readOnly: true,
+                      canRequestFocus: false,
+                      style: const TextStyle(
+                        color: Color(0xFF475569),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         hintText: 'Email Address',
-                        prefixIcon: const Icon(Icons.email_outlined, size: 18),
+                        prefixIcon: const Icon(Icons.email_outlined, size: 18, color: Color(0xFF94A3B8)),
+                        suffixIcon: const Icon(Icons.lock_outline_rounded, size: 16, color: Color(0xFF94A3B8)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
-                      'Phone Number',
-                      style: TextStyle(
-                        color: Color(0xFF374151),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    const Row(
+                      children: [
+                        Text(
+                          'Phone Number',
+                          style: TextStyle(
+                            color: Color(0xFF374151),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          '*',
+                          style: TextStyle(
+                            color: Color(0xFFEF4444),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     TextField(
@@ -769,8 +856,8 @@ class ProfileView extends StatelessWidget {
                         ),
                         onPressed: () {
                           viewModel.updateProfile(
-                            name: nameController.text.trim(),
-                            email: emailController.text.trim(),
+                            name: viewModel.profile.name,
+                            email: viewModel.profile.email,
                             phone: phoneController.text.trim(),
                           );
                           Navigator.pop(sheetContext);

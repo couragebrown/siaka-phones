@@ -293,9 +293,27 @@ class _RepairsDeskViewState extends State<RepairsDeskView> {
                                   return DataRow(
                                     cells: [
                                       DataCell(
-                                        Text(
-                                          repair.id,
-                                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF7C3AED), fontSize: 13),
+                                        InkWell(
+                                          onTap: () => _showRepairDetailDialog(context, repair),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  repair.id,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(0xFF7C3AED),
+                                                    fontSize: 13,
+                                                    decoration: TextDecoration.underline,
+                                                    decorationColor: Color(0xFFDDD6FE),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         ),
                                       ),
                                       DataCell(
@@ -352,6 +370,19 @@ class _RepairsDeskViewState extends State<RepairsDeskView> {
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
+                                            ElevatedButton.icon(
+                                              icon: const Icon(Icons.info_outline_rounded, size: 14),
+                                              label: const Text('Details', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(0xFF7C3AED),
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                visualDensity: VisualDensity.compact,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                              ),
+                                              onPressed: () => _showRepairDetailDialog(context, repair),
+                                            ),
+                                            const SizedBox(width: 4),
                                             IconButton(
                                               icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: Color(0xFF1C7BFF)),
                                               tooltip: 'Send Direct Message to ${repair.customerName}',
@@ -475,160 +506,545 @@ class _RepairsDeskViewState extends State<RepairsDeskView> {
   }
 
   void _showRepairDetailDialog(BuildContext context, ManagerRepair repair) {
+    final currencyFormat = NumberFormat.currency(symbol: 'GH₵ ', decimalDigits: 2);
     final notesCtrl = TextEditingController(text: repair.technicianNotes);
-    final costCtrl = TextEditingController(text: repair.estimatedCost.toStringAsFixed(0));
+    final costCtrl = TextEditingController(
+      text: repair.estimatedCost > 0 ? repair.estimatedCost.toStringAsFixed(2) : '0',
+    );
+    final messageCtrl = TextEditingController();
+    bool sendCostToCustomer = true;
     RepairStage selectedStage = repair.stage;
+
+    void updateDraftMessage(String costInput) {
+      final parsedCost = double.tryParse(costInput.replaceAll(',', '').trim());
+      final costString = (parsedCost != null && parsedCost > 0)
+          ? currencyFormat.format(parsedCost)
+          : 'GH₵ 0.00 (diagnostic quote pending)';
+      final noteStr = notesCtrl.text.trim().isNotEmpty ? ' Technician notes: "${notesCtrl.text.trim()}".' : '';
+      messageCtrl.text =
+          'Hello ${repair.customerName}, regarding your repair ticket #${repair.id} for ${repair.deviceModel} (${repair.reportedIssue}) at Siaka Phones: Your repair diagnostic has been evaluated. The estimated repair cost is $costString.$noteStr Please review and confirm so our technicians can proceed with the repair.';
+    }
+
+    updateDraftMessage(costCtrl.text);
+
+    final formattedApptDate = repair.appointmentDate != null
+        ? DateFormat('EEEE, MMMM d, y').format(repair.appointmentDate!)
+        : DateFormat('EEEE, MMMM d, y').format(repair.bookedDate);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
-            width: 600,
+            width: 680,
+            constraints: const BoxConstraints(maxHeight: 780),
             padding: const EdgeInsets.all(24),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Text(repair.id, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF7C3AED))),
-                          const SizedBox(width: 10),
-                          StatusChip(
-                            label: selectedStage.label,
-                            textColor: Color(selectedStage.textColor),
-                            bgColor: Color(selectedStage.bgColor),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3E8FF),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ],
-                      ),
-                      IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(ctx)),
-                    ],
-                  ),
-                  Text(
-                    'Booked on ${DateFormat('MMMM d, y • HH:mm').format(repair.bookedDate)}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                  const Divider(height: 20, color: Color(0xFFE2E8F0)),
-
-                  // Device & Customer Card
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                          child: const Icon(Icons.build_circle_rounded, color: Color(0xFF7C3AED), size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Repair Ticket #${repair.id}',
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                ),
+                                const SizedBox(width: 10),
+                                StatusChip(
+                                  label: selectedStage.label,
+                                  textColor: Color(selectedStage.textColor),
+                                  bgColor: Color(selectedStage.bgColor),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              'Submitted on ${DateFormat('MMMM d, y • HH:mm').format(repair.bookedDate)}',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      tooltip: 'Close Details Dialog',
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                const SizedBox(height: 16),
+
+                // Scrollable Content
+                Expanded(
+                  child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(repair.deviceModel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0F172A))),
-                            Text('${repair.customerName} (${repair.customerPhone})', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF475569))),
-                          ],
+                        // Customer & Device Information Card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('CUSTOMER INFORMATION',
+                                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.person_rounded, size: 16, color: Color(0xFF334155)),
+                                            const SizedBox(width: 6),
+                                            Text(repair.customerName,
+                                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF0F172A))),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.phone_rounded, size: 15, color: Color(0xFF64748B)),
+                                            const SizedBox(width: 6),
+                                            Text(repair.customerPhone,
+                                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF475569))),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  OutlinedButton.icon(
+                                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 14, color: Color(0xFF1C7BFF)),
+                                    label: const Text('Message Customer', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1C7BFF))),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Color(0xFFBFDBFE)),
+                                      backgroundColor: const Color(0xFFEFF6FF),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      visualDensity: VisualDensity.compact,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      final matchedCust = widget.repository.customers.where((c) =>
+                                          c.fullName.toLowerCase() == repair.customerName.toLowerCase() ||
+                                          c.phone.replaceAll(' ', '') == repair.customerPhone.replaceAll(' ', '')).firstOrNull;
+                                      final email = matchedCust?.email;
+                                      final subject = 'Repair Ticket #${repair.id} - ${repair.deviceModel}';
+                                      final body = 'Hello ${repair.customerName}, regarding your repair request for ${repair.deviceModel} (${repair.reportedIssue}): ';
+
+                                      if (widget.onMessageCustomer != null) {
+                                        widget.onMessageCustomer!(
+                                          repair.customerName,
+                                          repair.customerPhone,
+                                          email,
+                                          initialSubject: subject,
+                                          initialBody: body,
+                                          initialCategory: MessageCategory.repairNotice,
+                                        );
+                                      } else {
+                                        widget.repository.selectCustomerForMessaging(
+                                          customerName: repair.customerName,
+                                          phone: repair.customerPhone,
+                                          email: email,
+                                          initialSubject: subject,
+                                          initialBody: body,
+                                          initialCategory: MessageCategory.repairNotice,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              const SizedBox(height: 14),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('DEVICE MODEL',
+                                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.phone_android_rounded, size: 16, color: Color(0xFF7C3AED)),
+                                            const SizedBox(width: 6),
+                                            Text(repair.deviceModel,
+                                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A))),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('FAULT / ISSUE CATEGORY',
+                                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.build_rounded, size: 15, color: Color(0xFFD97706)),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(repair.reportedIssue,
+                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A))),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
+
+                        const SizedBox(height: 16),
+
+                        // Customer Detailed Description Box
+                        const Text('Customer Problem Explanation & Description',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF1E293B))),
                         const SizedBox(height: 8),
-                        const Text('Reported Fault:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                        const SizedBox(height: 2),
-                        Text(repair.reportedIssue, style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B))),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(top: 2),
+                                child: Icon(Icons.format_quote_rounded, size: 20, color: Color(0xFF64748B)),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  repair.description.trim().isNotEmpty
+                                      ? repair.description
+                                      : 'No additional fault description provided by customer.',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF1E293B),
+                                    height: 1.45,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Logistics: Branch, Date, Time Slot
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('DROP-OFF & APPOINTMENT DETAILS',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.storefront_rounded, size: 16, color: Color(0xFF2563EB)),
+                                        const SizedBox(width: 8),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('Drop-off Store', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                            Text(repair.dropOffBranch, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF059669)),
+                                        const SizedBox(width: 8),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('Appointment Date', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                            Text(formattedApptDate, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF7C3AED)),
+                                        const SizedBox(width: 8),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('Preferred Time Slot', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                            Text(repair.timeSlot, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        if (repair.photoPath != null && repair.photoPath!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.camera_alt_rounded, size: 18, color: Color(0xFF1C7BFF)),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Customer Attached Damage Photo: ${repair.photoPath}',
+                                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF1E3A8A)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 20),
+                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                        const SizedBox(height: 16),
+
+                        // Technician Controls
+                        const Text('Technician Service Controls',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A))),
+                        const SizedBox(height: 12),
+
+                        // Stage Progression
+                        const Text('Update Service Stage', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF334155))),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<RepairStage>(
+                          initialValue: selectedStage,
+                          decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+                          items: RepairStage.values.map((s) {
+                            return DropdownMenuItem(
+                              value: s,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.circle, size: 12, color: Color(s.textColor)),
+                                  const SizedBox(width: 8),
+                                  Text(s.label),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setDialogState(() => selectedStage = val);
+                          },
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Cost Field
+                        TextField(
+                          controller: costCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Official Repair Estimate / Cost (GH₵)',
+                            prefixText: 'GH₵ ',
+                            border: OutlineInputBorder(),
+                            helperText: 'Initial cost is GH₵ 0.00. Enter updated estimate to quote customer',
+                          ),
+                          onChanged: (val) {
+                            updateDraftMessage(val);
+                            setDialogState(() {});
+                          },
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Technician Notes Field
+                        TextField(
+                          controller: notesCtrl,
+                          maxLines: 2,
+                          decoration: const InputDecoration(
+                            labelText: 'Technician Work Log & Diagnostic Notes',
+                            hintText: 'e.g. Screen replaced with genuine OLED panel, cured adhesive, tested touch response.',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            updateDraftMessage(costCtrl.text);
+                            setDialogState(() {});
+                          },
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Editable Customer Quote Notice
+                        TextField(
+                          controller: messageCtrl,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            labelText: 'Customer Cost Quote Message (Delivered to Customer App)',
+                            border: OutlineInputBorder(),
+                            helperText: 'Auto-composed quote notice sent directly to customer on submit',
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        CheckboxListTile(
+                          value: sendCostToCustomer,
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(
+                            'Send estimated cost quote to ${repair.customerName}\'s app (${repair.customerPhone})',
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                          ),
+                          subtitle: const Text(
+                            'Updates repair ticket and pushes estimated cost notice to customer just like swap devices',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                          ),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: (val) => setDialogState(() => sendCostToCustomer = val ?? true),
+                        ),
                       ],
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                const SizedBox(height: 14),
 
-                  // Stage Progression
-                  const Text('Update Service Stage', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF1E293B))),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<RepairStage>(
-                    initialValue: selectedStage,
-                    decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-                    items: RepairStage.values.map((s) {
-                      return DropdownMenuItem(
-                        value: s,
-                        child: Row(
-                          children: [
-                            Icon(Icons.circle, size: 12, color: Color(s.textColor)),
-                            const SizedBox(width: 8),
-                            Text(s.label),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedStage = val);
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Cost Field
-                  TextField(
-                    controller: costCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Total Estimated Repair Cost (GH₵)',
-                      prefixText: 'GH₵ ',
-                      border: OutlineInputBorder(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Technician Notes Field
-                  TextField(
-                    controller: notesCtrl,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Technician Work Log & Diagnostic Notes',
-                      hintText: 'e.g. Screen replaced with genuine OLED panel, adhesive cured, tested touch response.',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7C3AED),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: () {
-                          final cost = double.tryParse(costCtrl.text) ?? repair.estimatedCost;
-                          widget.repository.updateRepairStage(
-                            repair.id,
-                            selectedStage,
-                            notes: notesCtrl.text,
-                            cost: cost,
-                          );
-                          Navigator.pop(ctx);
-                          setState(() {});
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Repair ticket ${repair.id} updated'),
-                              backgroundColor: const Color(0xFF059669),
-                            ),
-                          );
-                        },
-                        child: const Text('Save Ticket Updates'),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.send_rounded, size: 16),
+                      label: Text(
+                        sendCostToCustomer ? 'Save & Send Cost to Customer' : 'Save Ticket Updates',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C3AED),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () {
+                        final parsedCost = double.tryParse(costCtrl.text.replaceAll(',', '').trim()) ?? repair.estimatedCost;
+                        repair.estimatedCost = parsedCost;
+                        widget.repository.updateRepairStage(
+                          repair.id,
+                          selectedStage,
+                          notes: notesCtrl.text.trim(),
+                          cost: parsedCost,
+                        );
+
+                        if (sendCostToCustomer) {
+                          final matchedCust = widget.repository.customers.where((c) =>
+                              c.fullName.toLowerCase() == repair.customerName.toLowerCase() ||
+                              c.phone.replaceAll(' ', '') == repair.customerPhone.replaceAll(' ', '')).firstOrNull;
+                          final custId = matchedCust?.id ?? 'CUST_${repair.customerPhone.replaceAll(RegExp(r'\D'), '')}';
+                          final email = matchedCust?.email;
+                          final subject = 'Repair Estimate #${repair.id} - ${repair.deviceModel}';
+                          final body = messageCtrl.text.trim();
+
+                          final quoteMsg = CustomerMessage(
+                            id: 'MSG-${DateTime.now().millisecondsSinceEpoch}',
+                            customerId: custId,
+                            customerName: repair.customerName,
+                            customerPhone: repair.customerPhone,
+                            customerEmail: email ?? '',
+                            subject: subject,
+                            message: body,
+                            category: MessageCategory.repairNotice,
+                            channel: MessageChannel.inApp,
+                            sentBy: 'Siaka Repair Desk',
+                            sentAt: DateTime.now(),
+                          );
+                          widget.repository.sendCustomerMessage(quoteMsg);
+                        }
+
+                        Navigator.pop(ctx);
+                        setState(() {});
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              sendCostToCustomer
+                                  ? 'Updated ticket #${repair.id} and sent estimated cost (${currencyFormat.format(parsedCost)}) to ${repair.customerName}\'s app'
+                                  : 'Repair ticket #${repair.id} updated successfully',
+                            ),
+                            backgroundColor: const Color(0xFF059669),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

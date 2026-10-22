@@ -20,6 +20,12 @@ class MyRepairsView extends StatefulWidget {
 class _MyRepairsViewState extends State<MyRepairsView> {
   String _selectedFilter = 'All';
 
+  @override
+  void initState() {
+    super.initState();
+    widget.viewModel.fetchRemoteRepairs();
+  }
+
   Future<void> _callTechnician(BuildContext context) async {
     final success = await DialerService.openDialer('+2330245550192');
     if (success) return;
@@ -73,12 +79,17 @@ class _MyRepairsViewState extends State<MyRepairsView> {
     return ListenableBuilder(
       listenable: widget.viewModel,
       builder: (context, _) {
-        // Read bookings from lastBooking and seeded history
+        // Read bookings from viewModel.bookings (or lastBooking + defaults if empty)
+        final repoBookings = widget.viewModel.bookings;
         final bookings = <RepairBooking>[
-          if (widget.viewModel.lastBooking != null) widget.viewModel.lastBooking!,
-          ...RepairBookingSamples.defaults.where(
-            (b) => widget.viewModel.lastBooking?.id != b.id,
-          ),
+          if (widget.viewModel.lastBooking != null &&
+              !repoBookings.any((b) => b.id == widget.viewModel.lastBooking!.id))
+            widget.viewModel.lastBooking!,
+          ...repoBookings,
+          if (repoBookings.isEmpty)
+            ...RepairBookingSamples.defaults.where(
+              (b) => widget.viewModel.lastBooking?.id != b.id,
+            ),
         ];
 
         final filtered = bookings.where((b) {
@@ -142,15 +153,20 @@ class _MyRepairsViewState extends State<MyRepairsView> {
           ),
           body: SafeArea(
             top: false,
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                12,
-                16,
-                24 + MediaQuery.paddingOf(context).bottom,
-              ),
-              children: [
-              // Summary stats card
+            child: RefreshIndicator(
+              color: const Color(0xFF1C7BFF),
+              onRefresh: () async {
+                await widget.viewModel.fetchRemoteRepairs();
+              },
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  12,
+                  16,
+                  24 + MediaQuery.paddingOf(context).bottom,
+                ),
+                children: [
+                // Summary stats card
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -265,8 +281,9 @@ class _MyRepairsViewState extends State<MyRepairsView> {
             ],
           ),
         ),
-      );
-      },
+      ),
+    );
+  },
     );
   }
 
@@ -467,6 +484,79 @@ class _MyRepairsViewState extends State<MyRepairsView> {
                 child: Text(
                   booking.description,
                   style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+              ),
+
+            // Estimated Cost Box
+            if (booking.estimatedCost > 0)
+              Container(
+                margin: const EdgeInsets.only(top: 4, bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.receipt_long_rounded, size: 18, color: Color(0xFF16A34A)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Estimated Repair Cost (Technician Quoted):',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF15803D)),
+                          ),
+                          Text(
+                            'GH₵ ${booking.estimatedCost.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF166534)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('Cost Quoted', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF166534))),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                margin: const EdgeInsets.only(top: 4, bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.hourglass_top_rounded, size: 16, color: Color(0xFF64748B)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Estimated Cost: GH₵ 0.00',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                          ),
+                          SizedBox(height: 1),
+                          Text(
+                            'Initial cost is GH₵ 0.00. Diagnostic quote will be sent to your app after inspection.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
 

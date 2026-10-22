@@ -450,6 +450,58 @@ class SupabaseService {
     }
   }
 
+  Future<bool> updateRepairCost(String id, double cost, {String? condition, String? notes}) async {
+    if (!_isInitialized || client == null) {
+      await initialize();
+    }
+    if (!_isInitialized || client == null) {
+      return false;
+    }
+    try {
+      final updateData = <String, dynamic>{
+        'price': cost,
+        'original_price': cost,
+      };
+      if (condition != null) {
+        updateData['condition'] = condition;
+      }
+      if (notes != null && notes.isNotEmpty) {
+        updateData['description'] = notes;
+      }
+      await client!.from('products').update(updateData).eq('id', id).timeout(const Duration(seconds: 4));
+      return true;
+    } catch (e) {
+      debugPrint('⚠️ Error updating repair cost in Supabase: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateSwapValuation(String id, double cost, {String? status, String? notes}) async {
+    if (!_isInitialized || client == null) {
+      await initialize();
+    }
+    if (!_isInitialized || client == null) {
+      return false;
+    }
+    try {
+      final updateData = <String, dynamic>{
+        'price': cost,
+        'original_price': cost,
+      };
+      if (status != null) {
+        updateData['condition'] = status;
+      }
+      if (notes != null && notes.isNotEmpty) {
+        updateData['description'] = notes;
+      }
+      await client!.from('products').update(updateData).eq('id', id).timeout(const Duration(seconds: 4));
+      return true;
+    } catch (e) {
+      debugPrint('⚠️ Error updating swap valuation in Supabase: $e');
+      return false;
+    }
+  }
+
   /// Upload image bytes to Supabase Storage bucket 'product-images'.
   /// Returns the public URL of the uploaded image, or null on failure.
   Future<String?> uploadProductImage(Uint8List imageBytes, String productId) async {

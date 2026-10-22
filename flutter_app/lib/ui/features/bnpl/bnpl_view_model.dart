@@ -79,6 +79,12 @@ class BnplViewModel extends ChangeNotifier {
     'Monthly',
   ];
 
+  static const List<String> branchOptions = [
+    'Siaka Phones Circle',
+    'Siaka Phones Madina',
+    'Siaka Phones Kasoa',
+  ];
+
   String _selectedBrand = 'iPhone';
   String _modelName = '';
   String _selectedStorage = '256 GB';
@@ -86,6 +92,7 @@ class BnplViewModel extends ChangeNotifier {
   String _selectedCondition = 'Brand New (Sealed)';
   String _selectedColor = 'Any Available Color';
   String _selectedPlanDuration = 'Monthly';
+  String _selectedBranch = 'Siaka Phones Circle';
 
   String _customerName = 'Kwame Mensah';
   String _customerPhone = '024 555 0192';
@@ -105,6 +112,7 @@ class BnplViewModel extends ChangeNotifier {
   String get selectedCondition => _selectedCondition;
   String get selectedColor => _selectedColor;
   String get selectedPlanDuration => _selectedPlanDuration;
+  String get selectedBranch => _selectedBranch;
   String get customerName => _customerName;
   String get customerPhone => _customerPhone;
   String get notes => _notes;
@@ -157,6 +165,11 @@ class BnplViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setBranch(String branch) {
+    _selectedBranch = branch;
+    notifyListeners();
+  }
+
   void setCustomerName(String name) {
     _customerName = name;
     notifyListeners();
@@ -202,6 +215,7 @@ class BnplViewModel extends ChangeNotifier {
       condition: _selectedCondition,
       preferredColor: _selectedColor,
       planDuration: _selectedPlanDuration,
+      preferredBranch: _selectedBranch,
       customerName: _customerName.trim().isEmpty ? 'Customer' : _customerName.trim(),
       customerPhone: _customerPhone.trim(),
       notes: _notes.trim(),
@@ -228,12 +242,14 @@ class BnplViewModel extends ChangeNotifier {
         'specs': jsonEncode({
           'customerName': application.customerName,
           'customerPhone': application.customerPhone,
+          'brand': application.brand,
           'modelName': application.modelName,
           'storage': application.storage,
           'ram': application.ram,
           'condition': application.condition,
           'preferredColor': application.preferredColor,
           'planDuration': application.planDuration,
+          'preferredBranch': application.preferredBranch,
           'notes': application.notes,
           'status': application.status,
         }),
@@ -245,6 +261,57 @@ class BnplViewModel extends ChangeNotifier {
       };
 
       SupabaseService().upsertRawRecord(bnplMap);
+
+      // Direct local sync post to PC Manager
+      () async {
+        try {
+          final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+          final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 1000);
+          final req = await client.postUrl(Uri.parse('http://$host:8088/api/bnpl'));
+          req.headers.contentType = ContentType.json;
+          req.write(jsonEncode({
+            'id': application.id,
+            'brand': application.brand,
+            'modelName': application.modelName,
+            'requestedPhone': '${application.brand} ${application.modelName}',
+            'storage': application.storage,
+            'ram': application.ram,
+            'condition': application.condition,
+            'deviceCondition': application.condition,
+            'preferredColor': application.preferredColor,
+            'color': application.preferredColor,
+            'planDuration': application.planDuration,
+            'preferredBranch': application.preferredBranch,
+            'branch': application.preferredBranch,
+            'customerName': application.customerName,
+            'applicantName': application.customerName,
+            'customerPhone': application.customerPhone,
+            'phone': application.customerPhone,
+            'notes': application.notes,
+            'customerNotes': application.notes,
+            'status': 'pending',
+            'createdAt': application.createdAt.toIso8601String(),
+            'applicationDate': application.createdAt.toIso8601String(),
+          }));
+          await req.close();
+        } catch (_) {}
+
+        try {
+          final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+          final notifClient = HttpClient()..connectionTimeout = const Duration(milliseconds: 1000);
+          final notifReq = await notifClient.postUrl(Uri.parse('http://$host:8088/api/notifications'));
+          notifReq.headers.contentType = ContentType.json;
+          notifReq.write(jsonEncode({
+            'id': 'NOTIF_BNPL_${application.id}',
+            'title': 'New BNPL Application: ${application.brand} ${application.modelName}',
+            'message': '${application.customerName} applied for ${application.planDuration} plan on ${application.brand} ${application.modelName} (${application.preferredBranch})',
+            'type': 'bnpl',
+            'target': 'manager',
+            'referenceId': application.id,
+          }));
+          await notifReq.close();
+        } catch (_) {}
+      }();
     }
 
     return true;

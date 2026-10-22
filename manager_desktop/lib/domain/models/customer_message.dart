@@ -12,6 +12,7 @@ enum MessageCategory {
   paymentReminder('BNPL Installment Reminder'),
   promotional('Promo / VIP Offer'),
   repairNotice('Repair Status Notice'),
+  swapQuote('Device Swap Quote'),
   general('General Inquiry');
 
   final String label;
