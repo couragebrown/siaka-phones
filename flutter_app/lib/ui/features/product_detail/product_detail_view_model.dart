@@ -14,6 +14,8 @@ class ProductDetailViewModel extends ChangeNotifier {
         _selectedStorage = product.storageOptions.isNotEmpty ? product.storageOptions.first : '128 GB',
         _selectedRam = product.ramOptions.isNotEmpty ? product.ramOptions.first : '';
 
+  CartRepository get cartRepository => _cartRepository;
+
   int _selectedImageIndex = 0;
   int get selectedImageIndex => _selectedImageIndex;
 

@@ -23,7 +23,10 @@ class ProductDetailView extends StatelessWidget {
     required this.onGoToCart,
     this.currentTabIndex = 0,
     this.wishlistRepo,
+    this.onRequireSignIn,
   });
+
+  final VoidCallback? onRequireSignIn;
 
   String _formatPrice(double price) {
     final formatted = price.toStringAsFixed(0).replaceAllMapped(
@@ -97,7 +100,7 @@ class ProductDetailView extends StatelessWidget {
                   product.brand,
                   style: GoogleFonts.plusJakartaSans(
                     color: const Color(0xFF1E2432),
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.2,
                   ),
@@ -114,6 +117,14 @@ class ProductDetailView extends StatelessWidget {
                         wishlistRepo!.isWishlisted(viewModel.product.id);
                     return IconButton(
                       onPressed: () {
+                        if (wishlistRepo!.isGuestMode) {
+                          if (onRequireSignIn != null) {
+                            onRequireSignIn!();
+                          } else {
+                            wishlistRepo?.onAuthRequired?.call();
+                          }
+                          return;
+                        }
                         wishlistRepo!.toggleWishlist(viewModel.product);
                       },
                       icon: Icon(
@@ -433,8 +444,8 @@ class ProductDetailView extends StatelessWidget {
                                     Expanded(
                                       child: Text(
                                         product.name,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: const Color(0xFF1E2432),
+                                        style: const TextStyle(
+                                          color: Color(0xFF1E2432),
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
                                           letterSpacing: -0.2,
@@ -536,10 +547,10 @@ class ProductDetailView extends StatelessWidget {
                       const SizedBox(height: 12),
 
                       // Storage Selection
-                      Text(
+                      const Text(
                         'Storage',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: const Color(0xFF1E2432),
+                        style: TextStyle(
+                          color: Color(0xFF1E2432),
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.2,
@@ -585,10 +596,10 @@ class ProductDetailView extends StatelessWidget {
 
                       if (product.ramOptions.isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        Text(
+                        const Text(
                           'RAM',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFF1E2432),
+                          style: TextStyle(
+                            color: Color(0xFF1E2432),
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.2,
@@ -638,8 +649,8 @@ class ProductDetailView extends StatelessWidget {
                       // Color Selection
                       Text(
                         'Color: ${viewModel.selectedColor}',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: const Color(0xFF1E2432),
+                        style: const TextStyle(
+                          color: Color(0xFF1E2432),
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.2,
@@ -686,10 +697,10 @@ class ProductDetailView extends StatelessWidget {
                       // Quantity Selector
                       Row(
                         children: [
-                          Text(
+                          const Text(
                             'Quantity',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFF1E2432),
+                            style: TextStyle(
+                              color: Color(0xFF1E2432),
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700,
                               letterSpacing: -0.2,
@@ -756,6 +767,14 @@ class ProductDetailView extends StatelessWidget {
                               height: 42,
                               child: OutlinedButton.icon(
                                 onPressed: () {
+                                  if (viewModel.cartRepository.isGuestMode) {
+                                    if (onRequireSignIn != null) {
+                                      onRequireSignIn!();
+                                    } else {
+                                      viewModel.cartRepository.onAuthRequired?.call();
+                                    }
+                                    return;
+                                  }
                                   viewModel.addToCart();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -802,7 +821,17 @@ class ProductDetailView extends StatelessWidget {
                             child: SizedBox(
                               height: 42,
                               child: ElevatedButton(
-                                onPressed: onGoToCart,
+                                onPressed: () {
+                                  if (viewModel.cartRepository.isGuestMode) {
+                                    if (onRequireSignIn != null) {
+                                      onRequireSignIn!();
+                                    } else {
+                                      viewModel.cartRepository.onAuthRequired?.call();
+                                    }
+                                    return;
+                                  }
+                                  onGoToCart();
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1C7BFF),
                                   foregroundColor: Colors.white,
@@ -864,10 +893,10 @@ class ProductDetailView extends StatelessWidget {
                       const SizedBox(height: 14),
 
                       // Product Highlights
-                      Text(
+                      const Text(
                         'Product Highlights',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: const Color(0xFF1E2432),
+                        style: TextStyle(
+                          color: Color(0xFF1E2432),
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.2,

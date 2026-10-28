@@ -14,6 +14,8 @@ class ProfileView extends StatelessWidget {
   final VoidCallback? onWishlistTap;
   final String? ordersCount;
   final String? wishlistCount;
+  final bool isGuest;
+  final VoidCallback? onSignInTap;
 
   const ProfileView({
     super.key,
@@ -29,6 +31,8 @@ class ProfileView extends StatelessWidget {
     this.onWishlistTap,
     this.ordersCount,
     this.wishlistCount,
+    this.isGuest = false,
+    this.onSignInTap,
   });
 
   String _getInitials(String name) {
@@ -93,23 +97,35 @@ class ProfileView extends StatelessWidget {
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF1C7BFF), Color(0xFF0D5BD8)],
-                          ),
+                          gradient: isGuest
+                              ? null
+                              : const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [Color(0xFF1C7BFF), Color(0xFF0D5BD8)],
+                                ),
+                          color: isGuest ? const Color(0xFFF1F5F9) : null,
                           borderRadius: BorderRadius.circular(14),
+                          border: isGuest
+                              ? Border.all(color: const Color(0xFFE2E8F0))
+                              : null,
                         ),
                         child: Center(
-                          child: Text(
-                            _getInitials(profile.name),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
+                          child: isGuest
+                              ? const Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 26,
+                                  color: Color(0xFF94A3B8),
+                                )
+                              : Text(
+                                  _getInitials(profile.name),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -122,7 +138,7 @@ class ProfileView extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    profile.name,
+                                    isGuest ? 'Guest User' : profile.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -134,38 +150,61 @@ class ProfileView extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 7, vertical: 2.5),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: const Color(0xFFCBD5E1),
-                                      width: 0.8,
+                                if (isGuest)
+                                  ElevatedButton(
+                                    onPressed: onSignInTap,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1C7BFF),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 6),
+                                      minimumSize: const Size(0, 32),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 7, vertical: 2.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: const Color(0xFFCBD5E1),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.badge_outlined,
+                                          size: 11,
+                                          color: Color(0xFF475569),
+                                        ),
+                                        const SizedBox(width: 3.5),
+                                        Text(
+                                          'ID: ${profile.id}',
+                                          style: const TextStyle(
+                                            color: Color(0xFF334155),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.badge_outlined,
-                                        size: 11,
-                                        color: Color(0xFF475569),
-                                      ),
-                                      const SizedBox(width: 3.5),
-                                      Text(
-                                        'ID: ${profile.id}',
-                                        style: const TextStyle(
-                                          color: Color(0xFF334155),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ],
                             ),
                             const SizedBox(height: 4),
@@ -179,11 +218,15 @@ class ProfileView extends StatelessWidget {
                                 const SizedBox(width: 5),
                                 Expanded(
                                   child: Text(
-                                    profile.email,
+                                    isGuest
+                                        ? 'No email registered'
+                                        : profile.email,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFF4B5563),
+                                    style: TextStyle(
+                                      color: isGuest
+                                          ? const Color(0xFF9CA3AF)
+                                          : const Color(0xFF4B5563),
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -202,13 +245,17 @@ class ProfileView extends StatelessWidget {
                                 const SizedBox(width: 5),
                                 Expanded(
                                   child: Text(
-                                    profile.phone.isNotEmpty
-                                        ? profile.phone
-                                        : 'No phone registered',
+                                    isGuest
+                                        ? 'No phone registered'
+                                        : (profile.phone.isNotEmpty
+                                            ? profile.phone
+                                            : 'No phone registered'),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Color(0xFF4B5563),
+                                    style: TextStyle(
+                                      color: isGuest
+                                          ? const Color(0xFF9CA3AF)
+                                          : const Color(0xFF4B5563),
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -217,34 +264,66 @@ class ProfileView extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFF6FF),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFBFDBFE)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.workspace_premium_rounded,
-                                    color: Color(0xFF1C7BFF),
-                                    size: 13,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    profile.membershipTier,
-                                    style: const TextStyle(
-                                      color: Color(0xFF1D4ED8),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
+                            if (isGuest)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                      color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.person_rounded,
+                                      color: Color(0xFF64748B),
+                                      size: 13,
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Guest Mode',
+                                      style: TextStyle(
+                                        color: Color(0xFF475569),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                      color: const Color(0xFFBFDBFE)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.workspace_premium_rounded,
+                                      color: Color(0xFF1C7BFF),
+                                      size: 13,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      profile.membershipTier,
+                                      style: const TextStyle(
+                                        color: Color(0xFF1D4ED8),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -265,9 +344,9 @@ class ProfileView extends StatelessWidget {
                   child: Row(
                     children: [
                       _summaryStat(
-                        ordersCount ?? '0',
+                        isGuest ? '0' : (ordersCount ?? '0'),
                         'Orders',
-                        onTap: onOrdersTap,
+                        onTap: isGuest ? onSignInTap : onOrdersTap,
                       ),
                       _verticalDivider(),
                       _summaryStat(
@@ -277,9 +356,9 @@ class ProfileView extends StatelessWidget {
                       ),
                       _verticalDivider(),
                       _summaryStat(
-                        profile.savedAddresses.length.toString(),
+                        isGuest ? '0' : profile.savedAddresses.length.toString(),
                         'Addresses',
-                        onTap: () => _showEditAddressSheet(context),
+                        onTap: isGuest ? onSignInTap : () => _showEditAddressSheet(context),
                       ),
                     ],
                   ),
@@ -335,12 +414,16 @@ class ProfileView extends StatelessWidget {
                       _menuRow(
                         icon: Icons.person_outline_rounded,
                         label: 'Personal & Profile Info',
-                        subtitle: 'ID: ${profile.id} • ${profile.phone}',
-                        onTap: null,
+                        subtitle: isGuest
+                            ? 'Sign in to view personal details'
+                            : 'ID: ${profile.id} • ${profile.phone}',
+                        onTap: isGuest ? onSignInTap : null,
                         trailing: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => _showEditProfileSheet(context),
+                            onTap: isGuest
+                                ? onSignInTap
+                                : () => _showEditProfileSheet(context),
                             borderRadius: BorderRadius.circular(6),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -378,13 +461,16 @@ class ProfileView extends StatelessWidget {
                       _menuRow(
                         icon: Icons.location_on_outlined,
                         label: 'Saved Delivery Address',
-                        subtitle:
-                            '${profile.detailAddress} • ${profile.gpsCode}',
-                        onTap: null, // User must click on Edit button to open edit panel
+                        subtitle: isGuest
+                            ? 'No delivery address saved'
+                            : '${profile.detailAddress} • ${profile.gpsCode}',
+                        onTap: isGuest ? onSignInTap : null, // User must click on Edit button to open edit panel
                         trailing: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => _showEditAddressSheet(context),
+                            onTap: isGuest
+                                ? onSignInTap
+                                : () => _showEditAddressSheet(context),
                             borderRadius: BorderRadius.circular(6),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -450,14 +536,14 @@ class ProfileView extends StatelessWidget {
                       backgroundColor: const Color(0xFFFEF2F2),
                       elevation: 0,
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.logout_rounded, size: 18, color: Color(0xFFDC2626)),
-                        SizedBox(width: 8),
+                        const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 8),
                         Text(
-                          'Sign Out',
-                          style: TextStyle(
+                          isGuest ? 'Exit Guest Mode' : 'Sign Out',
+                          style: const TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.2,

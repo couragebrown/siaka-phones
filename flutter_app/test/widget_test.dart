@@ -2844,6 +2844,160 @@ void main() {
     expect(deserializedItem.product.name, originalItem.product.name);
     expect(deserializedItem.selectedColor, originalItem.selectedColor);
   });
+
+  testWidgets('Guest button is displayed on SignInView beside social buttons and enters guest mode', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: false));
+    await tester.pumpAndSettle();
+
+    // 1. Verify LoginView is shown
+    expect(find.byType(LoginView), findsOneWidget);
+
+    // 2. Verify Guest button with text 'Guest' is present
+    final guestBtn = find.text('Guest');
+    expect(guestBtn, findsOneWidget);
+
+    // 3. Scroll to ensure visible and tap Guest button
+    await tester.ensureVisible(guestBtn);
+    await tester.pumpAndSettle();
+    await tester.tap(guestBtn);
+    await tester.pumpAndSettle();
+
+    // 4. Opens HomeView without authentication
+    expect(find.byType(HomeView), findsOneWidget);
+    expect(find.byType(LoginView), findsNothing);
+  });
+
+  testWidgets('ProductDetailView triggers onRequireSignIn when in guest mode for add to cart and wishlist', (WidgetTester tester) async {
+    final cartRepo = CartRepository();
+    final wishlistRepo = WishlistRepository();
+    cartRepo.isGuestMode = true;
+    wishlistRepo.isGuestMode = true;
+
+    bool requireSignInCalled = false;
+    final detailVM = ProductDetailViewModel(
+      product: MockData.products.first,
+      cartRepository: cartRepo,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ProductDetailView(
+            viewModel: detailVM,
+            wishlistRepo: wishlistRepo,
+            onRequireSignIn: () {
+              requireSignInCalled = true;
+            },
+            onTabSelected: (_) {},
+            onReviewsTap: () {},
+            onGoToCart: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. Tap Add to Cart in guest mode
+    final addToCartBtn = find.text('Add to Cart');
+    await tester.ensureVisible(addToCartBtn);
+    await tester.pumpAndSettle();
+    await tester.tap(addToCartBtn);
+    await tester.pumpAndSettle();
+
+    expect(requireSignInCalled, isTrue);
+    expect(cartRepo.itemCount, 0);
+
+    // 2. Tap wishlist heart icon in guest mode
+    requireSignInCalled = false;
+    final wishlistBtn = find.ancestor(
+      of: find.byIcon(Icons.favorite_border_rounded),
+      matching: find.byType(IconButton),
+    ).first;
+    await tester.tap(wishlistBtn);
+    await tester.pumpAndSettle();
+
+    expect(requireSignInCalled, isTrue);
+    expect(wishlistRepo.itemCount, 0);
+  });
+
+  test('CartRepository and WishlistRepository intercept mutations in guest mode and trigger onAuthRequired', () {
+    final cartRepo = CartRepository();
+    final wishlistRepo = WishlistRepository();
+
+    bool cartAuthTriggered = false;
+    bool wishlistAuthTriggered = false;
+
+    cartRepo.onAuthRequired = () => cartAuthTriggered = true;
+    wishlistRepo.onAuthRequired = () => wishlistAuthTriggered = true;
+
+    // Normal mode: works normally
+    cartRepo.addToCart(MockData.products.first);
+    expect(cartRepo.itemCount, 1);
+    expect(cartAuthTriggered, isFalse);
+
+    wishlistRepo.addToWishlist(MockData.products.first);
+    expect(wishlistRepo.itemCount, 1);
+    expect(wishlistAuthTriggered, isFalse);
+
+    // Enable guest mode
+    cartRepo.isGuestMode = true;
+    wishlistRepo.isGuestMode = true;
+
+    // Attempting addToCart in guest mode
+    cartRepo.addToCart(MockData.products.first);
+    expect(cartAuthTriggered, isTrue);
+    expect(cartRepo.itemCount, 1); // Not incremented
+
+    // Attempting toggleWishlist in guest mode
+    final toggled = wishlistRepo.toggleWishlist(MockData.products.first);
+    expect(toggled, isFalse);
+    expect(wishlistAuthTriggered, isTrue);
+  });
+
+  testWidgets('ProfileView in guest mode displays empty profile card with Sign In button and triggers onSignInTap', (WidgetTester tester) async {
+    final userRepo = UserRepository();
+    final profileVM = ProfileViewModel(userRepository: userRepo);
+    bool signInTapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProfileView(
+          viewModel: profileVM,
+          isGuest: true,
+          onSignInTap: () => signInTapped = true,
+          onOrdersTap: () {},
+          onTradeInTap: () {},
+          onLocationsTap: () {},
+          onSupportTap: () {},
+          onBack: () {},
+          onSignOut: () {},
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify Guest User text and empty state
+    expect(find.text('Guest User'), findsOneWidget);
+    expect(find.text('No email registered'), findsOneWidget);
+    expect(find.text('No phone registered'), findsOneWidget);
+    expect(find.text('Guest Mode'), findsOneWidget);
+
+    // Verify Courage Brown and specific personal details are not displayed
+    expect(find.text('Courage Brown'), findsNothing);
+    expect(find.text('courage@siakaphones.com'), findsNothing);
+    expect(find.text('Diamond Elite VIP'), findsNothing);
+
+    // Verify Sign In button is present on the card and triggers onSignInTap
+    final signInBtn = find.widgetWithText(ElevatedButton, 'Sign In');
+    expect(signInBtn, findsOneWidget);
+    await tester.tap(signInBtn);
+    expect(signInTapped, isTrue);
+
+    // Verify Exit Guest Mode button is shown at the bottom
+    expect(find.text('Exit Guest Mode'), findsOneWidget);
+  });
 }
 
 

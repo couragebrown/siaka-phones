@@ -7,6 +7,8 @@ import '../services/supabase_service.dart';
 class WishlistRepository extends ChangeNotifier {
   final Map<String, Product> _items = {};
   String? _currentCustomerId;
+  bool isGuestMode = false;
+  VoidCallback? onAuthRequired;
 
   WishlistRepository({List<Product>? initialProducts}) {
     if (initialProducts != null) {
@@ -96,6 +98,11 @@ class WishlistRepository extends ChangeNotifier {
   }
 
   bool toggleWishlist(Product product) {
+    if (isGuestMode) {
+      onAuthRequired?.call();
+      return false;
+    }
+
     final bool willAdd = !_items.containsKey(product.id);
     if (willAdd) {
       _items[product.id] = product;
@@ -108,6 +115,11 @@ class WishlistRepository extends ChangeNotifier {
   }
 
   void addToWishlist(Product product) {
+    if (isGuestMode) {
+      onAuthRequired?.call();
+      return;
+    }
+
     _items[product.id] = product;
     _persistWishlist();
     notifyListeners();

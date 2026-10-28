@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'sign_up_view.dart';
 
@@ -15,6 +16,7 @@ class SignInView extends StatefulWidget {
     String gpsCode,
   )? onCreateAccount;
   final VoidCallback? onNavigateToSignUp;
+  final VoidCallback? onContinueAsGuest;
 
   const SignInView({
     super.key,
@@ -22,6 +24,7 @@ class SignInView extends StatefulWidget {
     required this.onSignIn,
     this.onCreateAccount,
     this.onNavigateToSignUp,
+    this.onContinueAsGuest,
   });
 
   @override
@@ -458,24 +461,93 @@ class _SignInViewState extends State<SignInView> {
   }
 
   Widget _buildSocialList() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildCircularSocialButton(
-          icon: _googleIconWidget(),
-          providerName: 'Google',
+    return Center(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildGuestButton(),
+            const SizedBox(width: 12),
+            _buildCircularSocialButton(
+              icon: _googleIconWidget(),
+              providerName: 'Google',
+            ),
+            const SizedBox(width: 12),
+            _buildCircularSocialButton(
+              icon: const Icon(Icons.apple, color: Colors.black, size: 22),
+              providerName: 'Apple',
+            ),
+            const SizedBox(width: 12),
+            _buildCircularSocialButton(
+              icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
+              providerName: 'Facebook',
+            ),
+          ],
         ),
-        const SizedBox(width: 18),
-        _buildCircularSocialButton(
-          icon: const Icon(Icons.apple, color: Colors.black, size: 22),
-          providerName: 'Apple',
+      ),
+    );
+  }
+
+  Widget _buildGuestButton() {
+    return Tooltip(
+      message: 'Continue as Guest',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onContinueAsGuest,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.only(left: 8, right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFFE2E8F0),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEFF6FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    size: 17,
+                    color: Color(0xFF1C7BFF),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Guest',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: const Color(0xFF0F172A),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(width: 18),
-        _buildCircularSocialButton(
-          icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
-          providerName: 'Facebook',
-        ),
-      ],
+      ),
     );
   }
 

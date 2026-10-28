@@ -238,6 +238,7 @@ class AppRootNavigationHub extends StatefulWidget {
 class _AppRootNavigationHubState extends State<AppRootNavigationHub>
     with WidgetsBindingObserver {
   late bool _isAuthenticated;
+  bool _isGuest = false;
   int _currentTabIndex = 0;
   bool _autoFocusSearch = false;
 
@@ -245,12 +246,109 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
   void initState() {
     super.initState();
     _isAuthenticated = widget.startAuthenticated;
+    _setupAuthCallbacks();
     if (_isAuthenticated) {
       final custId = widget.profileVM.profile.id;
       widget.cartRepo.loadForCustomer(custId);
       widget.wishlistRepo.loadForCustomer(custId);
     }
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  void _setupAuthCallbacks() {
+    widget.cartRepo.isGuestMode = !_isAuthenticated && _isGuest;
+    widget.wishlistRepo.isGuestMode = !_isAuthenticated && _isGuest;
+    widget.cartRepo.onAuthRequired = () => _requireSignIn(message: 'Sign in to add items to your cart.');
+    widget.wishlistRepo.onAuthRequired = () => _requireSignIn(message: 'Sign in to save items to your wishlist.');
+  }
+
+  void _requireSignIn({String? message}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LoginView(
+          onBack: () => Navigator.of(context).pop(),
+          onSignIn: () async {
+            Navigator.of(context).pop();
+            await _handleAuthSignIn();
+          },
+          onCreateAccount: (name, email, phone, address, country, region, gpsCode) async {
+            Navigator.of(context).pop();
+            await _handleAuthCreateAccount(name, email, phone, address, country, region, gpsCode);
+          },
+        ),
+      ),
+    );
+    if (message != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: const Color(0xFF1E293B),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleAuthSignIn() async {
+    await SessionManager.saveSession();
+    final custId = widget.profileVM.profile.id;
+    CustomerTelemetryService.pingSession(
+      customerId: custId,
+      name: widget.profileVM.profile.name,
+      email: widget.profileVM.profile.email,
+      phone: widget.profileVM.profile.phone,
+      isLogin: true,
+    );
+    await widget.cartRepo.loadForCustomer(custId);
+    await widget.wishlistRepo.loadForCustomer(custId);
+    setState(() {
+      _isAuthenticated = true;
+      _isGuest = false;
+      widget.cartRepo.isGuestMode = false;
+      widget.wishlistRepo.isGuestMode = false;
+    });
+  }
+
+  Future<void> _handleAuthCreateAccount(
+    String name,
+    String email,
+    String phone,
+    String address,
+    String country,
+    String region,
+    String gpsCode,
+  ) async {
+    final newUserId = await CustomerIdService.registerAndGenerateId(
+      name: name,
+      email: email,
+      phone: phone,
+      address: address,
+      gpsCode: gpsCode,
+      region: region,
+      country: country,
+    );
+    widget.profileVM.updateProfile(
+      id: newUserId,
+      name: name,
+      email: email,
+      phone: phone,
+    );
+    widget.profileVM.updateAddress(
+      detailAddress: address,
+      gpsCode: gpsCode,
+      region: region,
+      country: country,
+    );
+    await SessionManager.saveSession();
+    await widget.cartRepo.loadForCustomer(newUserId);
+    await widget.wishlistRepo.loadForCustomer(newUserId);
+    setState(() {
+      _isAuthenticated = true;
+      _isGuest = false;
+      widget.cartRepo.isGuestMode = false;
+      widget.wishlistRepo.isGuestMode = false;
+    });
   }
 
   @override
@@ -292,7 +390,12 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
           currentTabIndex: _currentTabIndex,
           onTabSelected: _selectRootTab,
           onReviewsTap: () => _navigateToReviews(),
+          onRequireSignIn: () => _requireSignIn(message: 'Sign in to add items to your cart or wishlist.'),
           onGoToCart: () {
+            if (widget.cartRepo.isGuestMode) {
+              _requireSignIn(message: 'Please sign in to proceed with your order.');
+              return;
+            }
             detailVM.addToCart();
             _selectRootTab(2);
           },
@@ -310,6 +413,11 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
   }
 
   void _navigateToCheckout() {
+    if (widget.cartRepo.isGuestMode) {
+      _requireSignIn(message: 'Please sign in to proceed to checkout.');
+      return;
+    }
+
     final checkoutVM = CheckoutViewModel(
       cartRepository: widget.cartRepo,
       orderRepository: widget.orderRepo,
@@ -475,57 +583,19 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
 
   @override
   Widget build(BuildContext context) {
-    if (!_isAuthenticated) {
+    if (!_isAuthenticated && !_isGuest) {
       return LoginView(
         onBack: () {}, // no-op: sign-in is the entry gate
-        onSignIn: () async {
-          await SessionManager.saveSession();
-          final custId = widget.profileVM.profile.id;
-          CustomerTelemetryService.pingSession(
-            customerId: custId,
-            name: widget.profileVM.profile.name,
-            email: widget.profileVM.profile.email,
-            phone: widget.profileVM.profile.phone,
-            isLogin: true,
-          );
-          await widget.cartRepo.loadForCustomer(custId);
-          await widget.wishlistRepo.loadForCustomer(custId);
+        onContinueAsGuest: () {
           setState(() {
-            _isAuthenticated = true;
+            _isGuest = true;
+            widget.cartRepo.isGuestMode = true;
+            widget.wishlistRepo.isGuestMode = true;
             _currentTabIndex = 0;
           });
         },
-        onCreateAccount:
-            (name, email, phone, address, country, region, gpsCode) async {
-          final newUserId = await CustomerIdService.registerAndGenerateId(
-            name: name,
-            email: email,
-            phone: phone,
-            address: address,
-            gpsCode: gpsCode,
-            region: region,
-            country: country,
-          );
-          widget.profileVM.updateProfile(
-            id: newUserId,
-            name: name,
-            email: email,
-            phone: phone,
-          );
-          widget.profileVM.updateAddress(
-            detailAddress: address,
-            gpsCode: gpsCode,
-            region: region,
-            country: country,
-          );
-          await SessionManager.saveSession();
-          await widget.cartRepo.loadForCustomer(newUserId);
-          await widget.wishlistRepo.loadForCustomer(newUserId);
-          setState(() {
-            _isAuthenticated = true;
-            _currentTabIndex = 0;
-          });
-        },
+        onSignIn: _handleAuthSignIn,
+        onCreateAccount: _handleAuthCreateAccount,
       );
     }
 
@@ -567,6 +637,9 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
               widget.wishlistRepo.clearWishlist(isSignOut: true);
               setState(() {
                 _isAuthenticated = false;
+                _isGuest = false;
+                widget.cartRepo.isGuestMode = false;
+                widget.wishlistRepo.isGuestMode = false;
                 _currentTabIndex = 0;
               });
             },
@@ -596,7 +669,9 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
           ),
           ProfileView(
             viewModel: widget.profileVM,
-            ordersCount: widget.orderRepo.orders.length.toString(),
+            isGuest: _isGuest,
+            onSignInTap: () => _requireSignIn(),
+            ordersCount: _isGuest ? '0' : widget.orderRepo.orders.length.toString(),
             wishlistCount: widget.wishlistRepo.itemCount.toString(),
             onOrdersTap: _navigateToOrders,
             onRepairsTap: _navigateToMyRepairs,
@@ -612,6 +687,9 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
               widget.wishlistRepo.clearWishlist(isSignOut: true);
               setState(() {
                 _isAuthenticated = false;
+                _isGuest = false;
+                widget.cartRepo.isGuestMode = false;
+                widget.wishlistRepo.isGuestMode = false;
                 _currentTabIndex = 0;
               });
             },

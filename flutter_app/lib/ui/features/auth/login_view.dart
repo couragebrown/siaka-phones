@@ -18,12 +18,14 @@ class LoginView extends StatefulWidget {
     String region,
     String gpsCode,
   ) onCreateAccount;
+  final VoidCallback? onContinueAsGuest;
 
   const LoginView({
     super.key,
     required this.onBack,
     required this.onSignIn,
     required this.onCreateAccount,
+    this.onContinueAsGuest,
   });
 
   @override
@@ -48,6 +50,7 @@ class _LoginViewState extends State<LoginView> {
       onSignIn: widget.onSignIn,
       onCreateAccount: widget.onCreateAccount,
       onNavigateToSignUp: () => setState(() => _showSignUp = true),
+      onContinueAsGuest: widget.onContinueAsGuest,
     );
   }
 }

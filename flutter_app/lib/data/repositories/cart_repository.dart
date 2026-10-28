@@ -10,6 +10,8 @@ class CartRepository extends ChangeNotifier {
   String? _appliedPromoCode;
   double _discountPercent = 0.0;
   String? _currentCustomerId;
+  bool isGuestMode = false;
+  VoidCallback? onAuthRequired;
 
   List<CartItem> get items => List.unmodifiable(_items);
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
@@ -92,6 +94,11 @@ class CartRepository extends ChangeNotifier {
   }
 
   void addToCart(Product product, {String? color, String? storage, String? ram, int quantity = 1}) {
+    if (isGuestMode) {
+      onAuthRequired?.call();
+      return;
+    }
+
     final selColor = color ?? (product.colors.isNotEmpty ? product.colors.first : 'Natural Titanium');
     final selStorage = storage ?? (product.storageOptions.isNotEmpty ? product.storageOptions.first : '128 GB');
     final selRam = ram ?? (product.ramOptions.isNotEmpty ? product.ramOptions.first : '');
