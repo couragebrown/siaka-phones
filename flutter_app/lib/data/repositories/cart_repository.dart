@@ -1,21 +1,95 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/models/cart_item.dart';
 import '../../domain/models/product.dart';
+import '../services/supabase_service.dart';
 
 class CartRepository extends ChangeNotifier {
   final List<CartItem> _items = [];
   String? _appliedPromoCode;
   double _discountPercent = 0.0;
+  String? _currentCustomerId;
 
   List<CartItem> get items => List.unmodifiable(_items);
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
   String? get appliedPromoCode => _appliedPromoCode;
+  String? get currentCustomerId => _currentCustomerId;
 
   double get subtotal => _items.fold(0.0, (sum, item) => sum + item.totalPrice);
   double get discountAmount => subtotal * _discountPercent;
   double get tax => 0.0;
   double get shipping => subtotal > 500 || _items.isEmpty ? 0.0 : 15.0;
   double get total => (subtotal - discountAmount) + shipping;
+
+  Future<void> loadForCustomer(String customerId) async {
+    if (customerId.isEmpty) return;
+    _currentCustomerId = customerId;
+
+    // 1. Immediately load local customer cache if present
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final localJson = prefs.getString('customer_cart_$customerId');
+      if (localJson != null && localJson.isNotEmpty) {
+        final decoded = jsonDecode(localJson);
+        if (decoded is List) {
+          _items.clear();
+          for (final raw in decoded) {
+            if (raw is Map) {
+              try {
+                _items.add(CartItem.fromMap(Map<String, dynamic>.from(raw)));
+              } catch (_) {}
+            }
+          }
+          notifyListeners();
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fetch from Database / Local PC Manager
+    try {
+      final remoteData = await SupabaseService().fetchCustomerCartAndWishlist(customerId);
+      if (remoteData != null && remoteData['cart'] != null) {
+        final rawCart = remoteData['cart'];
+        if (rawCart is List && rawCart.isNotEmpty) {
+          _items.clear();
+          for (final raw in rawCart) {
+            if (raw is Map) {
+              try {
+                _items.add(CartItem.fromMap(Map<String, dynamic>.from(raw)));
+              } catch (_) {}
+            }
+          }
+          await _saveToLocalCache();
+          notifyListeners();
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveToLocalCache({String? customerId, List<CartItem>? snapshot}) async {
+    final targetId = customerId ?? _currentCustomerId;
+    if (targetId == null || targetId.isEmpty) return;
+    final list = snapshot ?? List<CartItem>.from(_items);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final serialized = jsonEncode(list.map((i) => i.toMap()).toList());
+      await prefs.setString('customer_cart_$targetId', serialized);
+    } catch (_) {}
+  }
+
+  Future<void> _persistCart() async {
+    final targetId = _currentCustomerId;
+    if (targetId == null || targetId.isEmpty) return;
+    final snapshot = List<CartItem>.from(_items);
+    await _saveToLocalCache(customerId: targetId, snapshot: snapshot);
+    final cartMaps = snapshot.map((i) => i.toMap()).toList();
+    await SupabaseService().saveCustomerCartAndWishlist(
+      customerId: targetId,
+      cartItems: cartMaps,
+      wishlistItems: const [],
+    );
+  }
 
   void addToCart(Product product, {String? color, String? storage, String? ram, int quantity = 1}) {
     final selColor = color ?? (product.colors.isNotEmpty ? product.colors.first : 'Natural Titanium');
@@ -43,6 +117,7 @@ class CartRepository extends ChangeNotifier {
         ),
       );
     }
+    _persistCart();
     notifyListeners();
   }
 
@@ -55,12 +130,14 @@ class CartRepository extends ChangeNotifier {
       } else {
         _items[index].quantity = newQty;
       }
+      _persistCart();
       notifyListeners();
     }
   }
 
   void removeItem(String itemId) {
     _items.removeWhere((item) => item.id == itemId);
+    _persistCart();
     notifyListeners();
   }
 
@@ -80,10 +157,15 @@ class CartRepository extends ChangeNotifier {
     return false;
   }
 
-  void clearCart() {
+  void clearCart({bool isSignOut = false}) {
     _items.clear();
     _appliedPromoCode = null;
     _discountPercent = 0.0;
+    if (isSignOut) {
+      _currentCustomerId = null;
+    } else {
+      _persistCart();
+    }
     notifyListeners();
   }
 }

@@ -80,7 +80,7 @@ class _SignUpViewState extends State<SignUpView> {
     super.initState();
     _validateOnUnfocus(_nameFocusNode, 'name', _nameController, 'Full name is required.');
     _validateOnUnfocus(_usernameFocusNode, 'username', _usernameController, 'Username is required.');
-    _validateOnUnfocus(_emailFocusNode, 'email', _emailController, 'Enter a valid email address.', optionalEmail: true);
+    _validateOnUnfocus(_emailFocusNode, 'email', _emailController, 'Enter a valid email address.', isOptional: true, optionalEmail: true);
     _validateOnUnfocus(_phoneFocusNode, 'phone', _phoneController, 'Enter a valid phone number.', minimumLength: 10);
     _validateOnUnfocus(_addressFocusNode, 'address', _addressController, 'Detailed address is required.');
     _validateOnUnfocus(_countryFocusNode, 'country', _countryController, 'Country is required.');
@@ -95,6 +95,7 @@ class _SignUpViewState extends State<SignUpView> {
     TextEditingController controller,
     String message, {
     int minimumLength = 0,
+    bool isOptional = false,
     bool optionalEmail = false,
     bool mustMatchPassword = false,
   }) {
@@ -102,11 +103,13 @@ class _SignUpViewState extends State<SignUpView> {
       if (!node.hasFocus) {
         final text = controller.text.trim();
         setState(() {
-          if (text.isEmpty && !mustMatchPassword) {
-            _fieldErrors[key] = message;
-          } else if (minimumLength > 0 && text.length < minimumLength) {
+          if (isOptional && text.isEmpty) {
+            _fieldErrors.remove(key);
+          } else if (text.isEmpty && !mustMatchPassword) {
             _fieldErrors[key] = message;
           } else if (optionalEmail && text.isNotEmpty && !text.contains('@')) {
+            _fieldErrors[key] = message;
+          } else if (minimumLength > 0 && text.length < minimumLength) {
             _fieldErrors[key] = message;
           } else if (mustMatchPassword && text != _passwordController.text) {
             _fieldErrors[key] = message;
@@ -355,6 +358,7 @@ class _SignUpViewState extends State<SignUpView> {
           keyboardType: TextInputType.emailAddress,
           focusNode: _emailFocusNode,
           errorText: _fieldErrors['email'],
+          helperText: 'Optional',
         ),
         const SizedBox(height: 16),
         _buildInputGroup(
@@ -564,6 +568,7 @@ class _SignUpViewState extends State<SignUpView> {
     VoidCallback? onSuffixTap,
     FocusNode? focusNode,
     String? errorText,
+    String? helperText,
   }) {
     final hasError = errorText != null && errorText.isNotEmpty;
 
@@ -648,6 +653,18 @@ class _SignUpViewState extends State<SignUpView> {
             child: Text(
               errorText,
               style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12),
+            ),
+          )
+        else if (helperText != null && helperText.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 5, left: 4),
+            child: Text(
+              helperText,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
       ],

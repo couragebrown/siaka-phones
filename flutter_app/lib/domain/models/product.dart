@@ -52,6 +52,8 @@ class Product {
         id.startsWith('BNPL_') ||
         id.startsWith('REPAIR_') ||
         id.startsWith('SWAP_') ||
+        id.startsWith('CART_WISHLIST_') ||
+        id.startsWith('CUSTOMER_') ||
         id.startsWith('SP-') ||
         id.startsWith('TRK-') ||
         id.startsWith('BANNER_') ||
@@ -68,12 +70,15 @@ class Product {
         catUpper == 'BNPL_RECORD' ||
         catUpper == 'REPAIR_RECORD' ||
         catUpper == 'SWAP_RECORD' ||
+        catUpper == 'CART_WISHLIST_RECORD' ||
+        catUpper == 'CUSTOMER_RECORD' ||
         catUpper == 'CATEGORY' ||
         catUpper == 'BANNER_PLAYLIST' ||
         catUpper.startsWith('BANNER_') ||
         catUpper.startsWith('ORDER_') ||
         catUpper.startsWith('BNPL_') ||
         catUpper.startsWith('REPAIR_') ||
+        catUpper.startsWith('CART_') ||
         catUpper.contains('BANNER')) {
       return false;
     }

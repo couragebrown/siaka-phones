@@ -245,6 +245,11 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
   void initState() {
     super.initState();
     _isAuthenticated = widget.startAuthenticated;
+    if (_isAuthenticated) {
+      final custId = widget.profileVM.profile.id;
+      widget.cartRepo.loadForCustomer(custId);
+      widget.wishlistRepo.loadForCustomer(custId);
+    }
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -475,13 +480,16 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
         onBack: () {}, // no-op: sign-in is the entry gate
         onSignIn: () async {
           await SessionManager.saveSession();
+          final custId = widget.profileVM.profile.id;
           CustomerTelemetryService.pingSession(
-            customerId: widget.profileVM.profile.id,
+            customerId: custId,
             name: widget.profileVM.profile.name,
             email: widget.profileVM.profile.email,
             phone: widget.profileVM.profile.phone,
             isLogin: true,
           );
+          await widget.cartRepo.loadForCustomer(custId);
+          await widget.wishlistRepo.loadForCustomer(custId);
           setState(() {
             _isAuthenticated = true;
             _currentTabIndex = 0;
@@ -511,6 +519,8 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             country: country,
           );
           await SessionManager.saveSession();
+          await widget.cartRepo.loadForCustomer(newUserId);
+          await widget.wishlistRepo.loadForCustomer(newUserId);
           setState(() {
             _isAuthenticated = true;
             _currentTabIndex = 0;
@@ -553,6 +563,8 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             onProfileTap: () => setState(() => _currentTabIndex = 4),
             onSignOut: () async {
               await SessionManager.clearSession();
+              widget.cartRepo.clearCart(isSignOut: true);
+              widget.wishlistRepo.clearWishlist(isSignOut: true);
               setState(() {
                 _isAuthenticated = false;
                 _currentTabIndex = 0;
@@ -596,6 +608,8 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
             onBack: () => setState(() => _currentTabIndex = 0),
             onSignOut: () async {
               await SessionManager.clearSession();
+              widget.cartRepo.clearCart(isSignOut: true);
+              widget.wishlistRepo.clearWishlist(isSignOut: true);
               setState(() {
                 _isAuthenticated = false;
                 _currentTabIndex = 0;

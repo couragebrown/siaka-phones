@@ -16,6 +16,7 @@ class LocalSyncServer {
   static Timer? _debounce;
   static VoidCallback? _repoListener;
   static ManagerRepository? _listeningRepo;
+  static final Map<String, Map<String, dynamic>> _customerCartWishlist = {};
 
   static void _broadcast(String payload) {
     final dead = <HttpResponse>[];
@@ -270,6 +271,30 @@ class LocalSyncServer {
             request.response.statusCode = HttpStatus.ok;
             request.response.headers.contentType = ContentType.json;
             request.response.write(jsonEncode({'id': nextId, 'customerId': nextId}));
+            await request.response.close();
+          } else if (request.method == 'GET' && (path == '/api/cart-wishlist' || path == '/api/cart_wishlist')) {
+            final custId = request.uri.queryParameters['customerId'] ?? request.uri.queryParameters['id'] ?? '';
+            final data = _customerCartWishlist[custId] ?? {'cart': [], 'wishlist': []};
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(jsonEncode(data));
+            await request.response.close();
+          } else if (request.method == 'POST' && (path == '/api/cart-wishlist' || path == '/api/cart_wishlist')) {
+            final body = await _readRequestBody(request);
+            if (body.isNotEmpty) {
+              final data = jsonDecode(body) as Map<String, dynamic>;
+              final custId = data['customerId']?.toString() ?? data['id']?.toString() ?? '';
+              if (custId.isNotEmpty) {
+                _customerCartWishlist[custId] = {
+                  'cart': data['cart'] ?? data['cartItems'] ?? [],
+                  'wishlist': data['wishlist'] ?? data['wishlistItems'] ?? [],
+                  'updatedAt': DateTime.now().toIso8601String(),
+                };
+              }
+            }
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(jsonEncode({'success': true}));
             await request.response.close();
           } else if (request.method == 'POST' && (path == '/api/customers' || path == '/api/register')) {
             final body = await _readRequestBody(request);

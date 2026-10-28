@@ -419,6 +419,8 @@ class SupabaseService {
         endpoint = '/api/notifications';
       } else if (cat.contains('CUSTOMER') || id.startsWith('CUSTOMER_')) {
         endpoint = '/api/customers';
+      } else if (cat.contains('CART_WISHLIST') || id.startsWith('CART_WISHLIST_')) {
+        endpoint = '/api/cart-wishlist';
       }
       if (endpoint != null) {
         final req = await client.postUrl(Uri.parse('http://$host:8088$endpoint'));
@@ -748,6 +750,158 @@ class SupabaseService {
       debugPrint('⚠️ Mobile streamChatMessageRecords error: $e');
       return null;
     }
+  }
+
+  Future<bool> saveCustomerCartAndWishlist({
+    required String customerId,
+    required List<Map<String, dynamic>> cartItems,
+    required List<Map<String, dynamic>> wishlistItems,
+  }) async {
+    if (customerId.isEmpty) return false;
+    bool success = false;
+
+    // 1. Send to Local PC Manager on port 8088 if reachable
+    try {
+      final host = _activeLocalHost ?? (Platform.isAndroid ? '10.0.2.2' : '127.0.0.1');
+      final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 1500);
+      final req = await client.postUrl(Uri.parse('http://$host:8088/api/cart-wishlist'));
+      req.headers.contentType = ContentType.json;
+      req.write(jsonEncode({
+        'customerId': customerId,
+        'cart': cartItems,
+        'wishlist': wishlistItems,
+        'updatedAt': DateTime.now().toIso8601String(),
+      }));
+      await req.close().timeout(const Duration(milliseconds: 1500));
+      success = true;
+    } catch (_) {}
+
+    // 2. Try customer_cart_wishlist table in Supabase
+    try {
+      if (_isInitialized && client != null && !isQuotaRestricted) {
+        await client!.from('customer_cart_wishlist').upsert({
+          'customer_id': customerId,
+          'cart': cartItems,
+          'wishlist': wishlistItems,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).timeout(const Duration(milliseconds: 1500));
+        success = true;
+      }
+    } catch (_) {}
+
+    // 3. Universal fallback: products table with ID CART_WISHLIST_$customerId
+    try {
+      final fallbackRecord = {
+        'id': 'CART_WISHLIST_$customerId',
+        'name': 'Cart & Wishlist for $customerId',
+        'brand': customerId,
+        'category': 'CART_WISHLIST_RECORD',
+        'price': 0.0,
+        'stock': cartItems.length + wishlistItems.length,
+        'image': '',
+        'condition': 'active',
+        'storage': jsonEncode(cartItems),
+        'ram': jsonEncode(wishlistItems),
+        'color': '',
+        'specs': jsonEncode({
+          'customerId': customerId,
+          'cart': cartItems,
+          'wishlist': wishlistItems,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }),
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      await upsertRawRecord(fallbackRecord);
+      success = true;
+    } catch (_) {}
+
+    return success;
+  }
+
+  Future<Map<String, dynamic>?> fetchCustomerCartAndWishlist(String customerId) async {
+    if (customerId.isEmpty) return null;
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return null;
+
+    // 1. Try Local PC Manager on port 8088
+    try {
+      final host = _activeLocalHost ?? (Platform.isAndroid ? '10.0.2.2' : '127.0.0.1');
+      final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 1500);
+      final req = await client.getUrl(Uri.parse('http://$host:8088/api/cart-wishlist?customerId=$customerId'));
+      final resp = await req.close().timeout(const Duration(milliseconds: 1500));
+      if (resp.statusCode == HttpStatus.ok) {
+        final body = await resp.transform(utf8.decoder).join();
+        if (body.isNotEmpty) {
+          final data = jsonDecode(body) as Map<String, dynamic>;
+          if ((data['cart'] != null && (data['cart'] as List).isNotEmpty) ||
+              (data['wishlist'] != null && (data['wishlist'] as List).isNotEmpty)) {
+            return data;
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try customer_cart_wishlist table in Supabase
+    try {
+      if (_isInitialized && client != null && !isQuotaRestricted) {
+        final resp = await client!
+            .from('customer_cart_wishlist')
+            .select()
+            .eq('customer_id', customerId)
+            .maybeSingle()
+            .timeout(const Duration(milliseconds: 1500));
+        if (resp != null) {
+          return Map<String, dynamic>.from(resp);
+        }
+      }
+    } catch (_) {}
+
+    // 3. Universal fallback: products table with ID CART_WISHLIST_$customerId
+    try {
+      if (!_isInitialized || client == null) {
+        await initialize();
+      }
+      if (_isInitialized && client != null && !isQuotaRestricted) {
+        final resp = await client!
+            .from('products')
+            .select()
+            .eq('id', 'CART_WISHLIST_$customerId')
+            .maybeSingle()
+            .timeout(const Duration(milliseconds: 1500));
+        if (resp != null) {
+          final m = Map<String, dynamic>.from(resp);
+          List<dynamic> cartList = [];
+          List<dynamic> wishlistList = [];
+          if (m['specs'] != null) {
+            try {
+              final specsMap = jsonDecode(m['specs'].toString());
+              if (specsMap is Map) {
+                cartList = specsMap['cart'] as List? ?? [];
+                wishlistList = specsMap['wishlist'] as List? ?? [];
+              }
+            } catch (_) {}
+          }
+          if (cartList.isEmpty && m['storage'] != null) {
+            try {
+              final decoded = jsonDecode(m['storage'].toString());
+              if (decoded is List) cartList = decoded;
+            } catch (_) {}
+          }
+          if (wishlistList.isEmpty && m['ram'] != null) {
+            try {
+              final decoded = jsonDecode(m['ram'].toString());
+              if (decoded is List) wishlistList = decoded;
+            } catch (_) {}
+          }
+          return {
+            'customerId': customerId,
+            'cart': cartList,
+            'wishlist': wishlistList,
+          };
+        }
+      }
+    } catch (_) {}
+
+    return null;
   }
 }
 

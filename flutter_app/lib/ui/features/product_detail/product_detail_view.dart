@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/widgets/bottom_nav_scaffold.dart';
 import '../../core/widgets/featured_phone_card.dart';
 import '../../core/widgets/product_smart_image.dart';
@@ -80,13 +81,28 @@ class ProductDetailView extends StatelessWidget {
               ),
               onPressed: () => Navigator.of(context).pop(),
             ),
-            title: Text(
-              product.brand,
-              style: const TextStyle(
-                color: Color(0xFF111827),
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 3,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C7BFF),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  product.brand,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: const Color(0xFF1E2432),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
             ),
             centerTitle: true,
             actions: [
@@ -403,14 +419,29 @@ class ProductDetailView extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  product.name,
-                                  style: const TextStyle(
-                                    color: Color(0xFF111827),
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.3,
-                                  ),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 3.5,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1C7BFF),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Expanded(
+                                      child: Text(
+                                        product.name,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: const Color(0xFF1E2432),
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 GestureDetector(
@@ -505,12 +536,13 @@ class ProductDetailView extends StatelessWidget {
                       const SizedBox(height: 12),
 
                       // Storage Selection
-                      const Text(
+                      Text(
                         'Storage',
-                        style: TextStyle(
-                          color: Color(0xFF111827),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF1E2432),
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -553,12 +585,13 @@ class ProductDetailView extends StatelessWidget {
 
                       if (product.ramOptions.isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        const Text(
+                        Text(
                           'RAM',
-                          style: TextStyle(
-                            color: Color(0xFF111827),
+                          style: GoogleFonts.plusJakartaSans(
+                            color: const Color(0xFF1E2432),
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -605,10 +638,11 @@ class ProductDetailView extends StatelessWidget {
                       // Color Selection
                       Text(
                         'Color: ${viewModel.selectedColor}',
-                        style: const TextStyle(
-                          color: Color(0xFF111827),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF1E2432),
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -652,12 +686,13 @@ class ProductDetailView extends StatelessWidget {
                       // Quantity Selector
                       Row(
                         children: [
-                          const Text(
+                          Text(
                             'Quantity',
-                            style: TextStyle(
-                              color: Color(0xFF111827),
+                            style: GoogleFonts.plusJakartaSans(
+                              color: const Color(0xFF1E2432),
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -829,12 +864,13 @@ class ProductDetailView extends StatelessWidget {
                       const SizedBox(height: 14),
 
                       // Product Highlights
-                      const Text(
+                      Text(
                         'Product Highlights',
-                        style: TextStyle(
-                          color: Color(0xFF111827),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF1E2432),
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       const SizedBox(height: 8),

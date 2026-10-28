@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:siaka_phones_flutter/data/mock_data.dart';
 import 'package:siaka_phones_flutter/data/repositories/cart_repository.dart';
@@ -642,6 +643,7 @@ void main() {
     expect(find.text('Full Name'), findsOneWidget);
     expect(find.text('Username'), findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Optional'), findsOneWidget);
     expect(find.text('Phone Number'), findsOneWidget);
     expect(find.text('Detailed Address'), findsOneWidget);
     expect(find.text('Region'), findsOneWidget);
@@ -2794,6 +2796,53 @@ void main() {
     // Orders is now 1!
     expect(orderRepo.orders.length, 1);
     expect(find.text('0'), findsNothing);
+  });
+
+  test('customer cart and wishlist are saved and restored on customer login', () async {
+    SharedPreferences.setMockInitialValues({});
+    final cartRepo = CartRepository();
+    final wishlistRepo = WishlistRepository();
+
+    // 1. Customer A adds product to cart and wishlist
+    const customerA = 'CUST-0001';
+    await cartRepo.loadForCustomer(customerA);
+    await wishlistRepo.loadForCustomer(customerA);
+
+    final testProduct = MockData.products.first;
+    cartRepo.addToCart(testProduct, quantity: 2, color: 'Black Titanium', storage: '256 GB');
+    wishlistRepo.addToWishlist(testProduct);
+
+    expect(cartRepo.itemCount, 2);
+    expect(wishlistRepo.itemCount, 1);
+    expect(wishlistRepo.isWishlisted(testProduct.id), isTrue);
+    await Future.delayed(Duration.zero);
+
+    // 2. Customer A signs out: in-memory state is cleared
+    cartRepo.clearCart(isSignOut: true);
+    wishlistRepo.clearWishlist(isSignOut: true);
+
+    expect(cartRepo.itemCount, 0);
+    expect(wishlistRepo.itemCount, 0);
+
+    // 3. Customer A logs back in: cart and wishlist come back!
+    await cartRepo.loadForCustomer(customerA);
+    await wishlistRepo.loadForCustomer(customerA);
+
+    expect(cartRepo.itemCount, 2);
+    expect(cartRepo.items.first.product.id, testProduct.id);
+    expect(cartRepo.items.first.selectedColor, 'Black Titanium');
+    expect(cartRepo.items.first.selectedStorage, '256 GB');
+    expect(wishlistRepo.itemCount, 1);
+    expect(wishlistRepo.isWishlisted(testProduct.id), isTrue);
+
+    // 4. CartItem serialization roundtrip
+    final originalItem = cartRepo.items.first;
+    final map = originalItem.toMap();
+    final deserializedItem = CartItem.fromMap(map);
+    expect(deserializedItem.id, originalItem.id);
+    expect(deserializedItem.quantity, originalItem.quantity);
+    expect(deserializedItem.product.name, originalItem.product.name);
+    expect(deserializedItem.selectedColor, originalItem.selectedColor);
   });
 }
 
