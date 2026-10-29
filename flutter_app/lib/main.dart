@@ -22,6 +22,7 @@ import 'domain/models/order.dart';
 // Core UI & Theme
 import 'ui/core/app_theme.dart';
 import 'ui/core/widgets/bottom_nav_scaffold.dart';
+import 'ui/core/widgets/app_permission_dialog.dart';
 
 // Feature Views & ViewModels
 import 'ui/features/auth/login_view.dart';
@@ -253,6 +254,11 @@ class _AppRootNavigationHubState extends State<AppRootNavigationHub>
       widget.wishlistRepo.loadForCustomer(custId);
     }
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppPermissionDialog.showIfNeeded(context);
+      }
+    });
   }
 
   void _setupAuthCallbacks() {

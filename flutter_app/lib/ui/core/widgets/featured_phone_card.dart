@@ -21,7 +21,7 @@ class FeaturedPhoneCard extends StatelessWidget {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
-    return 'From ₵$formatted';
+    return 'Price ₵$formatted';
   }
 
   @override

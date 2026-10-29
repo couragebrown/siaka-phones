@@ -50,6 +50,8 @@ import 'package:siaka_phones_flutter/ui/features/orders/orders_view_model.dart';
 import 'package:siaka_phones_flutter/ui/core/widgets/running_light_arrow.dart';
 import 'package:siaka_phones_flutter/ui/core/widgets/banner_video_player.dart';
 import 'package:siaka_phones_flutter/ui/core/widgets/ai_customer_service_pill.dart';
+import 'package:siaka_phones_flutter/data/services/app_permission_service.dart';
+import 'package:siaka_phones_flutter/ui/core/widgets/app_permission_dialog.dart';
 
 
 
@@ -107,7 +109,7 @@ void main() {
 
     expect(find.text('Featured Phones'), findsOneWidget);
     expect(find.textContaining('iPhone 15 Pro Max'), findsOneWidget);
-    expect(find.text('From ₵1,099'), findsOneWidget);
+    expect(find.text('Price ₵1,099'), findsOneWidget);
     expect(find.text('New'), findsWidgets);
     expect(find.text('Buy Now'), findsWidgets);
 
@@ -2997,6 +2999,47 @@ void main() {
 
     // Verify Exit Guest Mode button is shown at the bottom
     expect(find.text('Exit Guest Mode'), findsOneWidget);
+  });
+
+  testWidgets(
+      'when app is newly installed and launched, permission prompt appears immediately asking user to allow required permissions',
+      (WidgetTester tester) async {
+    AppPermissionService.setPromptInTestOverride(true);
+    addTearDown(() => AppPermissionService.setPromptInTestOverride(null));
+
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: false));
+    await tester.pumpAndSettle();
+
+    // Verify permission dialog appears immediately on screen
+    expect(find.byType(AppPermissionDialog), findsOneWidget);
+    expect(find.text('Permissions Required'), findsOneWidget);
+    expect(find.text('Push Notifications'), findsOneWidget);
+    expect(find.text('Device Location'), findsOneWidget);
+    expect(find.text('Camera & Photos'), findsOneWidget);
+    expect(find.byKey(const ValueKey('allow_all_permissions_btn')), findsOneWidget);
+    expect(find.text('Allow All Permissions'), findsOneWidget);
+    expect(find.text('Maybe Later'), findsOneWidget);
+
+    // Tapping Allow All Permissions dismisses the prompt
+    await tester.tap(find.byKey(const ValueKey('allow_all_permissions_btn')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppPermissionDialog), findsNothing);
+  });
+
+  testWidgets('tapping Maybe Later dismisses the permission prompt',
+      (WidgetTester tester) async {
+    AppPermissionService.setPromptInTestOverride(true);
+    addTearDown(() => AppPermissionService.setPromptInTestOverride(null));
+
+    await tester.pumpWidget(const SiakaPhonesApp(startAuthenticated: true));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppPermissionDialog), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('dismiss_permissions_btn')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppPermissionDialog), findsNothing);
   });
 }
 

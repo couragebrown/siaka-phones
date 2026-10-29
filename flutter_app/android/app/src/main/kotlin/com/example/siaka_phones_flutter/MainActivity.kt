@@ -19,6 +19,7 @@ class MainActivity : FlutterActivity() {
     private val DIALER_CHANNEL = "com.siakaphones.app/dialer"
     private val NOTIFICATION_CHANNEL = "com.siakaphones.app/notifications"
     private val ANDROID_CHANNEL_ID = "siaka_phones_alerts_channel_v2"
+    private var hasRequestedPermissions = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -58,6 +59,10 @@ class MainActivity : FlutterActivity() {
                     requestNotificationPermission()
                     result.success(true)
                 }
+                "requestAllPermissions" -> {
+                    requestAllPermissions()
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -86,10 +91,45 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun requestNotificationPermission() {
+        if (hasRequestedPermissions) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                hasRequestedPermissions = true
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
             }
+        }
+    }
+
+    private fun requestAllPermissions() {
+        if (hasRequestedPermissions) return
+        hasRequestedPermissions = true
+        val permissionsToRequest = mutableListOf<String>()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if (checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES)
+            }
+        } else {
+            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }
+
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.CAMERA)
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            requestPermissions(permissionsToRequest.toTypedArray(), 1002)
         }
     }
 

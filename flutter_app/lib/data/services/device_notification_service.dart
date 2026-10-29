@@ -9,17 +9,7 @@ class DeviceNotificationService {
   static const MethodChannel _channel =
       MethodChannel('com.siakaphones.app/notifications');
 
-  DeviceNotificationService._internal() {
-    init();
-  }
-
-  void init() {
-    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
-    if (!Platform.isAndroid) return;
-    try {
-      _channel.invokeMethod('requestPermission');
-    } catch (_) {}
-  }
+  DeviceNotificationService._internal();
 
   Future<void> showNotification({
     required String title,

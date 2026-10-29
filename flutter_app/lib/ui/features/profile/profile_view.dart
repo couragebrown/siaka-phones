@@ -42,6 +42,30 @@ class ProfileView extends StatelessWidget {
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 
+  static const List<List<Color>> _avatarGradients = [
+    [Color(0xFF8B5CF6), Color(0xFF6D28D9)], // Electric Purple / Violet
+    [Color(0xFF059669), Color(0xFF047857)], // Emerald Green
+    [Color(0xFFF43F5E), Color(0xFFBE123C)], // Rose Crimson
+    [Color(0xFFD97706), Color(0xFFB45309)], // Warm Amber / Gold
+    [Color(0xFFFF2A85), Color(0xFFC026D3)], // Hot Pink / Fuchsia
+    [Color(0xFF0D9488), Color(0xFF0F766E)], // Deep Teal
+    [Color(0xFF1C7BFF), Color(0xFF0D5BD8)], // Royal Blue
+    [Color(0xFFEA580C), Color(0xFFC2410C)], // Sunset Orange
+    [Color(0xFF6366F1), Color(0xFF4338CA)], // Indigo
+    [Color(0xFF0284C7), Color(0xFF0369A1)], // Ocean Sky
+    [Color(0xFF10B981), Color(0xFF047857)], // Mint Jade
+    [Color(0xFF9333EA), Color(0xFF7E22CE)], // Neon Purple
+  ];
+
+  List<Color> _getAvatarGradient(String seed) {
+    if (seed.trim().isEmpty) return _avatarGradients[0];
+    int hash = 0;
+    for (int i = 0; i < seed.length; i++) {
+      hash = (hash * 31 + seed.codeUnitAt(i)) & 0x7FFFFFFF;
+    }
+    return _avatarGradients[hash % _avatarGradients.length];
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -99,10 +123,14 @@ class ProfileView extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: isGuest
                               ? null
-                              : const LinearGradient(
+                              : LinearGradient(
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
-                                  colors: [Color(0xFF1C7BFF), Color(0xFF0D5BD8)],
+                                  colors: _getAvatarGradient(
+                                    profile.id.isNotEmpty
+                                        ? '${profile.id}_${profile.name}'
+                                        : profile.name,
+                                  ),
                                 ),
                           color: isGuest ? const Color(0xFFF1F5F9) : null,
                           borderRadius: BorderRadius.circular(14),

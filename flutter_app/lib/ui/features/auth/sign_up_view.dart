@@ -660,10 +660,14 @@ class _SignUpViewState extends State<SignUpView> {
             padding: const EdgeInsets.only(top: 5, left: 4),
             child: Text(
               helperText,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
+              style: TextStyle(
+                color: helperText.toLowerCase().contains('optional')
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFF64748B),
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
+                fontWeight: helperText.toLowerCase().contains('optional')
+                    ? FontWeight.w600
+                    : FontWeight.w500,
               ),
             ),
           ),
