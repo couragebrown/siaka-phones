@@ -592,7 +592,7 @@ class MockManagerData {
     final now = DateTime.now();
     return [
       CustomerActivity(
-        id: 'SK-90001',
+        id: 'SK-00001',
         fullName: 'Kwame Mensah',
         phone: '+233 24 123 4567',
         email: 'kwame.mensah@gmail.com',
@@ -607,7 +607,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90002',
+        id: 'SK-00002',
         fullName: 'Abena Osei',
         phone: '+233 50 987 6543',
         email: 'abena.osei@outlook.com',
@@ -622,7 +622,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90003',
+        id: 'SK-00003',
         fullName: 'Kofi Annan Jr.',
         phone: '+233 27 889 0011',
         email: 'kofi.annan@yahoo.com',
@@ -637,7 +637,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90004',
+        id: 'SK-00004',
         fullName: 'Esi Boakye',
         phone: '+233 55 443 2211',
         email: 'esi.boakye@gmail.com',
@@ -652,7 +652,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90005',
+        id: 'SK-00005',
         fullName: 'Emmanuel Tetteh',
         phone: '+233 20 112 3344',
         email: 'e.tetteh@icloud.com',
@@ -667,7 +667,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90006',
+        id: 'SK-00006',
         fullName: 'Nana Yaa Darko',
         phone: '+233 24 556 7788',
         email: 'nana.darko@gmail.com',
@@ -682,7 +682,7 @@ class MockManagerData {
         isOnline: false,
       ),
       CustomerActivity(
-        id: 'SK-90007',
+        id: 'SK-00007',
         fullName: 'Bright Quaye',
         phone: '+233 54 887 6655',
         email: 'bright.q@gmail.com',
@@ -697,7 +697,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90008',
+        id: 'SK-00008',
         fullName: 'Jennifer Agyeman',
         phone: '+233 24 332 1199',
         email: 'jennifer.a@hotmail.com',
@@ -712,7 +712,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90009',
+        id: 'SK-00009',
         fullName: 'Samuel K. Adjei',
         phone: '+233 59 778 9900',
         email: 'samuel.adjei@gmail.com',
@@ -727,7 +727,7 @@ class MockManagerData {
         isOnline: false,
       ),
       CustomerActivity(
-        id: 'SK-90010',
+        id: 'SK-00010',
         fullName: 'Doris Akuffo',
         phone: '+233 26 445 6677',
         email: 'doris.akuffo@yahoo.com',
@@ -742,7 +742,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90011',
+        id: 'SK-00011',
         fullName: 'Yaw Frimpong',
         phone: '+233 50 112 9988',
         email: 'yaw.frimpong@gmail.com',
@@ -757,7 +757,7 @@ class MockManagerData {
         isOnline: false,
       ),
       CustomerActivity(
-        id: 'SK-90012',
+        id: 'SK-00012',
         fullName: 'Priscilla Antwi',
         phone: '+233 24 990 1122',
         email: 'priscilla.antwi@gmail.com',
@@ -772,7 +772,7 @@ class MockManagerData {
         isOnline: false,
       ),
       CustomerActivity(
-        id: 'SK-90013',
+        id: 'SK-00013',
         fullName: 'Grace Addo',
         phone: '+233 24 555 1290',
         email: 'grace.addo@gmail.com',
@@ -787,7 +787,7 @@ class MockManagerData {
         isOnline: true,
       ),
       CustomerActivity(
-        id: 'SK-90014',
+        id: 'SK-00014',
         fullName: 'Kelvin Boateng',
         phone: '+233 55 889 4433',
         email: 'kelvin.b@gmail.com',
@@ -809,7 +809,7 @@ class MockManagerData {
     return [
       CustomerMessage(
         id: 'MSG-2026-101',
-        customerId: 'SK-90001',
+        customerId: 'SK-00001',
         customerName: 'Kwame Mensah',
         customerPhone: '+233 24 123 4567',
         customerEmail: 'kwame.mensah@gmail.com',
@@ -822,7 +822,7 @@ class MockManagerData {
       ),
       CustomerMessage(
         id: 'MSG-2026-102',
-        customerId: 'SK-90002',
+        customerId: 'SK-00002',
         customerName: 'Abena Osei',
         customerPhone: '+233 20 987 6543',
         customerEmail: 'abena.osei@yahoo.com',
@@ -835,7 +835,7 @@ class MockManagerData {
       ),
       CustomerMessage(
         id: 'MSG-2026-103',
-        customerId: 'SK-90003',
+        customerId: 'SK-00003',
         customerName: 'Samuel Adjei',
         customerPhone: '+233 54 223 3445',
         customerEmail: 'samuel.adjei@gmail.com',
@@ -848,7 +848,7 @@ class MockManagerData {
       ),
       CustomerMessage(
         id: 'MSG-2026-104',
-        customerId: 'SK-90004',
+        customerId: 'SK-00004',
         customerName: 'Akosua Ansah',
         customerPhone: '+233 55 432 1098',
         customerEmail: 'akosua.ansah@gmail.com',
@@ -867,7 +867,7 @@ class MockManagerData {
     return [
       ServiceTicket(
         id: 'SRV-2026-001',
-        customerId: 'SK-90001',
+        customerId: 'SK-00001',
         customerName: 'Kwame Mensah',
         customerPhone: '+233 24 123 4567',
         customerEmail: 'kwame.mensah@gmail.com',

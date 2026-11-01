@@ -3016,6 +3016,13 @@ void main() {
     expect(find.text('Push Notifications'), findsOneWidget);
     expect(find.text('Device Location'), findsOneWidget);
     expect(find.text('Camera & Photos'), findsOneWidget);
+    expect(find.text('Videos, Audio & Storage', skipOffstage: false), findsOneWidget);
+    expect(find.text('Microphone & Voice', skipOffstage: false), findsOneWidget);
+    expect(find.text('Phone & Direct Calls', skipOffstage: false), findsOneWidget);
+    expect(find.text('Contacts Access', skipOffstage: false), findsOneWidget);
+    expect(find.text('Calendar & Reminders', skipOffstage: false), findsOneWidget);
+    expect(find.text('Nearby Devices & Bluetooth', skipOffstage: false), findsOneWidget);
+    expect(find.text('Biometric & Network Security', skipOffstage: false), findsOneWidget);
     expect(find.byKey(const ValueKey('allow_all_permissions_btn')), findsOneWidget);
     expect(find.text('Allow All Permissions'), findsOneWidget);
     expect(find.text('Maybe Later'), findsOneWidget);

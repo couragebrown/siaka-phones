@@ -7,7 +7,12 @@ class UserRepository extends ChangeNotifier {
 
   UserProfile _profile = MockData.profile;
 
-  UserProfile get profile => _profile;
+  UserProfile get profile {
+    if (_profile.id == 'SK-90001' && _profile.email == 'courage@siakaphones.com') {
+      _profile = _profile.copyWith(id: 'SK-00001');
+    }
+    return _profile;
+  }
 
   void updateProfile({String? name, String? phone, String? email, String? id}) {
     _profile = _profile.copyWith(

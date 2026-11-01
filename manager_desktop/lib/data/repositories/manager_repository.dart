@@ -864,6 +864,18 @@ class ManagerRepository extends ChangeNotifier {
     );
   }
 
+  String _normalizeLegacyCustomerId(String rawId) {
+    final trimmed = rawId.trim();
+    if (trimmed.isEmpty) return '';
+    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    final parsed = int.tryParse(digits);
+    if (parsed == null || parsed <= 0) return trimmed;
+    if (parsed >= 90001 && parsed <= 90999 && _customers.length < 1000) {
+      return formatCustomerId(parsed - 90000);
+    }
+    return formatCustomerId(parsed);
+  }
+
   CustomerActivity _customerFromSupabase(ManagerProduct p) {
     Map<String, dynamic> extra = {};
     try {
@@ -872,8 +884,12 @@ class ManagerRepository extends ChangeNotifier {
       }
     } catch (_) {}
 
-    final custId = extra['customerId']?.toString() ??
+    final rawCustId = extra['customerId']?.toString() ??
         (p.id.startsWith('CUSTOMER_') ? p.id.substring('CUSTOMER_'.length) : p.id);
+    final custId = _normalizeLegacyCustomerId(rawCustId);
+    if (custId != rawCustId && !Platform.environment.containsKey('FLUTTER_TEST')) {
+      _supabase.deleteProduct(p.id);
+    }
     final fullName = extra['fullName']?.toString() ?? p.name;
     final phone = extra['phone']?.toString() ?? (p.ram.isNotEmpty ? p.ram : '+233 24 000 0000');
     final email = extra['email']?.toString() ?? (p.color.isNotEmpty ? p.color : '');
@@ -891,7 +907,7 @@ class ManagerRepository extends ChangeNotifier {
     final branch = extra['branch']?.toString() ?? 'Accra Central (Circle)';
     final isOnline = extra['isOnline'] == true;
 
-    return CustomerActivity(
+    final activity = CustomerActivity(
       id: custId,
       fullName: fullName,
       phone: phone,
@@ -906,10 +922,15 @@ class ManagerRepository extends ChangeNotifier {
       branch: branch,
       isOnline: isOnline,
     );
+    if (custId != rawCustId) {
+      _syncCustomerToSupabase(activity);
+    }
+    return activity;
   }
 
   CustomerActivity _customerFromRecordMap(Map<String, dynamic> map) {
-    final custId = map['id']?.toString() ?? '';
+    final rawCustId = map['id']?.toString() ?? '';
+    final custId = _normalizeLegacyCustomerId(rawCustId);
     final fullName = map['full_name']?.toString() ?? map['name']?.toString() ?? 'Customer';
     final phone = map['phone']?.toString() ?? '';
     final email = map['email']?.toString() ?? '';
@@ -1172,9 +1193,14 @@ class ManagerRepository extends ChangeNotifier {
   List<ManagerSwap> get swaps => List.unmodifiable(_swaps);
   List<CustomerActivity> get customers => List.unmodifiable(_customers);
 
-  /// Generates the next chronological customer ID (e.g., SK-90015) based on highest existing ID
+  /// Formats chronological customer ID starting from SK-00001 up to SK-99999, then SK-100000+
+  static String formatCustomerId(int seq) {
+    return 'SK-${seq.toString().padLeft(5, '0')}';
+  }
+
+  /// Generates the next chronological customer ID (e.g., SK-00015) based on highest existing ID
   String generateNextCustomerId() {
-    int maxId = 90000;
+    int maxId = 0;
     for (final c in _customers) {
       final clean = c.id.replaceAll(RegExp(r'[^0-9]'), '');
       if (clean.isNotEmpty) {
@@ -1184,7 +1210,7 @@ class ManagerRepository extends ChangeNotifier {
         }
       }
     }
-    return 'SK-${maxId + 1}';
+    return formatCustomerId(maxId + 1);
   }
 
   /// Registers a customer from app sign-up or inbound order with a chronological ID

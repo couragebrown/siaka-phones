@@ -288,7 +288,7 @@ void main() {
       final initialSentCount = repository.sentMessages.length;
       final newMessage = CustomerMessage(
         id: 'msg_test_01',
-        customerId: 'SK-90001',
+        customerId: 'SK-00001',
         customerName: 'Kofi Mensah',
         customerPhone: '+233 24 412 3456',
         customerEmail: 'kofi.mensah@gmail.com',
@@ -398,9 +398,15 @@ void main() {
       expect(repository.activeMessagingCustomer!.id, startsWith('SK-'));
     });
 
-    test('Chronological customer ID generates and increases by 1 for each customer', () {
+    test('Chronological customer ID generates from SK-00001 and transitions past SK-99999 to SK-100000', () {
+      expect(ManagerRepository.formatCustomerId(1), equals('SK-00001'));
+      expect(ManagerRepository.formatCustomerId(99999), equals('SK-99999'));
+      expect(ManagerRepository.formatCustomerId(100000), equals('SK-100000'));
+      expect(ManagerRepository.formatCustomerId(100001), equals('SK-100001'));
+      expect(repository.customers.first.id, equals('SK-00001'));
+
       final initialNextId = repository.generateNextCustomerId();
-      expect(initialNextId, startsWith('SK-'));
+      expect(initialNextId, startsWith('SK-000'));
       final num1 = int.parse(initialNextId.replaceAll(RegExp(r'[^0-9]'), ''));
 
       final c1 = repository.registerCustomer(
@@ -420,7 +426,24 @@ void main() {
         email: 'customer2@siakaphones.com',
       );
       expect(c2.id, equals(secondNextId));
-      expect(c2.id, equals('SK-${num1 + 1}'));
+      expect(c2.id, equals('SK-${(num1 + 1).toString().padLeft(5, '0')}'));
+
+      // Verify transition from SK-99999 -> SK-100000 -> SK-100001
+      repository.registerCustomer(
+        id: 'SK-99999',
+        fullName: 'Milestone Customer',
+        phone: '+233 50 999 9999',
+        email: 'milestone@siakaphones.com',
+      );
+      expect(repository.generateNextCustomerId(), equals('SK-100000'));
+
+      final c100k = repository.registerCustomer(
+        fullName: 'Six Digit Customer',
+        phone: '+233 50 100 0000',
+        email: 'sixdigit@siakaphones.com',
+      );
+      expect(c100k.id, equals('SK-100000'));
+      expect(repository.generateNextCustomerId(), equals('SK-100001'));
     });
 
     test('Can dynamically add brand device models', () {
@@ -648,7 +671,7 @@ void main() {
 
       expect(find.text('CUSTOMER ID'), findsOneWidget);
       expect(find.text('EMAIL ADDRESS'), findsOneWidget);
-      expect(find.text('ID: SK-90001'), findsWidgets);
+      expect(find.text('ID: SK-00001'), findsWidgets);
     });
 
     testWidgets('Clicking message icon in Orders navigates to Customer Messaging with customer selected', (WidgetTester tester) async {

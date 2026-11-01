@@ -51,7 +51,7 @@ class SupportViewModel extends ChangeNotifier {
       final p = _userRepo?.profile ?? UserRepository.instance.profile;
       if (p.id.isNotEmpty) return p.id;
     } catch (_) {}
-    return 'SK-90001';
+    return 'SK-00001';
   }
 
   String get _effectiveCustomerName {

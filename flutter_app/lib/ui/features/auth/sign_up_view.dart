@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../data/services/live_location_service.dart';
 
 class SignUpView extends StatefulWidget {
   final VoidCallback onBack;
@@ -54,7 +55,69 @@ class _SignUpViewState extends State<SignUpView> {
 
   bool _passwordVisible = false;
   bool _acceptedTerms = false;
+  bool _isFetchingLiveLocation = false;
+  LiveLocationResult? _liveLocationResult;
   Map<String, String> _fieldErrors = {};
+
+  Future<void> _fetchAndApplyLiveLocation() async {
+    if (_isFetchingLiveLocation) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isFetchingLiveLocation = true;
+    });
+
+    try {
+      final result = await LiveLocationService.fetchLiveGpsCode(
+        selectedRegion: _selectedRegion,
+      );
+      if (!mounted) return;
+      setState(() {
+        _liveLocationResult = result;
+        _gpsCodeController.text = result.gpsCode;
+        _fieldErrors.remove('gpsCode');
+        if (_selectedRegion == null &&
+            result.detectedRegion != null &&
+            _regions.contains(result.detectedRegion)) {
+          _selectedRegion = result.detectedRegion;
+          _fieldErrors.remove('region');
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Live GPS location added: ${result.gpsCode}'),
+          backgroundColor: const Color(0xFF0F172A),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } on LiveLocationException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not fetch live location. You can also type your GPS code manually.'),
+          backgroundColor: Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingLiveLocation = false;
+        });
+      }
+    }
+  }
 
   static const List<String> _regions = [
     'Ahafo',
@@ -383,14 +446,7 @@ class _SignUpViewState extends State<SignUpView> {
         const SizedBox(height: 16),
         _buildRegionField(),
         const SizedBox(height: 16),
-        _buildInputGroup(
-          label: 'Ghana GPS Code',
-          controller: _gpsCodeController,
-          hintText: 'e.g. GA-123-4567',
-          prefixIcon: Icons.location_on_outlined,
-          focusNode: _gpsCodeFocusNode,
-          errorText: _fieldErrors['gpsCode'],
-        ),
+        _buildGpsCodeSection(),
         const SizedBox(height: 16),
         _buildInputGroup(
           label: 'Password',
@@ -552,6 +608,323 @@ class _SignUpViewState extends State<SignUpView> {
               style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildGpsCodeSection() {
+    final errorText = _fieldErrors['gpsCode'];
+    final hasError = errorText != null && errorText.isNotEmpty;
+    final hasLiveFix = _liveLocationResult != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ghana GPS Code',
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 7),
+        // Editable GPS Code field + clickable Map Icon on the right
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasError
+                  ? const Color(0xFFDC2626)
+                  : const Color(0xFFE2E8F0),
+              width: hasError ? 1.4 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 6,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.only(left: 14, right: 8),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 19,
+                color: Color(0xFF94A3B8),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _gpsCodeController,
+                  focusNode: _gpsCodeFocusNode,
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: (val) {
+                    if (val.trim().isNotEmpty && _fieldErrors.containsKey('gpsCode')) {
+                      setState(() => _fieldErrors.remove('gpsCode'));
+                    }
+                  },
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. GA-123-4567',
+                    hintStyle: TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              Tooltip(
+                message: 'Get live GPS location',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _isFetchingLiveLocation ? null : _fetchAndApplyLiveLocation,
+                    borderRadius: BorderRadius.circular(9),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                          color: const Color(0xFFBFDBFE),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Center(
+                        child: _isFetchingLiveLocation
+                            ? const SizedBox(
+                                width: 15,
+                                height: 15,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF1C7BFF),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.map_rounded,
+                                size: 18,
+                                color: Color(0xFF1C7BFF),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 5, left: 4),
+            child: Text(
+              errorText,
+              style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12),
+            ),
+          ),
+        const SizedBox(height: 10),
+        // Clickable Small Map Design under the GPS code field
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _isFetchingLiveLocation ? null : _fetchAndApplyLiveLocation,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              height: 98,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasLiveFix
+                      ? const Color(0xFF1C7BFF)
+                      : const Color(0xFFCBD5E1),
+                  width: hasLiveFix ? 1.3 : 1.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CustomPaint(
+                      painter: _LiveMiniMapPainter(isLocated: hasLiveFix),
+                    ),
+                    // Top-left Live Coordinates / Status Badge
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      right: 44,
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.94),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: hasLiveFix
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFF1C7BFF),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  hasLiveFix
+                                      ? _liveLocationResult!.formattedCoordinates
+                                      : 'Live GPS Map',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Top-right target badge
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.94),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Center(
+                          child: _isFetchingLiveLocation
+                              ? const SizedBox(
+                                  width: 13,
+                                  height: 13,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.8,
+                                    color: Color(0xFF1C7BFF),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.my_location_rounded,
+                                  size: 15,
+                                  color: Color(0xFF1C7BFF),
+                                ),
+                        ),
+                      ),
+                    ),
+                    // Bottom strip bar
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F172A).withValues(alpha: 0.72),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.pin_drop_rounded,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                _isFetchingLiveLocation
+                                    ? 'Detecting your live GPS location...'
+                                    : hasLiveFix
+                                        ? 'Live GPS: ${_liveLocationResult!.gpsCode} • Tap map to refresh'
+                                        : 'Tap map to get your current live GPS code',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        // Red instructional note under the map
+        const Padding(
+          padding: EdgeInsets.only(left: 2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: 1.5),
+                child: Icon(
+                  Icons.location_searching_rounded,
+                  size: 13,
+                  color: Color(0xFFDC2626),
+                ),
+              ),
+              SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  'Click on the map to add current live location',
+                  style: TextStyle(
+                    color: Color(0xFFDC2626),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -927,5 +1300,120 @@ class _ProfilePlusAvatar extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _LiveMiniMapPainter extends CustomPainter {
+  final bool isLocated;
+
+  const _LiveMiniMapPainter({required this.isLocated});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bgPaint = Paint()..color = const Color(0xFFEFF4F8);
+    canvas.drawRect(Offset.zero & size, bgPaint);
+
+    // Subtle green park patches
+    final parkPaint = Paint()..color = const Color(0xFFD9F2E1);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width * 0.05, size.height * 0.12, size.width * 0.24, size.height * 0.42),
+        const Radius.circular(6),
+      ),
+      parkPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width * 0.72, size.height * 0.18, size.width * 0.22, size.height * 0.36),
+        const Radius.circular(6),
+      ),
+      parkPaint,
+    );
+
+    // Subtle water curve on bottom-right
+    final waterPaint = Paint()
+      ..color = const Color(0xFFC7E2FE)
+      ..style = PaintingStyle.fill;
+    final waterPath = Path()
+      ..moveTo(size.width * 0.65, size.height)
+      ..quadraticBezierTo(
+        size.width * 0.78,
+        size.height * 0.62,
+        size.width,
+        size.height * 0.52,
+      )
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(waterPath, waterPaint);
+
+    // Secondary neighborhood streets
+    final minorRoadPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 3.2
+      ..style = PaintingStyle.stroke;
+    for (final frac in [0.22, 0.48, 0.74]) {
+      canvas.drawLine(
+        Offset(size.width * frac, 0),
+        Offset(size.width * (frac + 0.06), size.height),
+        minorRoadPaint,
+      );
+    }
+    canvas.drawLine(
+      Offset(0, size.height * 0.34),
+      Offset(size.width, size.height * 0.28),
+      minorRoadPaint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height * 0.68),
+      Offset(size.width, size.height * 0.74),
+      minorRoadPaint,
+    );
+
+    // Main arterial road
+    final mainRoadCasing = Paint()
+      ..color = const Color(0xFFCBD5E1)
+      ..strokeWidth = 7.0
+      ..style = PaintingStyle.stroke;
+    final mainRoadFill = Paint()
+      ..color = const Color(0xFFFEF9C3)
+      ..strokeWidth = 5.0
+      ..style = PaintingStyle.stroke;
+    final mainRoadPath = Path()
+      ..moveTo(0, size.height * 0.56)
+      ..quadraticBezierTo(
+        size.width * 0.48,
+        size.height * 0.42,
+        size.width,
+        size.height * 0.46,
+      );
+    canvas.drawPath(mainRoadPath, mainRoadCasing);
+    canvas.drawPath(mainRoadPath, mainRoadFill);
+
+    // Center GPS radar halo & pin
+    final pinCenter = Offset(size.width * 0.5, size.height * 0.45);
+    final accentColor = isLocated ? const Color(0xFF16A34A) : const Color(0xFF1C7BFF);
+
+    canvas.drawCircle(
+      pinCenter,
+      19,
+      Paint()..color = accentColor.withValues(alpha: 0.16),
+    );
+    canvas.drawCircle(
+      pinCenter,
+      19,
+      Paint()
+        ..color = accentColor.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+
+    // White ring + live dot
+    canvas.drawCircle(pinCenter, 8.5, Paint()..color = Colors.white);
+    canvas.drawCircle(pinCenter, 6.0, Paint()..color = accentColor);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LiveMiniMapPainter oldDelegate) {
+    return oldDelegate.isLocated != isLocated;
   }
 }

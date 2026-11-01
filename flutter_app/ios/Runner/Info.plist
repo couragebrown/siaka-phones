@@ -66,5 +66,31 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Siaka Phones uses your location to detect your GhanaPost GPS code, calculate accurate delivery, and find the nearest showroom.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Siaka Phones uses your location for live order delivery tracking, GhanaPost GPS autofill, and finding nearby stores.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Siaka Phones needs camera access to snap photos and videos for phone trade-ins, repair diagnostics, and Ghana Card verification.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Siaka Phones needs photo and video library access to upload device images, diagnostic videos, and ID documents.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Siaka Phones saves your order receipts, repair tickets, and trade-in quotes to your photo library.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Siaka Phones needs microphone access to record audio in repair diagnostic videos and voice support messages.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Siaka Phones uses contacts access so you can quickly choose delivery recipients or BNPL guarantor phone numbers.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Siaka Phones uses calendar access to add repair booking appointments and BNPL payment reminders.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Siaka Phones uses calendar access to schedule repair appointments and BNPL installment due-date reminders.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Siaka Phones uses Bluetooth for wireless audio accessory pairing, swap hardware diagnostics, and showroom check-in.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Siaka Phones uses Bluetooth to connect accessories and run trade-in device diagnostics.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Siaka Phones uses Face ID for fast, secure sign-in and BNPL checkout authorization.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Siaka Phones accesses media files for uploading diagnostic clips and playing store media.</string>
 </dict>
 </plist>

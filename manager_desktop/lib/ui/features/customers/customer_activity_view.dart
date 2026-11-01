@@ -127,7 +127,7 @@ class _CustomerActivityViewState extends State<CustomerActivityView> {
       return true;
     }).toList();
 
-    // Chronologically arranged by customer ID sequence (e.g. SK-90001, SK-90002...)
+    // Chronologically arranged by customer ID sequence (e.g. SK-00001, SK-00002...)
     list.sort((a, b) {
       final numA = int.tryParse(a.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
       final numB = int.tryParse(b.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
@@ -391,7 +391,7 @@ class _CustomerActivityViewState extends State<CustomerActivityView> {
                         controller: _searchController,
                         onChanged: (val) => setState(() => _searchQuery = val),
                         decoration: InputDecoration(
-                          hintText: 'Search customers by ID (e.g. SK-90001), name, phone, email, or device...',
+                          hintText: 'Search customers by ID (e.g. SK-00001), name, phone, email, or device...',
                           hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                           prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF64748B)),
                           suffixIcon: _searchQuery.isNotEmpty
@@ -448,7 +448,7 @@ class _CustomerActivityViewState extends State<CustomerActivityView> {
                           controller: _searchController,
                           onChanged: (val) => setState(() => _searchQuery = val),
                           decoration: InputDecoration(
-                            hintText: 'Search customers by ID (e.g. SK-90001), name, phone, email, or device...',
+                            hintText: 'Search customers by ID (e.g. SK-00001), name, phone, email, or device...',
                             hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                             prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF64748B)),
                             suffixIcon: _searchQuery.isNotEmpty

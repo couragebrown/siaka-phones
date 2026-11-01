@@ -4,11 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'supabase_service.dart';
 
-/// Provides chronological Customer ID numbering (e.g. SK-90015, SK-90016...)
+/// Provides chronological Customer ID numbering (e.g. SK-00015, SK-00016...)
 /// incrementing by 1 for each customer signup and synchronizing with PC Manager and Supabase.
 class CustomerIdService {
-  static const String _keyLastCustomerId = 'last_customer_seq_id';
-  static const int _defaultBaseSeq = 90014;
+  static const String _keyLastCustomerId = 'last_customer_seq_id_v2';
+  static const int _defaultBaseSeq = 14;
+
+  /// Formats chronological customer ID starting from SK-00001 up to SK-99999, then SK-100000+
+  static String formatCustomerId(int seq) => 'SK-${seq.toString().padLeft(5, '0')}';
 
   /// Generates the next chronological Customer ID and registers the customer.
   static Future<String> registerAndGenerateId({
@@ -50,12 +53,18 @@ class CustomerIdService {
         final assignedId = json['id']?.toString() ?? json['customerId']?.toString();
         if (assignedId != null && assignedId.isNotEmpty) {
           final digits = assignedId.replaceAll(RegExp(r'[^0-9]'), '');
-          final parsed = int.tryParse(digits);
-          if (parsed != null) {
+          int? parsed = int.tryParse(digits);
+          if (parsed != null && parsed > 0) {
+            final prevSeq = prefs.getInt(_keyLastCustomerId) ?? _defaultBaseSeq;
+            if (parsed >= 90001 && parsed <= 90999 && prevSeq < 1000) {
+              parsed = parsed - 90000;
+            }
             await prefs.setInt(_keyLastCustomerId, parsed);
+            registeredId = formatCustomerId(parsed);
+          } else {
+            registeredId = assignedId;
           }
-          debugPrint('✅ Registered customer on PC Manager: $assignedId');
-          registeredId = assignedId;
+          debugPrint('✅ Registered customer on PC Manager: $registeredId');
         }
       }
     } catch (_) {
@@ -71,7 +80,7 @@ class CustomerIdService {
       final nextSeq = currentSeq + 1;
       await prefs.setInt(_keyLastCustomerId, nextSeq);
 
-      registeredId = 'SK-$nextSeq';
+      registeredId = formatCustomerId(nextSeq);
       debugPrint('✅ Generated sequential customer ID: $registeredId');
     }
 
