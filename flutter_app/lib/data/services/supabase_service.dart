@@ -19,6 +19,16 @@ class SupabaseService {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
+  static final Map<String, DateTime> _lastLogTimes = {};
+  static void _logThrottled(String key, String message, {Duration interval = const Duration(minutes: 1)}) {
+    final now = DateTime.now();
+    final last = _lastLogTimes[key];
+    if (last == null || now.difference(last) > interval) {
+      _lastLogTimes[key] = now;
+      debugPrint(message);
+    }
+  }
+
   SupabaseClient? get client => _isInitialized ? Supabase.instance.client : null;
 
   Future<void> initialize() async {
@@ -441,7 +451,7 @@ class SupabaseService {
       return true;
     } catch (e) {
       checkAndHandleQuotaError(e);
-      debugPrint('⚠️ Error upserting record to Supabase: $e');
+      _logThrottled('upsertRawRecord', '⚠️ Error upserting record to Supabase: $e');
       return false;
     }
   }
@@ -535,7 +545,7 @@ class SupabaseService {
           .toList();
     } catch (e) {
       checkAndHandleQuotaError(e);
-      debugPrint('ℹ️ Mobile fetchOrderRecords error: $e');
+      _logThrottled('fetchOrderRecords', 'ℹ️ Mobile fetchOrderRecords error: $e');
       return null;
     }
   }

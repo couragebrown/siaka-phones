@@ -2478,9 +2478,12 @@ class ManagerRepository extends ChangeNotifier {
         }
       } catch (_) {}
 
-      // Continuous 3-second auto-poll guarantees live customer, activity metrics, & chat messages from customer app are fetched
+      // Periodic auto-poll guarantees live customer, activity metrics, & chat messages from customer app are fetched
       _syncPollTimer?.cancel();
-      _syncPollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      bool isAutoPollActive = false;
+      _syncPollTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+        if (isAutoPollActive) return;
+        isAutoPollActive = true;
         try {
           final live = await _supabase.fetchProducts();
           if (live != null) {
@@ -2518,7 +2521,10 @@ class ManagerRepository extends ChangeNotifier {
           if (_categoryRevenueSyncTick == 0) {
             syncCategoryRevenueToDatabase();
           }
-        } catch (_) {}
+        } catch (_) {
+        } finally {
+          isAutoPollActive = false;
+        }
       });
       syncCustomerActivityMetricsToSupabase();
       syncCategoryRevenueToDatabase();

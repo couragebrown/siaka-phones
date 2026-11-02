@@ -78,9 +78,11 @@ class OrderRepository extends ChangeNotifier {
     _fetchRemoteOrders();
     _startRealtimeOrderStream();
     _listenLocalOrderEvents();
+    int remoteOrderPollTick = 0;
     _syncPollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       _fetchLocalManagerOrders();
-      if (!SupabaseService.isQuotaRestricted) {
+      remoteOrderPollTick = (remoteOrderPollTick + 1) % 5;
+      if (remoteOrderPollTick == 0 && !SupabaseService.isQuotaRestricted) {
         _fetchRemoteOrders();
       }
     });
@@ -329,13 +331,19 @@ class OrderRepository extends ChangeNotifier {
     } catch (_) {}
   }
 
+  bool _isFetchingRemoteOrders = false;
   Future<void> _fetchRemoteOrders() async {
+    if (_isFetchingRemoteOrders) return;
+    _isFetchingRemoteOrders = true;
     try {
       final records = await SupabaseService().fetchOrderRecords();
       if (records != null && records.isNotEmpty) {
         _applyRemoteOrders(records);
       }
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      _isFetchingRemoteOrders = false;
+    }
   }
 
   void _startRealtimeOrderStream() {

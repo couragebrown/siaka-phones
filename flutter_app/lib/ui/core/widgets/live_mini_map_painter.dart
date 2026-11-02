@@ -114,3 +114,4 @@ class LiveMiniMapPainter extends CustomPainter {
     return oldDelegate.isLocated != isLocated;
   }
 }
+

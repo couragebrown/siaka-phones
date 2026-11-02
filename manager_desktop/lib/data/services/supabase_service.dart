@@ -21,6 +21,16 @@ class SupabaseService {
   bool _isQuotaExceeded = false;
   bool get isQuotaExceeded => _isQuotaExceeded;
 
+  static final Map<String, DateTime> _lastLogTimes = {};
+  static void _logThrottled(String key, String message, {Duration interval = const Duration(minutes: 1)}) {
+    final now = DateTime.now();
+    final last = _lastLogTimes[key];
+    if (last == null || now.difference(last) > interval) {
+      _lastLogTimes[key] = now;
+      debugPrint(message);
+    }
+  }
+
   bool checkIsQuotaError(dynamic error) {
     final s = error.toString().toLowerCase();
     return s.contains('quota') ||
@@ -159,7 +169,7 @@ class SupabaseService {
       final List<dynamic> data = response as List<dynamic>;
       return data.map((json) => productFromMap(json as Map<String, dynamic>)).toList();
     } catch (e) {
-      debugPrint('ℹ️ Could not fetch products from Supabase (table might not exist yet or offline): $e');
+      _logThrottled('fetchProducts', 'ℹ️ Could not fetch products from Supabase (table might not exist yet or offline): $e');
       return null;
     }
   }
@@ -245,7 +255,7 @@ class SupabaseService {
       final List<dynamic> data = response as List<dynamic>;
       return data.map((json) => json as Map<String, dynamic>).toList();
     } catch (e) {
-      debugPrint('ℹ️ Supabase customers table fetch notice: $e');
+      _logThrottled('fetchCustomerRecords', 'ℹ️ Supabase customers table fetch notice: $e');
       return null;
     }
   }
