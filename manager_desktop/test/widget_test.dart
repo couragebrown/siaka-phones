@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:manager_desktop/data/repositories/manager_repository.dart';
+import 'package:manager_desktop/data/services/order_print_service.dart';
 import 'package:manager_desktop/domain/models/customer_message.dart';
 import 'package:manager_desktop/domain/models/manager_bnpl.dart';
 import 'package:manager_desktop/domain/models/manager_order.dart';
@@ -106,24 +107,55 @@ void main() {
       expect(repository.orders.length, equals(initialCount));
       expect(repository.orders.any((o) => o.id.contains('99999')), isFalse);
 
-      // 3. Legitimate order should be accepted
-      repository.processInboundCustomerOrder({
+      // 3. Legitimate order should be accepted and assigned chronological ORD-xxxxxx ID
+      final assignedId = repository.processInboundCustomerOrder({
         'id': 'ORDER_SP-777888',
         'category': 'ORDER_RECORD',
         'customerName': 'Valid Customer',
         'totalAmount': 2500.0,
       });
+      expect(assignedId, isNotNull);
+      expect(assignedId!.startsWith('ORD-'), isTrue);
       expect(repository.orders.length, equals(initialCount + 1));
-      expect(repository.orders.any((o) => o.id == 'ORDER_SP-777888'), isTrue);
+      expect(repository.orders.any((o) => o.id == assignedId), isTrue);
 
       // 4. Duplicate inbound order should be deduplicated (not create another duplicate)
-      repository.processInboundCustomerOrder({
+      final secondId = repository.processInboundCustomerOrder({
         'id': 'ORDER_SP-777888',
         'category': 'ORDER_RECORD',
         'customerName': 'Valid Customer Updated',
         'totalAmount': 2500.0,
       });
+      expect(secondId, equals(assignedId));
       expect(repository.orders.length, equals(initialCount + 1));
+    });
+
+    test('Chronological order ID generates from ORD-000001 and transitions past ORD-999999 to ORD-1000000', () {
+      expect(ManagerRepository.formatOrderId(1), equals('ORD-000001'));
+      expect(ManagerRepository.formatOrderId(999999), equals('ORD-999999'));
+      expect(ManagerRepository.formatOrderId(1000000), equals('ORD-1000000'));
+
+      final next1 = repository.generateNextOrderId();
+      expect(next1, matches(RegExp(r'^ORD-\d{6,}$')));
+      final seq1 = ManagerRepository.extractOrderSeq(next1)!;
+
+      final added1 = repository.processInboundCustomerOrder({
+        'id': 'ORDER_$next1',
+        'category': 'ORDER_RECORD',
+        'customerName': 'Chrono Buyer One',
+        'totalAmount': 1200.0,
+      });
+      expect(added1, equals(next1));
+      expect(repository.generateNextOrderId(), equals(ManagerRepository.formatOrderId(seq1 + 1)));
+
+      // Verify transition past ORD-999999 -> ORD-1000000
+      repository.processInboundCustomerOrder({
+        'id': 'ORDER_ORD-999999',
+        'category': 'ORDER_RECORD',
+        'customerName': 'Milestone Order Buyer',
+        'totalAmount': 5000.0,
+      });
+      expect(repository.generateNextOrderId(), equals('ORD-1000000'));
     });
 
     test('Can add and update product inventory with wholesale/retail pricing, color, and specs list', () {
@@ -1052,6 +1084,302 @@ void main() {
       expect(find.text('FROM'), findsOneWidget);
       expect(find.text('TO'), findsOneWidget);
       expect(find.text('Reset'), findsOneWidget);
+    });
+
+    testWidgets('Orders page displays QUANTITY column, Repair-Desk-style Details dialog, and toolbar one-sheet Print preview of all page items without amounts', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(const SiakaManagerApp());
+      await tester.pumpAndSettle();
+
+      // Navigate to Orders
+      await tester.tap(find.text('Orders'));
+      await tester.pumpAndSettle();
+
+      // Verify chronological ORD-xxxxxx IDs, custom date controls, QUANTITY column, Details buttons, and top Print Order Placed List button
+      expect(find.text('ORD-000011'), findsOneWidget);
+      expect(find.text('ORD-000010'), findsOneWidget);
+      expect(find.text('ORD-000001'), findsOneWidget);
+      expect(find.text('All Dates'), findsOneWidget);
+      expect(find.text('Today'), findsOneWidget);
+      expect(find.text('Yesterday'), findsOneWidget);
+      expect(find.text('Last 7 Days'), findsOneWidget);
+      expect(find.byKey(const ValueKey('orders_pick_single_day_btn')), findsOneWidget);
+      expect(find.text('FROM'), findsOneWidget);
+      expect(find.text('TO'), findsOneWidget);
+      expect(find.text('Reset'), findsOneWidget);
+      expect(find.text('QUANTITY'), findsOneWidget);
+      expect(find.byKey(const ValueKey('print_orders_list_btn')), findsOneWidget);
+      expect(find.text('Print Order Placed List'), findsOneWidget);
+      expect(find.byIcon(Icons.print_outlined), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(DataTable),
+          matching: find.byIcon(Icons.local_shipping_outlined),
+        ),
+        findsNothing,
+      );
+      expect(find.byTooltip('Manage Delivery in Shipping Hub'), findsNothing);
+      expect(find.text('Details'), findsWidgets);
+      expect(find.text('Receipt'), findsWidgets);
+      expect(find.byKey(const ValueKey('order_receipt_btn_ORD-000011')), findsOneWidget);
+      expect(find.text('Qty: 1'), findsWidgets);
+      expect(find.text('Item 1: iPhone 15 Pro Max'), findsOneWidget);
+      expect(find.text('Item 2: Apple AirPods Pro 2nd Gen'), findsOneWidget);
+      expect(find.text('Item 1 → Qty: 1'), findsOneWidget);
+      expect(find.text('Item 2 → Qty: 1'), findsOneWidget);
+      expect(find.text('Total: 2 Items'), findsOneWidget);
+
+      // Test date filtering: filter to 'Yesterday' hides 3-day-old ORD-000001, then 'Reset' restores all orders
+      await tester.tap(find.text('Yesterday'));
+      await tester.pumpAndSettle();
+      expect(find.text('ORD-000001'), findsNothing);
+
+      await tester.tap(find.text('Reset'));
+      await tester.pumpAndSettle();
+      expect(find.text('ORD-000001'), findsOneWidget);
+      expect(find.text('ORD-000011'), findsOneWidget);
+
+      // Click Details on the first order (ORD-000011)
+      final firstDetailsBtn = find.text('Details').first;
+      await tester.ensureVisible(firstDetailsBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(firstDetailsBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Order #ORD-000011'), findsOneWidget);
+      expect(find.text('CUSTOMER INFORMATION'), findsOneWidget);
+      expect(find.text('GHANA DELIVERY & LOCATION DETAILS'), findsOneWidget);
+      expect(find.text('Order Placed — List of Items & Quantities'), findsOneWidget);
+      expect(find.byKey(const ValueKey('details_footer_print_btn')), findsNothing);
+
+      // Close Order Details dialog
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+
+      // Click individual Receipt button on the first order (ORD-000011)
+      final firstReceiptBtn = find.byKey(const ValueKey('order_receipt_btn_ORD-000011'));
+      await tester.ensureVisible(firstReceiptBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(firstReceiptBtn);
+      await tester.pumpAndSettle();
+
+      final receiptDialog = find.byKey(const ValueKey('order_receipt_preview_dialog'));
+      expect(receiptDialog, findsOneWidget);
+      expect(find.text('Order Receipt — #ORD-000011'), findsOneWidget);
+      expect(find.text('OFFICIAL SALES RECEIPT'), findsOneWidget);
+      expect(find.text('RCP-000011'), findsOneWidget);
+      expect(find.text('*ORD-000011*'), findsOneWidget);
+      expect(find.text('RETURN & EXCHANGE VERIFICATION'), findsOneWidget);
+      expect(find.text('Print Receipt (80mm)'), findsOneWidget);
+
+      // Switch to 58mm Mini Roll and confirm label updates
+      await tester.tap(find.byKey(const ValueKey('receipt_size_58mm_chip')));
+      await tester.pumpAndSettle();
+      expect(find.text('Print Receipt (58mm)'), findsOneWidget);
+
+      // Trigger Print Receipt (test-safe)
+      await tester.tap(find.byKey(const ValueKey('confirm_print_order_receipt_btn')));
+      await tester.pumpAndSettle();
+      expect(receiptDialog, findsNothing);
+
+      // Click top Print Order Placed List button to preview ALL items on the page on one sheet
+      await tester.tap(find.byKey(const ValueKey('print_orders_list_btn')));
+      await tester.pumpAndSettle();
+
+      final listPrintDialog = find.byKey(const ValueKey('orders_list_print_preview_dialog'));
+      expect(listPrintDialog, findsOneWidget);
+      expect(find.text('Print Order Placed — List of Items'), findsOneWidget);
+      expect(find.text('Amounts & prices hidden on printout'), findsOneWidget);
+      // Verify multi-item order ORD-000010 explicitly labels Item 1 of 2 and Item 2 of 2 with each item's Qty
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.text('2 Items • Qty: 2')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.text('Item 1 of 2')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.text('Item 2 of 2')),
+        findsOneWidget,
+      );
+      // Verify items from MULTIPLE orders across different statuses on the page all appear in the popup
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.text('MacBook Air M2 (2023)')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.text('iPhone 15 Pro Max')),
+        findsWidgets,
+      );
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.text('Apple AirPods Pro 2nd Gen')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.text('Dell XPS 13 Plus 9320')),
+        findsOneWidget,
+      );
+      // Verify NO currency or price amounts appear anywhere inside the print preview dialog
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.textContaining('GH₵')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: listPrintDialog, matching: find.textContaining('14,800')),
+        findsNothing,
+      );
+
+      // Trigger Print Now (test-safe)
+      await tester.tap(find.byKey(const ValueKey('confirm_print_orders_list_btn')));
+      await tester.pumpAndSettle();
+      expect(listPrintDialog, findsNothing);
+
+      // Verify HTML one-sheet builder groups multi-item orders with clear per-item quantities and zero prices
+      final multiItemSample = ManagerOrder(
+        id: 'ORDER_ORD-000099',
+        customerName: 'Ama Serwaa',
+        customerEmail: 'ama@example.com',
+        customerPhone: '0244123456',
+        deliveryAddress: 'Osu Oxford Street',
+        region: 'Greater Accra',
+        gpsCode: 'GA-111-2222',
+        date: DateTime(2026, 11, 2, 10, 30),
+        items: const [
+          OrderItem(
+            title: 'Samsung Galaxy S24 Ultra',
+            brand: 'Samsung',
+            price: 18500,
+            quantity: 3,
+            specs: '512GB Titanium',
+          ),
+          OrderItem(
+            title: 'Anker 45W Fast Charger',
+            brand: 'Anker',
+            price: 450,
+            quantity: 2,
+            specs: 'USB-C PD',
+          ),
+        ],
+        totalAmount: 56400,
+        paymentMethod: 'Mobile Money',
+      );
+      final repo = ManagerRepository();
+      final listHtml = OrderPrintService.buildOrdersPlacedItemsListHtml(
+        [multiItemSample, ...repo.orders],
+        branchName: 'Accra Central (Circle)',
+        scopeTitle: 'All Orders on Page',
+      );
+      expect(listHtml, contains('ORD-000099'));
+      expect(listHtml, contains('rowspan="2"'));
+      expect(listHtml, contains('2 Different Items • Order Qty: 5'));
+      expect(listHtml, contains('Item 1 of 2'));
+      expect(listHtml, contains('Qty: 3'));
+      expect(listHtml, contains('Item 2 of 2'));
+      expect(listHtml, contains('Qty: 2'));
+      expect(listHtml, contains('ORD-000010'));
+      expect(listHtml, contains('ORD-000011'));
+      expect(listHtml, contains('iPhone 15 Pro Max'));
+      expect(listHtml, contains('MacBook Air M2 (2023)'));
+      expect(listHtml, contains('page-break-inside: avoid'));
+      expect(listHtml, isNot(contains('GH₵')));
+      expect(listHtml, isNot(contains('56400')));
+      expect(listHtml, isNot(contains('18500')));
+      expect(listHtml, isNot(contains('19600')));
+      expect(listHtml, isNot(contains('14800')));
+
+      // Verify compact thermal POS receipt HTML uses 80mm / 58mm page sizing and includes return verification & totals
+      final receiptHtml80 = OrderPrintService.buildOrderReceiptHtml(
+        multiItemSample,
+        branchName: 'Accra Central (Circle)',
+        paperWidthMm: 80,
+      );
+      expect(receiptHtml80, contains('size: 80mm auto;'));
+      expect(receiptHtml80, contains('width: 72mm;'));
+      expect(receiptHtml80, contains('OFFICIAL SALES RECEIPT'));
+      expect(receiptHtml80, contains('RCP-000099'));
+      expect(receiptHtml80, contains('*ORD-000099*'));
+      expect(receiptHtml80, contains('Samsung Galaxy S24 Ultra'));
+      expect(receiptHtml80, contains('Anker 45W Fast Charger'));
+      expect(receiptHtml80, contains('GH₵ 56,400.00'));
+      expect(receiptHtml80, contains('RETURN &amp; EXCHANGE VERIFICATION'));
+
+      final receiptHtml58 = OrderPrintService.buildOrderReceiptHtml(
+        multiItemSample,
+        branchName: 'Accra Central (Circle)',
+        paperWidthMm: 58,
+      );
+      expect(receiptHtml58, contains('size: 58mm auto;'));
+      expect(receiptHtml58, contains('width: 50mm;'));
+    });
+
+    test('updateShippingStatus updates linked order and generates customer shipping notification', () {
+      final repo = ManagerRepository();
+      expect(repo.orders.isNotEmpty, isTrue);
+      expect(repo.shipments.isNotEmpty, isTrue);
+
+      final shipment = repo.shipments.first;
+      final initialNotifsCount = repo.customerNotifications.length;
+
+      repo.updateShippingStatus(
+        shipment.id,
+        ShippingStatus.outForDelivery,
+        locationUpdate: 'Madina Zongo Junction Hub',
+        courier: 'Speedy Couriers Ltd',
+        riderPhone: '+233 20 123 4567',
+        notes: 'Handed to motorcycle rider',
+      );
+
+      expect(shipment.status, equals(ShippingStatus.outForDelivery));
+      expect(shipment.lastLocationUpdate, equals('Madina Zongo Junction Hub'));
+      expect(shipment.courier, equals('Speedy Couriers Ltd'));
+      expect(shipment.dispatchRiderPhone, equals('+233 20 123 4567'));
+
+      // Verify customer notification was generated
+      expect(repo.customerNotifications.length, greaterThan(initialNotifsCount));
+      final latestNotif = repo.customerNotifications.first;
+      expect(latestNotif['title'], contains('Out for Delivery'));
+      expect(latestNotif['body'], contains('Madina Zongo Junction Hub'));
+      expect(latestNotif['body'], contains('Speedy Couriers Ltd'));
+
+      // Verify linked order status updated
+      final linkedOrder = repo.orders.cast<ManagerOrder?>().firstWhere(
+        (o) => o != null && (o.id == shipment.orderOrProcessId || o.id.contains(shipment.orderOrProcessId)),
+        orElse: () => null,
+      );
+      if (linkedOrder != null) {
+        expect(linkedOrder.status, equals(OrderStatus.outForDelivery));
+      }
+    });
+
+    testWidgets('ShippingView renders full-width DataTable extending across available width', (tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(const SiakaManagerApp());
+      await tester.pumpAndSettle();
+
+      // Navigate to Shipping tab
+      final shippingTile = find.text('Shipping');
+      expect(shippingTile, findsOneWidget);
+      await tester.tap(shippingTile);
+      await tester.pumpAndSettle();
+
+      // Verify DataTable rendered with minWidth constrained to at least 1220 or available width
+      final constrainedBoxFinder = find.descendant(
+        of: find.byType(SingleChildScrollView),
+        matching: find.byType(ConstrainedBox),
+      );
+      expect(constrainedBoxFinder, findsWidgets);
+
+      final dataTableFinder = find.byType(DataTable);
+      expect(dataTableFinder, findsOneWidget);
+      final dataTableSize = tester.getSize(dataTableFinder);
+      expect(dataTableSize.width, greaterThanOrEqualTo(1220.0));
     });
   });
 }

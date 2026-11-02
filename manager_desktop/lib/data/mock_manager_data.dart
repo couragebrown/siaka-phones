@@ -26,7 +26,12 @@ class MockManagerData {
         storage: '256GB',
         ram: '8GB',
         color: 'Natural Titanium',
-        colors: const ['Natural Titanium', 'Space Black', 'Silver / White', 'Desert Titanium / Gold'],
+        colors: const [
+          'Natural Titanium',
+          'Space Black',
+          'Silver / White',
+          'Desert Titanium / Gold',
+        ],
         isFeatured: true,
         condition: 'New',
         imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&auto=format&fit=crop&q=80',
@@ -43,7 +48,12 @@ class MockManagerData {
         storage: '512GB',
         ram: '12GB',
         color: 'Titanium Gray',
-        colors: const ['Titanium Gray', 'Space Black', 'Amber Yellow', 'Deep Purple'],
+        colors: const [
+          'Titanium Gray',
+          'Space Black',
+          'Amber Yellow',
+          'Deep Purple',
+        ],
         isFeatured: true,
         condition: 'UK Used',
         imageUrl: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&auto=format&fit=crop&q=80',
@@ -157,7 +167,7 @@ class MockManagerData {
     final now = DateTime.now();
     return [
       ManagerOrder(
-        id: 'SP-8822',
+        id: 'ORD-000011',
         customerName: 'Samuel Dogbe',
         customerEmail: 'samuel.dogbe@gmail.com',
         customerPhone: '+233 24 991 2233',
@@ -179,7 +189,7 @@ class MockManagerData {
         status: OrderStatus.delivered,
       ),
       ManagerOrder(
-        id: 'SP-8821',
+        id: 'ORD-000010',
         customerName: 'Kwame Asante',
         customerEmail: 'k.asante@gmail.com',
         customerPhone: '+233 24 812 3456',
@@ -207,7 +217,7 @@ class MockManagerData {
         status: OrderStatus.pending,
       ),
       ManagerOrder(
-        id: 'SP-8823',
+        id: 'ORD-000009',
         customerName: 'Kofi Boadi',
         customerEmail: 'k.boadi@stanbic.com.gh',
         customerPhone: '+233 55 334 1122',
@@ -229,7 +239,7 @@ class MockManagerData {
         status: OrderStatus.delivered,
       ),
       ManagerOrder(
-        id: 'SP-8824',
+        id: 'ORD-000008',
         customerName: 'Grace Antwi',
         customerEmail: 'grace.antwi@gmail.com',
         customerPhone: '+233 50 887 6655',
@@ -251,7 +261,7 @@ class MockManagerData {
         status: OrderStatus.dispatched,
       ),
       ManagerOrder(
-        id: 'SP-8820',
+        id: 'ORD-000007',
         customerName: 'Abena Mensah',
         customerEmail: 'abena.m@yahoo.com',
         customerPhone: '+233 50 491 8823',
@@ -273,7 +283,7 @@ class MockManagerData {
         status: OrderStatus.confirmed,
       ),
       ManagerOrder(
-        id: 'SP-8825',
+        id: 'ORD-000006',
         customerName: 'Joshua Addo',
         customerEmail: 'joshua.addo@outlook.com',
         customerPhone: '+233 27 554 9911',
@@ -295,7 +305,7 @@ class MockManagerData {
         status: OrderStatus.delivered,
       ),
       ManagerOrder(
-        id: 'SP-8819',
+        id: 'ORD-000005',
         customerName: 'Daniel Osei',
         customerEmail: 'd.osei@outlook.com',
         customerPhone: '+233 20 776 5432',
@@ -317,7 +327,7 @@ class MockManagerData {
         status: OrderStatus.dispatched,
       ),
       ManagerOrder(
-        id: 'SP-8826',
+        id: 'ORD-000004',
         customerName: 'Cynthia Mensah',
         customerEmail: 'cynthia.m@yahoo.com',
         customerPhone: '+233 24 112 8844',
@@ -339,7 +349,7 @@ class MockManagerData {
         status: OrderStatus.delivered,
       ),
       ManagerOrder(
-        id: 'SP-8818',
+        id: 'ORD-000003',
         customerName: 'Esi Frimpong',
         customerEmail: 'esi.f@gmail.com',
         customerPhone: '+233 27 123 9988',
@@ -360,7 +370,7 @@ class MockManagerData {
         status: OrderStatus.delivered,
       ),
       ManagerOrder(
-        id: 'SP-8827',
+        id: 'ORD-000002',
         customerName: 'Prince Boateng',
         customerEmail: 'prince.b@gmail.com',
         customerPhone: '+233 55 990 1144',
@@ -381,7 +391,7 @@ class MockManagerData {
         status: OrderStatus.delivered,
       ),
       ManagerOrder(
-        id: 'SP-8828',
+        id: 'ORD-000001',
         customerName: 'Mercy Owusu',
         customerEmail: 'mercy.owusu@hotmail.com',
         customerPhone: '+233 26 774 2200',
@@ -497,7 +507,8 @@ class MockManagerData {
         customerName: 'Felix Sowah',
         customerPhone: '+233 24 112 3344',
         deviceModel: 'Samsung Galaxy S23 Ultra',
-        reportedIssue: 'Broken front AMOLED display glass & cracked camera lens ring.',
+        reportedIssue:
+            'Broken front AMOLED display glass & cracked camera lens ring.',
         bookedDate: now.add(const Duration(days: 1)),
         stage: RepairStage.received,
         estimatedCost: 0.0,
@@ -529,7 +540,8 @@ class MockManagerData {
         bookedDate: now.subtract(const Duration(days: 1)),
         stage: RepairStage.awaitingParts,
         estimatedCost: 0.0,
-        technicianNotes: 'Keyboard top case module arriving from supplier today.',
+        technicianNotes:
+            'Keyboard top case module arriving from supplier today.',
         description: 'Small cup of coffee tipped over keyboard area. Machine shut down immediately and keys 4, 5, R, T are sticky.',
         dropOffBranch: 'Siaka Phones East Legon',
         timeSlot: 'Morning (09:00 - 12:00)',
@@ -544,7 +556,8 @@ class MockManagerData {
         bookedDate: now.subtract(const Duration(days: 2)),
         stage: RepairStage.readyForPickup,
         estimatedCost: 0.0,
-        technicianNotes: 'Replaced USB-C sub-board, fast charging verified at 33W.',
+        technicianNotes:
+            'Replaced USB-C sub-board, fast charging verified at 33W.',
         description: 'Cable only charges if angled upwards with rubber band. No data transfer when connected to laptop.',
         dropOffBranch: 'Siaka Phones Circle (Main Hub)',
         timeSlot: 'Afternoon (13:00 - 16:00)',
@@ -626,7 +639,9 @@ class MockManagerData {
         fullName: 'Kofi Annan Jr.',
         phone: '+233 27 889 0011',
         email: 'kofi.annan@yahoo.com',
-        signupDate: now.subtract(const Duration(days: 1, hours: 2)), // Signed up yesterday
+        signupDate: now.subtract(
+          const Duration(days: 1, hours: 2),
+        ), // Signed up yesterday
         loginCount: 8,
         lastLogin: now.subtract(const Duration(minutes: 18)),
         primaryDevice: 'MacBook Air (macOS Sonoma)',
@@ -641,7 +656,9 @@ class MockManagerData {
         fullName: 'Esi Boakye',
         phone: '+233 55 443 2211',
         email: 'esi.boakye@gmail.com',
-        signupDate: now.subtract(const Duration(days: 2)), // Signed up this week
+        signupDate: now.subtract(
+          const Duration(days: 2),
+        ), // Signed up this week
         loginCount: 14,
         lastLogin: now.subtract(const Duration(minutes: 8)),
         primaryDevice: 'Tecno Camon 30 (HiOS 14)',
@@ -656,7 +673,9 @@ class MockManagerData {
         fullName: 'Emmanuel Tetteh',
         phone: '+233 20 112 3344',
         email: 'e.tetteh@icloud.com',
-        signupDate: now.subtract(const Duration(days: 4)), // Signed up this week
+        signupDate: now.subtract(
+          const Duration(days: 4),
+        ), // Signed up this week
         loginCount: 11,
         lastLogin: now.subtract(const Duration(minutes: 2)),
         primaryDevice: 'iPhone 14 Pro (iOS 17.5)',
@@ -671,7 +690,9 @@ class MockManagerData {
         fullName: 'Nana Yaa Darko',
         phone: '+233 24 556 7788',
         email: 'nana.darko@gmail.com',
-        signupDate: now.subtract(const Duration(days: 6)), // Signed up this week
+        signupDate: now.subtract(
+          const Duration(days: 6),
+        ), // Signed up this week
         loginCount: 19,
         lastLogin: now.subtract(const Duration(hours: 8)),
         primaryDevice: 'Samsung Galaxy A55 5G',
@@ -686,7 +707,9 @@ class MockManagerData {
         fullName: 'Bright Quaye',
         phone: '+233 54 887 6655',
         email: 'bright.q@gmail.com',
-        signupDate: now.subtract(const Duration(days: 12)), // Signed up this month
+        signupDate: now.subtract(
+          const Duration(days: 12),
+        ), // Signed up this month
         loginCount: 26,
         lastLogin: now.subtract(const Duration(minutes: 15)),
         primaryDevice: 'iPhone 13 Pro (iOS 17)',
@@ -701,7 +724,9 @@ class MockManagerData {
         fullName: 'Jennifer Agyeman',
         phone: '+233 24 332 1199',
         email: 'jennifer.a@hotmail.com',
-        signupDate: now.subtract(const Duration(days: 18)), // Signed up this month
+        signupDate: now.subtract(
+          const Duration(days: 18),
+        ), // Signed up this month
         loginCount: 32,
         lastLogin: now.subtract(const Duration(minutes: 28)),
         primaryDevice: 'Samsung Galaxy S22+',
@@ -716,7 +741,9 @@ class MockManagerData {
         fullName: 'Samuel K. Adjei',
         phone: '+233 59 778 9900',
         email: 'samuel.adjei@gmail.com',
-        signupDate: now.subtract(const Duration(days: 25)), // Signed up this month
+        signupDate: now.subtract(
+          const Duration(days: 25),
+        ), // Signed up this month
         loginCount: 6,
         lastLogin: now.subtract(const Duration(days: 5)),
         primaryDevice: 'Infinix Note 40 (XOS 14)',
@@ -731,7 +758,9 @@ class MockManagerData {
         fullName: 'Doris Akuffo',
         phone: '+233 26 445 6677',
         email: 'doris.akuffo@yahoo.com',
-        signupDate: now.subtract(const Duration(days: 45)), // Signed up previous month
+        signupDate: now.subtract(
+          const Duration(days: 45),
+        ), // Signed up previous month
         loginCount: 41,
         lastLogin: now.subtract(const Duration(minutes: 6)),
         primaryDevice: 'iPhone 15 (iOS 17.6)',
@@ -746,7 +775,9 @@ class MockManagerData {
         fullName: 'Yaw Frimpong',
         phone: '+233 50 112 9988',
         email: 'yaw.frimpong@gmail.com',
-        signupDate: now.subtract(const Duration(days: 52)), // Signed up previous month
+        signupDate: now.subtract(
+          const Duration(days: 52),
+        ), // Signed up previous month
         loginCount: 17,
         lastLogin: now.subtract(const Duration(days: 8)),
         primaryDevice: 'Google Pixel 8 Pro',
@@ -921,7 +952,8 @@ class MockManagerData {
             id: 'm2_3',
             senderType: ServiceSenderType.customer,
             senderName: 'Abena Osei',
-            text: 'Thank you so much manager! I will pass by Circle around 5 PM.',
+            text:
+                'Thank you so much manager! I will pass by Circle around 5 PM.',
             timestamp: now.subtract(const Duration(hours: 1)),
             isRead: true,
           ),
@@ -1166,7 +1198,8 @@ class MockManagerData {
             id: 'VID-H1-01',
             videoUrl: 'assets/videos/phone_promo.mp4',
             title: 'iPhone 16 Pro Max • Official Launch Promo',
-            description: 'Ultra titanium finish, Apple Intelligence & A18 Pro chip',
+            description:
+                'Ultra titanium finish, Apple Intelligence & A18 Pro chip',
             badgeText: 'HOT DEAL',
             isActive: true,
             displayOrder: 1,
@@ -1196,8 +1229,7 @@ class MockManagerData {
         images: [
           BannerImageItem(
             id: 'IMG-H2-01',
-            imageUrl:
-                'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
+            imageUrl: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
             title: 'Google Pixel 9 Pro XL • Hazel Glass',
             isActive: true,
             displayOrder: 1,
@@ -1205,8 +1237,7 @@ class MockManagerData {
           ),
           BannerImageItem(
             id: 'IMG-H2-02',
-            imageUrl:
-                'https://images.unsplash.com/photo-1511707171634-5f897ff02560?auto=format&fit=crop&w=800&q=80',
+            imageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02560?auto=format&fit=crop&w=800&q=80',
             title: 'Tecno Camon 30 Premier 5G',
             isActive: true,
             displayOrder: 2,
@@ -1226,8 +1257,7 @@ class MockManagerData {
         images: [
           BannerImageItem(
             id: 'IMG-H3-01',
-            imageUrl:
-                'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=800&q=80',
+            imageUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=800&q=80',
             title: 'Apple iPhone 15 Plus • Pastel Blue',
             isActive: true,
             displayOrder: 1,
@@ -1235,8 +1265,7 @@ class MockManagerData {
           ),
           BannerImageItem(
             id: 'IMG-H3-02',
-            imageUrl:
-                'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=800&q=80',
+            imageUrl: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=800&q=80',
             title: 'Galaxy Z Fold 6 • Silver Shadow',
             isActive: true,
             displayOrder: 2,
@@ -1256,8 +1285,7 @@ class MockManagerData {
         images: [
           BannerImageItem(
             id: 'IMG-H4-01',
-            imageUrl:
-                'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=800&q=80',
+            imageUrl: 'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=800&q=80',
             title: 'Screen & AMOLED Diamond Glass Guard',
             isActive: true,
             displayOrder: 1,
@@ -1265,8 +1293,7 @@ class MockManagerData {
           ),
           BannerImageItem(
             id: 'IMG-H4-02',
-            imageUrl:
-                'https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=800&q=80',
+            imageUrl: 'https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=800&q=80',
             title: 'OEM 1-Year Certified Store Warranty',
             isActive: true,
             displayOrder: 2,

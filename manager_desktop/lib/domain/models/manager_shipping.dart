@@ -89,7 +89,7 @@ class ShippingCheckpoint {
 class ManagerShippingItem {
   final String id;
   final String trackingNumber;
-  final String orderOrProcessId;
+  String orderOrProcessId;
   final ShippingProcessType processType;
   final String customerName;
   final String customerPhone;

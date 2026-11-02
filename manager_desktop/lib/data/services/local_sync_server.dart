@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../../domain/models/manager_shipping.dart';
 import '../repositories/manager_repository.dart';
 import 'supabase_service.dart';
 
@@ -162,15 +163,96 @@ class LocalSyncServer {
             request.response.headers.contentType = ContentType.json;
             request.response.write(jsonEncode(list));
             await request.response.close();
+          } else if (request.method == 'GET' && path == '/api/next_order_id') {
+            final nextId = repository.generateNextOrderId();
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(jsonEncode({'id': nextId, 'orderId': nextId}));
+            await request.response.close();
+          } else if (request.method == 'GET' && path == '/api/orders') {
+            final custEmail = (request.uri.queryParameters['email'] ?? '').trim().toLowerCase();
+            final custPhone = (request.uri.queryParameters['phone'] ?? '').replaceAll(RegExp(r'\D'), '');
+            final custName = (request.uri.queryParameters['name'] ?? '').trim().toLowerCase();
+            final rawOrderIds = (request.uri.queryParameters['orderIds'] ?? request.uri.queryParameters['orderId'] ?? '')
+                .split(',')
+                .map((id) => id.trim().toUpperCase())
+                .where((id) => id.isNotEmpty)
+                .toSet();
+
+            final list = repository.orders.where((o) {
+              final cleanId = o.id.replaceFirst('ORDER_', '').trim().toUpperCase();
+              if (rawOrderIds.isNotEmpty && rawOrderIds.contains(cleanId)) {
+                return true;
+              }
+              if (custEmail.isEmpty && custPhone.isEmpty && custName.isEmpty && rawOrderIds.isEmpty) return true;
+              final oEmail = o.customerEmail.trim().toLowerCase();
+              final oPhone = o.customerPhone.replaceAll(RegExp(r'\D'), '');
+              final oName = o.customerName.trim().toLowerCase();
+              final emailMatch = custEmail.isNotEmpty && oEmail.isNotEmpty && oEmail == custEmail;
+              final phoneMatch = custPhone.length >= 7 &&
+                  oPhone.length >= 7 &&
+                  (oPhone.endsWith(custPhone.substring(custPhone.length - 7)) ||
+                      custPhone.endsWith(oPhone.substring(oPhone.length - 7)));
+              final nameMatch = custName.isNotEmpty && oName.isNotEmpty && oName == custName;
+              return emailMatch || phoneMatch || nameMatch;
+            }).map((o) {
+              final cleanId = o.id.replaceFirst('ORDER_', '').trim();
+              final seqDigits = cleanId.replaceFirst('ORD-', '');
+
+              // Find any linked shipment for live tracking telemetry
+              final cleanDigits = cleanId.replaceFirst('ORD-', '');
+              final linkedShipment = repository.shipments.cast<ManagerShippingItem?>().firstWhere(
+                (s) {
+                  if (s == null) return false;
+                  final sRef = s.orderOrProcessId.replaceFirst('ORDER_', '').trim();
+                  final sClean = sRef.replaceFirst('ORD-', '');
+                  return sRef == cleanId || sClean == cleanDigits || s.id == 'SHIP-$cleanId';
+                },
+                orElse: () => null,
+              );
+
+              return {
+                'id': cleanId,
+                'orderId': cleanId,
+                'date': o.date.toIso8601String(),
+                'status': o.status.name,
+                'shippingStatus': linkedShipment?.status.name ?? o.status.name,
+                'totalAmount': o.totalAmount,
+                'deliveryAddress': o.deliveryAddress,
+                'paymentMethod': o.paymentMethod,
+                'trackingNumber': linkedShipment?.trackingNumber ?? 'TRK-GH-$seqDigits-SP',
+                'courier': linkedShipment?.courier ?? 'Circle Express Logistics',
+                'riderPhone': linkedShipment?.dispatchRiderPhone ?? '',
+                'lastLocationUpdate': linkedShipment?.lastLocationUpdate ?? '',
+                'estimatedDelivery': linkedShipment?.estimatedDelivery.toIso8601String() ?? '',
+                'items': o.items.map((it) => {
+                  'title': it.title,
+                  'brand': it.brand,
+                  'price': it.price,
+                  'quantity': it.quantity,
+                  'specs': it.specs,
+                }).toList(),
+              };
+            }).toList();
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(jsonEncode(list));
+            await request.response.close();
           } else if (request.method == 'POST' && path == '/api/orders') {
+            String? assignedOrderId;
             final body = await _readRequestBody(request);
             if (body.isNotEmpty) {
               final data = jsonDecode(body) as Map<String, dynamic>;
-              repository.processInboundCustomerOrder(data);
+              assignedOrderId = repository.processInboundCustomerOrder(data);
             }
             request.response.statusCode = HttpStatus.ok;
             request.response.headers.contentType = ContentType.json;
-            request.response.write(jsonEncode({'success': true}));
+            final responseMap = <String, dynamic>{'success': true};
+            if (assignedOrderId != null) {
+              responseMap['id'] = assignedOrderId;
+              responseMap['orderId'] = assignedOrderId;
+            }
+            request.response.write(jsonEncode(responseMap));
             await request.response.close();
           } else if (request.method == 'POST' && path == '/api/bnpl') {
             final body = await _readRequestBody(request);
@@ -376,11 +458,44 @@ class LocalSyncServer {
             }));
             await request.response.close();
           } else if (request.method == 'GET' && (path == '/api/notifications' || path == '/api/customer_notifications')) {
-            final custId = request.uri.queryParameters['customerId'] ?? '';
+            final custId = (request.uri.queryParameters['customerId'] ?? request.uri.queryParameters['id'] ?? '').trim().toLowerCase();
+            final phone = (request.uri.queryParameters['phone'] ?? '').replaceAll(RegExp(r'\D'), '');
+            final email = (request.uri.queryParameters['email'] ?? '').trim().toLowerCase();
+            final rawOrderIds = (request.uri.queryParameters['orderIds'] ?? request.uri.queryParameters['orderId'] ?? '')
+                .split(',')
+                .map((id) => id.trim().toUpperCase())
+                .where((id) => id.isNotEmpty)
+                .toSet();
+
             final list = repository.customerNotifications.where((n) {
-              if (custId.isEmpty) return true;
-              final targetCust = n['customerId']?.toString() ?? n['storage']?.toString() ?? '';
-              return targetCust.isEmpty || targetCust == custId || targetCust == 'all';
+              if (custId.isEmpty && phone.isEmpty && email.isEmpty && rawOrderIds.isEmpty) return true;
+              final targetCust = (n['customerId'] ?? n['storage'] ?? '').toString().trim().toLowerCase();
+              if (targetCust == 'all' || targetCust.isEmpty) return true;
+              if (custId.isNotEmpty && (targetCust == custId || targetCust.endsWith(custId))) return true;
+
+              final nPhone = (n['ram'] ?? n['customerPhone'] ?? '').toString().replaceAll(RegExp(r'\D'), '');
+              if (phone.length >= 7 && nPhone.length >= 7 &&
+                  (nPhone.endsWith(phone.substring(phone.length - 7)) || phone.endsWith(nPhone.substring(nPhone.length - 7)))) {
+                return true;
+              }
+
+              final nEmail = (n['color'] ?? n['customerEmail'] ?? '').toString().trim().toLowerCase();
+              if (email.isNotEmpty && nEmail.isNotEmpty && nEmail == email) {
+                return true;
+              }
+
+              final nOrderId = (n['orderId'] ?? '').toString().trim().toUpperCase();
+              if (nOrderId.isNotEmpty && rawOrderIds.contains(nOrderId)) {
+                return true;
+              }
+
+              if (n['specs'] is String && n['specs'].toString().contains('orderId')) {
+                for (final oId in rawOrderIds) {
+                  if (n['specs'].toString().contains(oId)) return true;
+                }
+              }
+
+              return false;
             }).toList();
             request.response.statusCode = HttpStatus.ok;
             request.response.headers.contentType = ContentType.json;

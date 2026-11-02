@@ -25,6 +25,58 @@ class OrdersView extends StatefulWidget {
 
 class _OrdersViewState extends State<OrdersView> {
   String _selectedFilter = 'All';
+  DateTime? _fromDate;
+  DateTime? _toDate;
+
+  Future<void> _pickSingleDay() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _fromDate ?? now,
+      firstDate: DateTime(2023, 1, 1),
+      lastDate: DateTime(now.year + 5, 12, 31),
+      helpText: 'Select Order Date',
+    );
+    if (picked != null) {
+      setState(() {
+        _fromDate = picked;
+        _toDate = picked;
+      });
+    }
+  }
+
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2023, 1, 1),
+      lastDate: DateTime(now.year + 5, 12, 31),
+      initialDateRange: (_fromDate != null && _toDate != null)
+          ? DateTimeRange(start: _fromDate!, end: _toDate!)
+          : null,
+      helpText: 'Select Order Date Range',
+    );
+    if (picked != null) {
+      setState(() {
+        _fromDate = picked.start;
+        _toDate = picked.end;
+      });
+    }
+  }
+
+  bool _matchesDateFilter(DateTime dt) {
+    if (_fromDate == null && _toDate == null) return true;
+    final day = DateTime(dt.year, dt.month, dt.day);
+    if (_fromDate != null) {
+      final start = DateTime(_fromDate!.year, _fromDate!.month, _fromDate!.day);
+      if (day.isBefore(start)) return false;
+    }
+    if (_toDate != null) {
+      final end = DateTime(_toDate!.year, _toDate!.month, _toDate!.day);
+      if (day.isAfter(end)) return false;
+    }
+    return true;
+  }
 
   String _formatDate(DateTime dt) {
     const months = [
@@ -145,7 +197,18 @@ class _OrdersViewState extends State<OrdersView> {
     return ListenableBuilder(
       listenable: widget.viewModel,
       builder: (context, _) {
-        final orders = widget.viewModel.orders;
+        final allOrders = widget.viewModel.orders;
+        final orders = allOrders.where((o) => _matchesDateFilter(o.date)).toList();
+        final hasDateFilter = _fromDate != null || _toDate != null;
+        final isTodaySelected = hasDateFilter &&
+            _fromDate != null &&
+            _toDate != null &&
+            _fromDate!.year == DateTime.now().year &&
+            _fromDate!.month == DateTime.now().month &&
+            _fromDate!.day == DateTime.now().day &&
+            _toDate!.year == DateTime.now().year &&
+            _toDate!.month == DateTime.now().month &&
+            _toDate!.day == DateTime.now().day;
 
         final activeOrders = orders
             .where((o) =>
@@ -229,15 +292,123 @@ class _OrdersViewState extends State<OrdersView> {
               // Filter Chips Row
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                child: Row(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _filterChip('All', 'All (${orders.length})'),
-                    const SizedBox(width: 8),
-                    _filterChip('Active', 'In Progress (${activeOrders.length})'),
-                    const SizedBox(width: 8),
-                    _filterChip(
-                        'Delivered', 'Delivered (${deliveredOrders.length})'),
+                    Row(
+                      children: [
+                        _filterChip('All', 'All (${orders.length})'),
+                        const SizedBox(width: 8),
+                        _filterChip('Active', 'In Progress (${activeOrders.length})'),
+                        const SizedBox(width: 8),
+                        _filterChip(
+                            'Delivered', 'Delivered (${deliveredOrders.length})'),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _dateActionPill(
+                            label: 'All Dates',
+                            icon: Icons.all_inclusive_rounded,
+                            selected: !hasDateFilter,
+                            onTap: () => setState(() {
+                              _fromDate = null;
+                              _toDate = null;
+                            }),
+                          ),
+                          const SizedBox(width: 6),
+                          _dateActionPill(
+                            label: 'Today',
+                            icon: Icons.today_rounded,
+                            selected: isTodaySelected,
+                            onTap: () {
+                              final now = DateTime.now();
+                              setState(() {
+                                _fromDate = now;
+                                _toDate = now;
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          _dateActionPill(
+                            label: hasDateFilter &&
+                                    _fromDate != null &&
+                                    _toDate != null &&
+                                    _fromDate!.year == _toDate!.year &&
+                                    _fromDate!.month == _toDate!.month &&
+                                    _fromDate!.day == _toDate!.day &&
+                                    !isTodaySelected
+                                ? _formatDate(_fromDate!)
+                                : 'Pick Date',
+                            icon: Icons.event_rounded,
+                            selected: hasDateFilter &&
+                                _fromDate != null &&
+                                _toDate != null &&
+                                _fromDate!.year == _toDate!.year &&
+                                _fromDate!.month == _toDate!.month &&
+                                _fromDate!.day == _toDate!.day &&
+                                !isTodaySelected,
+                            onTap: _pickSingleDay,
+                          ),
+                          const SizedBox(width: 6),
+                          _dateActionPill(
+                            label: hasDateFilter &&
+                                    _fromDate != null &&
+                                    _toDate != null &&
+                                    !(_fromDate!.year == _toDate!.year &&
+                                        _fromDate!.month == _toDate!.month &&
+                                        _fromDate!.day == _toDate!.day)
+                                ? '${_formatDate(_fromDate!)} – ${_formatDate(_toDate!)}'
+                                : 'Date Range',
+                            icon: Icons.date_range_rounded,
+                            selected: hasDateFilter &&
+                                _fromDate != null &&
+                                _toDate != null &&
+                                !(_fromDate!.year == _toDate!.year &&
+                                    _fromDate!.month == _toDate!.month &&
+                                    _fromDate!.day == _toDate!.day),
+                            onTap: _pickCustomRange,
+                          ),
+                          if (hasDateFilter) ...[
+                            const SizedBox(width: 6),
+                            InkWell(
+                              onTap: () => setState(() {
+                                _fromDate = null;
+                                _toDate = null;
+                              }),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF2F2),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFFECACA)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.close_rounded, size: 13, color: Color(0xFFDC2626)),
+                                    SizedBox(width: 3),
+                                    Text(
+                                      'Reset',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFFDC2626),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -295,6 +466,47 @@ class _OrdersViewState extends State<OrdersView> {
     );
   }
 
+  Widget _dateActionPill({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected ? const Color(0xFF1C7BFF) : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 13,
+              color: selected ? const Color(0xFF1C7BFF) : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                color: selected ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrderCard(OrderModel order) {
     final statusColor = _getStatusColor(order.status);
     final statusBg = _getStatusBg(order.status);
@@ -337,7 +549,9 @@ class _OrdersViewState extends State<OrdersView> {
                           Row(
                             children: [
                               Text(
-                                '#${order.orderId}',
+                                order.orderId.toUpperCase().startsWith('ORD-')
+                                    ? order.orderId
+                                    : '#${order.orderId}',
                                 style: const TextStyle(
                                   color: Color(0xFF0F172A),
                                   fontWeight: FontWeight.w800,

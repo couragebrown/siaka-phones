@@ -32,6 +32,7 @@ class _TrackOrderViewState extends State<TrackOrderView> {
     super.initState();
     _order = widget.order;
     widget.orderRepository?.addListener(_onRepoChanged);
+    widget.orderRepository?.refreshOrdersNow();
   }
 
   @override
@@ -43,6 +44,7 @@ class _TrackOrderViewState extends State<TrackOrderView> {
     if (oldWidget.orderRepository != widget.orderRepository) {
       oldWidget.orderRepository?.removeListener(_onRepoChanged);
       widget.orderRepository?.addListener(_onRepoChanged);
+      widget.orderRepository?.refreshOrdersNow();
     }
   }
 
@@ -54,7 +56,15 @@ class _TrackOrderViewState extends State<TrackOrderView> {
 
   void _onRepoChanged() {
     if (widget.orderRepository != null) {
-      final updated = widget.orderRepository!.getOrderById(_order.orderId);
+      final cleanDigits = _order.orderId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '').trim();
+      final updated = widget.orderRepository!.orders.cast<OrderModel?>().firstWhere(
+        (o) {
+          if (o == null) return false;
+          final oClean = o.orderId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '').trim();
+          return o.orderId == _order.orderId || oClean == cleanDigits;
+        },
+        orElse: () => null,
+      );
       if (updated != null && mounted) {
         setState(() {
           _order = updated;
@@ -178,6 +188,9 @@ class _TrackOrderViewState extends State<TrackOrderView> {
         ];
 
       case OrderStatus.shipped:
+        final shippedLoc = _order.lastLocationUpdate.isNotEmpty
+            ? _order.lastLocationUpdate
+            : 'En route with courier';
         return [
           _TrackingStepData(
             title: 'Order Placed & Confirmed',
@@ -192,7 +205,7 @@ class _TrackOrderViewState extends State<TrackOrderView> {
           _TrackingStepData(
             title: 'Dispatched with Courier',
             description:
-                'Circle Express Logistics (Tracking #${_order.trackingNumber})',
+                '${_order.courierName} (Tracking #${_order.trackingNumber}) • $shippedLoc',
             status: _StepStatus.active,
           ),
           const _TrackingStepData(
@@ -208,6 +221,12 @@ class _TrackOrderViewState extends State<TrackOrderView> {
         ];
 
       case OrderStatus.outForDelivery:
+        final outLoc = _order.lastLocationUpdate.isNotEmpty
+            ? _order.lastLocationUpdate
+            : 'Courier is on the way to your delivery address';
+        final riderContact = _order.riderPhone.isNotEmpty
+            ? 'Courier (${_order.riderPhone})'
+            : 'Courier ${_order.courierName}';
         return [
           _TrackingStepData(
             title: 'Order Placed & Confirmed',
@@ -222,13 +241,12 @@ class _TrackOrderViewState extends State<TrackOrderView> {
           _TrackingStepData(
             title: 'Dispatched with Courier',
             description:
-                'Dispatched from Siaka Hub (Tracking #${_order.trackingNumber})',
+                'Dispatched via ${_order.courierName} (Tracking #${_order.trackingNumber})',
             status: _StepStatus.completed,
           ),
-          const _TrackingStepData(
+          _TrackingStepData(
             title: 'Out for Delivery',
-            description:
-                'Courier Michael R. is on the way to your delivery address',
+            description: '$riderContact • $outLoc',
             status: _StepStatus.active,
           ),
           _TrackingStepData(
@@ -339,7 +357,7 @@ class _TrackOrderViewState extends State<TrackOrderView> {
         badgeBg = const Color(0xFFEFF6FF);
         badgeBorder = const Color(0xFFBFDBFE);
         headlineText = 'Package is on the way';
-        carrierText = 'FedEx Express';
+        carrierText = _order.courierName.isNotEmpty ? _order.courierName : 'Circle Express Logistics';
         break;
 
       case OrderStatus.outForDelivery:
@@ -349,7 +367,9 @@ class _TrackOrderViewState extends State<TrackOrderView> {
         badgeBg = const Color(0xFFF5F3FF);
         badgeBorder = const Color(0xFFDDD6FE);
         headlineText = 'Package Out for Delivery';
-        carrierText = 'Michael R. (Courier)';
+        carrierText = _order.riderPhone.isNotEmpty
+            ? '${_order.courierName} (${_order.riderPhone})'
+            : (_order.courierName.isNotEmpty ? _order.courierName : 'Courier Out for Delivery');
         break;
 
       case OrderStatus.delivered:
@@ -359,7 +379,7 @@ class _TrackOrderViewState extends State<TrackOrderView> {
         badgeBg = const Color(0xFFECFDF5);
         badgeBorder = const Color(0xFFA7F3D0);
         headlineText = 'Package Delivered';
-        carrierText = 'Delivered by Michael R.';
+        carrierText = 'Delivered by ${_order.courierName}';
         break;
 
       case OrderStatus.cancelled:

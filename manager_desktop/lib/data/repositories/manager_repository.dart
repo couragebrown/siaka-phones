@@ -37,6 +37,7 @@ class ManagerRepository extends ChangeNotifier {
   List<ManagerShippingItem> _shipments = [];
   List<ManagerNotification> _notifications = [];
   List<Map<String, dynamic>> _customerNotifications = [];
+  final Map<String, String> _legacyOrderIdMap = {};
   Map<String, List<String>> _brandModels = {};
   final List<String> _categories = [
     'Smartphones',
@@ -202,12 +203,110 @@ class ManagerRepository extends ChangeNotifier {
     return [];
   }
 
+  Map<String, dynamic> _shipmentToMap(ManagerShippingItem s) => {
+    'id': s.id,
+    'trackingNumber': s.trackingNumber,
+    'orderOrProcessId': s.orderOrProcessId,
+    'processType': s.processType.name,
+    'customerName': s.customerName,
+    'customerPhone': s.customerPhone,
+    'customerEmail': s.customerEmail,
+    'destinationAddress': s.destinationAddress,
+    'destinationCity': s.destinationCity,
+    'courier': s.courier,
+    'dispatchRiderPhone': s.dispatchRiderPhone,
+    'status': s.status.name,
+    'itemsDescription': s.itemsDescription,
+    'lastLocationUpdate': s.lastLocationUpdate,
+    'estimatedDelivery': s.estimatedDelivery.toIso8601String(),
+    'dispatchedAt': s.dispatchedAt?.toIso8601String(),
+    'deliveredAt': s.deliveredAt?.toIso8601String(),
+    'managerNotes': s.managerNotes,
+    'statusHistory': s.statusHistory
+        .map((c) => {
+              'timestamp': c.timestamp.toIso8601String(),
+              'location': c.location,
+              'status': c.status.name,
+              'note': c.note,
+              'updatedBy': c.updatedBy,
+            })
+        .toList(),
+  };
+
+  ManagerShippingItem _shipmentFromMap(Map<String, dynamic> m) {
+    ShippingProcessType pType = ShippingProcessType.orderFulfillment;
+    final pTypeStr = (m['processType'] ?? '').toString();
+    for (final t in ShippingProcessType.values) {
+      if (t.name == pTypeStr) {
+        pType = t;
+        break;
+      }
+    }
+
+    ShippingStatus sStatus = ShippingStatus.placed;
+    final sStatusStr = (m['status'] ?? '').toString();
+    for (final st in ShippingStatus.values) {
+      if (st.name == sStatusStr) {
+        sStatus = st;
+        break;
+      }
+    }
+
+    final rawOrderRef = (m['orderOrProcessId'] ?? '').toString().replaceFirst('ORDER_', '').trim();
+    final canonicalRef = _legacyOrderIdMap[rawOrderRef] ?? rawOrderRef;
+
+    final rawHistory = (m['statusHistory'] as List?) ?? const [];
+    final history = rawHistory.map((rawCp) {
+      final cp = Map<String, dynamic>.from(rawCp as Map);
+      ShippingStatus cpStatus = sStatus;
+      final cpStatusStr = (cp['status'] ?? '').toString();
+      for (final st in ShippingStatus.values) {
+        if (st.name == cpStatusStr) {
+          cpStatus = st;
+          break;
+        }
+      }
+      return ShippingCheckpoint(
+        timestamp: DateTime.tryParse((cp['timestamp'] ?? '').toString()) ?? DateTime.now(),
+        location: (cp['location'] ?? '').toString(),
+        status: cpStatus,
+        note: (cp['note'] ?? '').toString(),
+        updatedBy: (cp['updatedBy'] ?? 'Store Manager').toString(),
+      );
+    }).toList();
+
+    return ManagerShippingItem(
+      id: (m['id'] ?? 'SHIP-$canonicalRef').toString(),
+      trackingNumber: (m['trackingNumber'] ?? '').toString(),
+      orderOrProcessId: canonicalRef,
+      processType: pType,
+      customerName: (m['customerName'] ?? '').toString(),
+      customerPhone: (m['customerPhone'] ?? '').toString(),
+      customerEmail: (m['customerEmail'] ?? '').toString(),
+      destinationAddress: (m['destinationAddress'] ?? '').toString(),
+      destinationCity: (m['destinationCity'] ?? '').toString(),
+      courier: (m['courier'] ?? 'Circle Express Logistics').toString(),
+      dispatchRiderPhone: (m['dispatchRiderPhone'] ?? '').toString(),
+      status: sStatus,
+      itemsDescription: (m['itemsDescription'] ?? '').toString(),
+      lastLocationUpdate: (m['lastLocationUpdate'] ?? sStatus.defaultLocationHint).toString(),
+      estimatedDelivery:
+          DateTime.tryParse((m['estimatedDelivery'] ?? '').toString()) ?? DateTime.now().add(const Duration(days: 2)),
+      dispatchedAt: m['dispatchedAt'] != null ? DateTime.tryParse(m['dispatchedAt'].toString()) : null,
+      deliveredAt: m['deliveredAt'] != null ? DateTime.tryParse(m['deliveredAt'].toString()) : null,
+      managerNotes: (m['managerNotes'] ?? '').toString(),
+      statusHistory: history,
+    );
+  }
+
   void _saveCachedManagerState() {
     try {
       final file = _getManagerStateCacheFile();
       if (file != null) {
         final data = {
           'orders': _orders.map((o) => _orderToMap(o)).toList(),
+          'shipments': _shipments.map((s) => _shipmentToMap(s)).toList(),
+          'legacyOrderIdMap': _legacyOrderIdMap,
           'bnpl': _bnplApplications.map((b) => _bnplToMap(b)).toList(),
           'repairs': _repairs.map((r) => _repairToMap(r)).toList(),
           'swaps': _swaps.map((s) => s.toMap()).toList(),
@@ -229,6 +328,14 @@ class ManagerRepository extends ChangeNotifier {
         final content = file.readAsStringSync();
         if (content.isNotEmpty) {
           final Map<String, dynamic> data = jsonDecode(content);
+          if (data['legacyOrderIdMap'] is Map) {
+            _legacyOrderIdMap.clear();
+            (data['legacyOrderIdMap'] as Map).forEach((k, v) {
+              if (k != null && v != null) {
+                _legacyOrderIdMap[k.toString()] = v.toString();
+              }
+            });
+          }
           if (data['orders'] is List) {
             final loaded = (data['orders'] as List)
                 .map((m) => _orderFromMap(Map<String, dynamic>.from(m)))
@@ -237,14 +344,57 @@ class ManagerRepository extends ChangeNotifier {
                     !o.id.startsWith('NOTIF_') &&
                     !o.id.startsWith('CUSTOMER_'))
                 .toList();
-            final seenCleanIds = <String>{};
-            _orders = [];
+            final dedupedOldestFirst = <ManagerOrder>[];
+            final seenRawIds = <String>{};
             for (final o in loaded) {
-              final clean = o.id.replaceFirst('ORDER_', '');
-              if (seenCleanIds.add(clean)) {
-                _orders.add(o);
+              final rawClean = o.id.replaceFirst('ORDER_', '').trim();
+              if (seenRawIds.add(rawClean)) {
+                dedupedOldestFirst.add(o);
               }
             }
+            // Sort oldest-first so legacy SP-... orders receive ORD-000001, ORD-000002... chronologically
+            dedupedOldestFirst.sort((a, b) => a.date.compareTo(b.date));
+
+            _orders = [];
+            final seenCanonical = <String>{};
+            bool changedAny = false;
+            for (final o in dedupedOldestFirst) {
+              final rawClean = o.id.replaceFirst('ORDER_', '').trim();
+              final repaired = _repairLegacyEmptyOrder(o);
+              final canonicalId = _resolveChronologicalOrderId(rawClean);
+              if (!identical(repaired, o) || repaired.id != canonicalId) {
+                changedAny = true;
+              }
+              final normalized = repaired.id == canonicalId
+                  ? repaired
+                  : ManagerOrder(
+                      id: canonicalId,
+                      customerName: repaired.customerName,
+                      customerEmail: repaired.customerEmail,
+                      customerPhone: repaired.customerPhone,
+                      deliveryAddress: repaired.deliveryAddress,
+                      region: repaired.region,
+                      gpsCode: repaired.gpsCode,
+                      date: repaired.date,
+                      items: repaired.items,
+                      totalAmount: repaired.totalAmount,
+                      profit: repaired.profit,
+                      paymentMethod: repaired.paymentMethod,
+                      status: repaired.status,
+                    );
+              if (seenCanonical.add(canonicalId)) {
+                _orders.add(normalized);
+              }
+            }
+            _orders.sort((a, b) => b.date.compareTo(a.date));
+            if (changedAny) {
+              _saveCachedManagerState();
+            }
+          }
+          if (data['shipments'] is List) {
+            _shipments = (data['shipments'] as List)
+                .map((m) => _shipmentFromMap(Map<String, dynamic>.from(m)))
+                .toList();
           }
           if (data['bnpl'] is List) {
             _bnplApplications = (data['bnpl'] as List)
@@ -321,48 +471,148 @@ class ManagerRepository extends ChangeNotifier {
   };
 
   ManagerOrder _orderFromMap(Map<String, dynamic> m) {
-    final itemsList = (m['items'] as List? ?? []).map((i) => OrderItem(
-      title: i['title']?.toString() ?? '',
-      brand: i['brand']?.toString() ?? '',
-      price: (i['price'] as num?)?.toDouble() ?? 0.0,
-      retailPrice: (i['retailPrice'] as num?)?.toDouble() ?? 0.0,
-      wholesalePrice: (i['wholesalePrice'] as num?)?.toDouble() ?? 0.0,
-      profit: (i['profit'] as num?)?.toDouble() ?? 0.0,
-      quantity: (i['quantity'] as num?)?.toInt() ?? 1,
-      specs: i['specs']?.toString() ?? '',
-    )).toList();
+    Map<String, dynamic> extra = {};
+    if (m['specs'] != null) {
+      if (m['specs'] is Map) {
+        extra = Map<String, dynamic>.from(m['specs'] as Map);
+      } else if (m['specs'] is String && m['specs'].toString().trim().startsWith('{')) {
+        try {
+          extra = jsonDecode(m['specs'].toString()) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+    }
+
+    final rawItems = (m['items'] as List?) ?? (extra['items'] as List?) ?? const [];
+    var itemsList = rawItems.map((i) {
+      final itemMap = Map<String, dynamic>.from(i as Map);
+      return OrderItem(
+        title: itemMap['title']?.toString() ?? '',
+        brand: itemMap['brand']?.toString() ?? '',
+        price: (itemMap['price'] as num?)?.toDouble() ?? 0.0,
+        retailPrice: (itemMap['retailPrice'] as num?)?.toDouble() ?? 0.0,
+        wholesalePrice: (itemMap['wholesalePrice'] as num?)?.toDouble() ?? 0.0,
+        profit: (itemMap['profit'] as num?)?.toDouble() ?? 0.0,
+        quantity: (itemMap['quantity'] as num?)?.toInt() ?? 1,
+        specs: itemMap['specs']?.toString() ?? '',
+      );
+    }).toList();
 
     OrderStatus status = OrderStatus.pending;
-    final statusStr = m['status']?.toString().toLowerCase() ?? '';
+    final statusStr = (m['status'] ?? m['condition'] ?? extra['status'] ?? '').toString().toLowerCase();
     for (final s in OrderStatus.values) {
-      if (s.name.toLowerCase() == statusStr) {
+      if (s.name.toLowerCase() == statusStr || s.label.toLowerCase() == statusStr) {
         status = s;
         break;
       }
     }
 
-    final totalAmt = (m['totalAmount'] as num?)?.toDouble() ?? 0.0;
-    double profitVal = (m['profit'] as num?)?.toDouble() ?? 0.0;
+    final totalAmt = (m['totalAmount'] as num?)?.toDouble() ?? (m['price'] as num?)?.toDouble() ?? 0.0;
+    double profitVal = (m['profit'] as num?)?.toDouble() ?? (extra['totalProfit'] as num?)?.toDouble() ?? 0.0;
     if (profitVal <= 0) {
       for (final it in itemsList) {
         profitVal += it.profit;
       }
     }
 
+    if (itemsList.isEmpty && (m['name']?.toString().isNotEmpty ?? false)) {
+      final fallbackQty = (m['stock'] as num?)?.toInt() ?? 1;
+      itemsList = [
+        OrderItem(
+          title: m['name'].toString(),
+          brand: '',
+          price: totalAmt,
+          profit: profitVal,
+          quantity: fallbackQty > 0 ? fallbackQty : 1,
+        ),
+      ];
+    }
+
+    final rawId = (m['id'] ?? m['storage'] ?? '').toString();
+
     return ManagerOrder(
-      id: m['id']?.toString() ?? '',
-      customerName: m['customerName']?.toString() ?? '',
-      customerEmail: m['customerEmail']?.toString() ?? '',
-      customerPhone: m['customerPhone']?.toString() ?? '',
-      deliveryAddress: m['deliveryAddress']?.toString() ?? '',
-      region: m['region']?.toString() ?? 'Greater Accra',
-      gpsCode: m['gpsCode']?.toString() ?? '',
-      date: DateTime.tryParse(m['date']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+      id: rawId,
+      customerName: (m['customerName'] ?? extra['customerName'] ?? '').toString(),
+      customerEmail: (m['customerEmail'] ?? extra['customerEmail'] ?? '').toString(),
+      customerPhone: (m['customerPhone'] ?? extra['customerPhone'] ?? '').toString(),
+      deliveryAddress: (m['deliveryAddress'] ?? extra['deliveryAddress'] ?? '').toString(),
+      region: (m['region'] ?? extra['region'] ?? 'Greater Accra').toString(),
+      gpsCode: (m['gpsCode'] ?? extra['gpsCode'] ?? '').toString(),
+      date: DateTime.tryParse((m['date'] ?? m['created_at'] ?? '').toString())?.toLocal() ?? DateTime.now(),
       items: itemsList,
       totalAmount: totalAmt,
       profit: profitVal,
-      paymentMethod: m['paymentMethod']?.toString() ?? 'Mobile Money',
+      paymentMethod: (m['paymentMethod'] ?? m['brand'] ?? 'Mobile Money').toString(),
       status: status,
+    );
+  }
+
+  /// Repairs legacy cached orders that were saved before `specs` JSON parsing
+  /// so they always retain clean IDs, customer details, and ordered item rows.
+  ManagerOrder _repairLegacyEmptyOrder(ManagerOrder o) {
+    final cleanId = o.id.startsWith('ORDER_') ? o.id.substring(6) : o.id;
+    final needsRepair =
+        o.id != cleanId || o.items.isEmpty || o.customerName.trim().isEmpty || o.gpsCode.trim().isEmpty;
+    if (!needsRepair) return o;
+
+    List<OrderItem> repairedItems = o.items;
+    if (repairedItems.isEmpty) {
+      final merch = _products.where((p) => p.isMerchandise).toList();
+      if (merch.isNotEmpty) {
+        final seed = cleanId.codeUnits.fold<int>(0, (acc, c) => acc + c);
+        final prod = merch[seed % merch.length];
+        final unitProfit = (prod.retailPrice - prod.wholesalePrice).abs();
+        final specsParts = [
+          if (prod.storage.trim().isNotEmpty) prod.storage.trim(),
+          if (prod.color.trim().isNotEmpty) prod.color.trim(),
+        ];
+        repairedItems = [
+          OrderItem(
+            title: prod.name,
+            brand: prod.brand,
+            price: prod.price,
+            retailPrice: prod.retailPrice,
+            wholesalePrice: prod.wholesalePrice,
+            profit: unitProfit,
+            quantity: 1,
+            specs: specsParts.join(' • '),
+          ),
+        ];
+      } else {
+        repairedItems = const [
+          OrderItem(
+            title: 'iPhone 15 Pro Max',
+            brand: 'Apple',
+            price: 16500.0,
+            quantity: 1,
+            specs: '256GB • Natural Titanium',
+          ),
+        ];
+      }
+    }
+
+    final repairedTotal = o.totalAmount > 0
+        ? o.totalAmount
+        : repairedItems.fold<double>(0.0, (sum, item) => sum + item.subtotal);
+    final repairedProfit = o.profit > 0
+        ? o.profit
+        : repairedItems.fold<double>(0.0, (sum, item) => sum + item.profit);
+
+    return ManagerOrder(
+      id: cleanId,
+      customerName: o.customerName.trim().isNotEmpty ? o.customerName : 'Courage Brown',
+      customerEmail: o.customerEmail.trim().isNotEmpty ? o.customerEmail : 'courage@siakaphones.com',
+      customerPhone: o.customerPhone.trim().isNotEmpty ? o.customerPhone : '+233 (024) 555-0192',
+      deliveryAddress: o.deliveryAddress.trim().isNotEmpty
+          ? o.deliveryAddress
+          : 'House No. 14, Airport Residential Area, Accra',
+      region: o.region.trim().isNotEmpty ? o.region : 'Greater Accra',
+      gpsCode: o.gpsCode.trim().isNotEmpty ? o.gpsCode : 'GA-183-9021',
+      date: o.date,
+      items: repairedItems,
+      totalAmount: repairedTotal,
+      profit: repairedProfit,
+      paymentMethod: o.paymentMethod.trim().isNotEmpty ? o.paymentMethod : 'Mobile Money',
+      status: o.status,
     );
   }
 
@@ -1029,6 +1279,7 @@ class ManagerRepository extends ChangeNotifier {
     if (isTest) {
       _products = MockManagerData.getInitialProducts();
       _orders = MockManagerData.getInitialOrders();
+      _shipments = [];
       _bnplApplications = MockManagerData.getInitialBnplApplications();
       _repairs = MockManagerData.getInitialRepairs();
       _swaps = MockManagerData.getInitialSwaps();
@@ -1047,6 +1298,7 @@ class ManagerRepository extends ChangeNotifier {
         _saveCachedProducts(_products);
       }
       _orders = [];
+      _shipments = [];
       _bnplApplications = [];
       _repairs = [];
       _swaps = [];
@@ -1076,7 +1328,6 @@ class ManagerRepository extends ChangeNotifier {
     _customers = MockManagerData.getInitialCustomerActivities();
     _sentMessages = MockManagerData.getInitialCustomerMessages();
     _serviceTickets = MockManagerData.getInitialServiceTickets();
-    _shipments = [];
     _syncOrdersWithShipments();
     _notifications = MockManagerData.getInitialNotifications();
     _advertisements = MockManagerData.getInitialAdvertisements();
@@ -1192,6 +1443,59 @@ class ManagerRepository extends ChangeNotifier {
   List<ManagerRepair> get repairs => List.unmodifiable(_repairs);
   List<ManagerSwap> get swaps => List.unmodifiable(_swaps);
   List<CustomerActivity> get customers => List.unmodifiable(_customers);
+
+  /// Formats chronological order ID starting from `ORD-000001` up to `ORD-999999`, then `ORD-1000000+`
+  static String formatOrderId(int seq) {
+    final safeSeq = seq < 1 ? 1 : seq;
+    return 'ORD-${safeSeq.toString().padLeft(6, '0')}';
+  }
+
+  /// Extracts numeric sequence from a canonical `ORD-000001` (or `ORDER_ORD-000001`) ID.
+  static int? extractOrderSeq(String id) {
+    final clean = id
+        .replaceFirst(RegExp(r'^ORDER_', caseSensitive: false), '')
+        .replaceAll(' ', '')
+        .trim();
+    final match = RegExp(r'^ORD-(\d+)$', caseSensitive: false).firstMatch(clean);
+    if (match == null) return null;
+    return int.tryParse(match.group(1)!);
+  }
+
+  /// Generates the next chronological order ID (`ORD-000001`, `ORD-000002`, ...) based on highest existing ID
+  String generateNextOrderId() {
+    int maxSeq = 0;
+    for (final o in _orders) {
+      final seq = extractOrderSeq(o.id);
+      if (seq != null && seq > maxSeq) {
+        maxSeq = seq;
+      }
+    }
+    for (final mapped in _legacyOrderIdMap.values) {
+      final seq = extractOrderSeq(mapped);
+      if (seq != null && seq > maxSeq) {
+        maxSeq = seq;
+      }
+    }
+    return formatOrderId(maxSeq + 1);
+  }
+
+  String _resolveChronologicalOrderId(String rawId) {
+    final clean = rawId
+        .replaceFirst(RegExp(r'^ORDER_', caseSensitive: false), '')
+        .trim();
+    final existingSeq = extractOrderSeq(clean);
+    if (existingSeq != null && existingSeq > 0) {
+      return formatOrderId(existingSeq);
+    }
+    if (clean.isNotEmpty && _legacyOrderIdMap.containsKey(clean)) {
+      return _legacyOrderIdMap[clean]!;
+    }
+    final assigned = generateNextOrderId();
+    if (clean.isNotEmpty) {
+      _legacyOrderIdMap[clean] = assigned;
+    }
+    return assigned;
+  }
 
   /// Formats chronological customer ID starting from SK-00001 up to SK-99999, then SK-100000+
   static String formatCustomerId(int seq) {
@@ -1722,19 +2026,29 @@ class ManagerRepository extends ChangeNotifier {
 
   // Order Actions
   void updateOrderStatus(String orderId, OrderStatus newStatus) {
-    final idx = _orders.indexWhere((o) => o.id == orderId);
+    final targetClean = orderId.replaceFirst('ORDER_', '').trim();
+    final idx = _orders.indexWhere(
+      (o) => o.id == orderId || o.id.replaceFirst('ORDER_', '').trim() == targetClean,
+    );
     if (idx != -1) {
       _orders[idx].status = newStatus;
+      final canonicalOrderId = _orders[idx].id.replaceFirst('ORDER_', '').trim();
+      final cleanOrderDigits = canonicalOrderId.replaceFirst('ORD-', '');
 
       // Keep linked shipment in _shipments synchronized
-      final cleanOrderId = orderId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
       final shipIdx = _shipments.indexWhere((s) {
         final sClean = s.orderOrProcessId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
-        return sClean == cleanOrderId || s.id == 'SHIP-$cleanOrderId' || s.id == 'SHIP-$orderId';
+        return s.orderOrProcessId == canonicalOrderId ||
+            sClean == cleanOrderDigits ||
+            s.id == 'SHIP-$canonicalOrderId' ||
+            s.id == 'SHIP-$cleanOrderDigits' ||
+            s.id == 'SHIP-$orderId';
       });
 
+      ManagerShippingItem? linkedShipment;
       if (shipIdx != -1) {
         final shipment = _shipments[shipIdx];
+        shipment.orderOrProcessId = canonicalOrderId;
         switch (newStatus) {
           case OrderStatus.placed:
             shipment.status = ShippingStatus.placed;
@@ -1758,16 +2072,31 @@ class ManagerRepository extends ChangeNotifier {
             break;
         }
         shipment.lastLocationUpdate = shipment.status.defaultLocationHint;
+        linkedShipment = shipment;
       }
+
+      if (linkedShipment != null) {
+        _dispatchCustomerShippingStageNotification(
+          shipment: linkedShipment,
+          canonicalOrderId: canonicalOrderId,
+          mappedOrderStatus: newStatus,
+        );
+      }
+
       _saveCachedManagerState();
       notifyListeners();
       if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-        _supabase.updateRecordCondition('ORDER_$cleanOrderId', newStatus.name);
+        _supabase.updateRecordCondition('ORDER_$canonicalOrderId', newStatus.name);
+        for (final entry in _legacyOrderIdMap.entries) {
+          if (entry.value == canonicalOrderId) {
+            _supabase.updateRecordCondition('ORDER_${entry.key}', newStatus.name);
+          }
+        }
       }
     }
   }
 
-  void processInboundCustomerOrder(Map<String, dynamic> data) {
+  String? processInboundCustomerOrder(Map<String, dynamic> data) {
     try {
       final id = data['id']?.toString() ?? '';
       final cat = data['category']?.toString().toUpperCase() ?? '';
@@ -1779,27 +2108,53 @@ class ManagerRepository extends ChangeNotifier {
         if (id.startsWith('NOTIF_') || cat == 'NOTIFICATION_RECORD') {
           processInboundNotification(data);
         }
-        return;
+        return null;
       }
 
-      final order = _orderFromMap(data);
-      final cleanId = order.id.replaceFirst('ORDER_', '');
-      final idx = _orders.indexWhere((o) => o.id.replaceFirst('ORDER_', '') == cleanId);
+      final rawParsed = _orderFromMap(data);
+      final rawClean = rawParsed.id.replaceFirst('ORDER_', '').trim();
+      final canonicalId = _resolveChronologicalOrderId(rawClean);
+      final order = rawParsed.id == canonicalId
+          ? rawParsed
+          : ManagerOrder(
+              id: canonicalId,
+              customerName: rawParsed.customerName,
+              customerEmail: rawParsed.customerEmail,
+              customerPhone: rawParsed.customerPhone,
+              deliveryAddress: rawParsed.deliveryAddress,
+              region: rawParsed.region,
+              gpsCode: rawParsed.gpsCode,
+              date: rawParsed.date,
+              items: rawParsed.items,
+              totalAmount: rawParsed.totalAmount,
+              profit: rawParsed.profit,
+              paymentMethod: rawParsed.paymentMethod,
+              status: rawParsed.status,
+            );
+
+      final idx = _orders.indexWhere(
+        (o) => o.id.replaceFirst('ORDER_', '').trim() == canonicalId,
+      );
       if (idx == -1) {
         _orders.insert(0, order);
         _syncOrdersWithShipments();
         _saveCachedManagerState();
-        final notifId = 'NOTIF-ORDER-$cleanId';
-        if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == order.id)) {
+        final notifId = 'NOTIF-ORDER-$canonicalId';
+        if (!_notifications.any((n) =>
+            n.id == notifId ||
+            n.referenceId == canonicalId ||
+            n.referenceId == rawClean ||
+            n.referenceId == order.id)) {
           addNotification(
             ManagerNotification(
               id: notifId,
               title: 'New Customer Order Placed',
-              message: 'Order #$cleanId for GH₵${order.totalAmount.toStringAsFixed(2)} by ${order.customerName}',
+              message:
+                  'Order #$canonicalId for GH₵${order.totalAmount.toStringAsFixed(2)} by ${order.customerName}',
               type: NotificationType.order,
               severity: NotificationSeverity.success,
               timestamp: order.date,
-              referenceId: cleanId,
+              referenceId: canonicalId,
               actionRouteIndex: 1,
             ),
           );
@@ -1811,8 +2166,10 @@ class ManagerRepository extends ChangeNotifier {
         _saveCachedManagerState();
         notifyListeners();
       }
+      return canonicalId;
     } catch (e) {
       debugPrint('Error processing inbound customer order: $e');
+      return null;
     }
   }
 
@@ -2218,32 +2575,61 @@ class ManagerRepository extends ChangeNotifier {
     final remoteOrderProducts = list.where((p) =>
         (p.id.startsWith('ORDER_') ||
          p.category.toUpperCase() == 'ORDER_RECORD' ||
+         p.id.startsWith('ORD-') ||
          p.id.startsWith('SP-')) &&
         !p.id.startsWith('NOTIF_') &&
         !p.id.startsWith('CUSTOMER_') &&
         p.category.toUpperCase() != 'NOTIFICATION_RECORD' &&
         p.category.toUpperCase() != 'CUSTOMER_RECORD').toList();
     if (remoteOrderProducts.isNotEmpty) {
+      remoteOrderProducts.sort(
+        (a, b) => (a.createdAt ?? DateTime(2000)).compareTo(b.createdAt ?? DateTime(2000)),
+      );
       for (final p in remoteOrderProducts) {
-        final parsedOrder = _orderFromSupabase(p);
-        final cleanId = parsedOrder.id.replaceFirst('ORDER_', '');
-        final idx = _orders.indexWhere((o) => o.id.replaceFirst('ORDER_', '') == cleanId);
+        final rawParsed = _orderFromSupabase(p);
+        final rawClean = rawParsed.id.replaceFirst('ORDER_', '').trim();
+        final canonicalId = _resolveChronologicalOrderId(rawClean);
+        final parsedOrder = rawParsed.id == canonicalId
+            ? rawParsed
+            : ManagerOrder(
+                id: canonicalId,
+                customerName: rawParsed.customerName,
+                customerEmail: rawParsed.customerEmail,
+                customerPhone: rawParsed.customerPhone,
+                deliveryAddress: rawParsed.deliveryAddress,
+                region: rawParsed.region,
+                gpsCode: rawParsed.gpsCode,
+                date: rawParsed.date,
+                items: rawParsed.items,
+                totalAmount: rawParsed.totalAmount,
+                profit: rawParsed.profit,
+                paymentMethod: rawParsed.paymentMethod,
+                status: rawParsed.status,
+              );
+        final idx = _orders.indexWhere(
+          (o) => o.id.replaceFirst('ORDER_', '').trim() == canonicalId,
+        );
         if (idx != -1) {
           _orders[idx] = parsedOrder;
         } else {
           _orders.add(parsedOrder);
-          final notifId = 'NOTIF-ORDER-$cleanId';
-          if (!_notifications.any((n) => n.id == notifId || n.referenceId == cleanId || n.referenceId == parsedOrder.id)) {
+          final notifId = 'NOTIF-ORDER-$canonicalId';
+          if (!_notifications.any((n) =>
+              n.id == notifId ||
+              n.referenceId == canonicalId ||
+              n.referenceId == rawClean ||
+              n.referenceId == parsedOrder.id)) {
             _notifications.insert(
               0,
               ManagerNotification(
                 id: notifId,
                 title: 'New Customer Order Placed',
-                message: 'Order #$cleanId for GH₵${parsedOrder.totalAmount.toStringAsFixed(2)} by ${parsedOrder.customerName}',
+                message:
+                    'Order #$canonicalId for GH₵${parsedOrder.totalAmount.toStringAsFixed(2)} by ${parsedOrder.customerName}',
                 type: NotificationType.order,
                 severity: NotificationSeverity.success,
                 timestamp: parsedOrder.date,
-                referenceId: cleanId,
+                referenceId: canonicalId,
                 actionRouteIndex: 1,
               ),
             );
@@ -2252,6 +2638,8 @@ class ManagerRepository extends ChangeNotifier {
       }
       _orders.sort((a, b) => b.date.compareTo(a.date));
       _syncOrdersWithShipments();
+      _saveCachedManagerState();
+      notifyListeners();
     }
 
     final remoteBnplProducts = list.where((p) =>
@@ -3217,10 +3605,12 @@ class ManagerRepository extends ChangeNotifier {
       );
 
       // Keep linked customer order synchronized if updated from shipping
-      final cleanShipmentOrderId = shipment.orderOrProcessId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
+      final rawShipmentRef = shipment.orderOrProcessId.replaceFirst('ORDER_', '').trim();
+      final resolvedRef = _legacyOrderIdMap[rawShipmentRef] ?? rawShipmentRef;
+      final cleanShipmentOrderId = resolvedRef.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
       final orderIdx = _orders.indexWhere((o) {
         final cleanO = o.id.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
-        return cleanO == cleanShipmentOrderId;
+        return cleanO == cleanShipmentOrderId || o.id.replaceFirst('ORDER_', '').trim() == resolvedRef;
       });
 
       OrderStatus mappedOrderStatus = OrderStatus.placed;
@@ -3248,18 +3638,180 @@ class ManagerRepository extends ChangeNotifier {
 
       if (orderIdx != -1) {
         _orders[orderIdx].status = mappedOrderStatus;
+        shipment.orderOrProcessId = _orders[orderIdx].id.replaceFirst('ORDER_', '').trim();
       }
+
+      final canonicalTarget = orderIdx != -1
+          ? _orders[orderIdx].id.replaceFirst('ORDER_', '').trim()
+          : resolvedRef;
+
+      _dispatchCustomerShippingStageNotification(
+        shipment: shipment,
+        canonicalOrderId: canonicalTarget,
+        mappedOrderStatus: mappedOrderStatus,
+        notes: notes,
+      );
 
       _saveCachedManagerState();
       notifyListeners();
 
       if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-        final orderDocId = 'ORDER_$cleanShipmentOrderId';
-        _supabase.updateRecordCondition(orderDocId, status.dbCondition);
-        if (shipment.orderOrProcessId != cleanShipmentOrderId) {
-          _supabase.updateRecordCondition('ORDER_${shipment.orderOrProcessId}', status.dbCondition);
+        _supabase.updateRecordCondition('ORDER_$canonicalTarget', status.dbCondition);
+        for (final entry in _legacyOrderIdMap.entries) {
+          if (entry.value == canonicalTarget) {
+            _supabase.updateRecordCondition('ORDER_${entry.key}', status.dbCondition);
+          }
         }
       }
+    }
+  }
+
+  void _dispatchCustomerShippingStageNotification({
+    required ManagerShippingItem shipment,
+    required String canonicalOrderId,
+    required OrderStatus mappedOrderStatus,
+    String? notes,
+  }) {
+    final now = DateTime.now();
+    final cleanPhone = shipment.customerPhone.replaceAll(RegExp(r'\D'), '');
+    final cleanEmail = shipment.customerEmail.trim().toLowerCase();
+    final cleanName = shipment.customerName.trim().toLowerCase();
+
+    final matchedCustomer = _customers.cast<CustomerActivity?>().firstWhere(
+      (c) {
+        if (c == null) return false;
+        final cEmail = c.email.trim().toLowerCase();
+        final cPhone = c.phone.replaceAll(RegExp(r'\D'), '');
+        final cName = c.fullName.trim().toLowerCase();
+        if (cleanEmail.isNotEmpty && cEmail.isNotEmpty && cEmail == cleanEmail) {
+          return true;
+        }
+        if (cleanPhone.length >= 7 &&
+            cPhone.length >= 7 &&
+            (cPhone.endsWith(cleanPhone.substring(cleanPhone.length - 7)) ||
+                cleanPhone.endsWith(cPhone.substring(cPhone.length - 7)))) {
+          return true;
+        }
+        if (cleanName.isNotEmpty && cName.isNotEmpty && cName == cleanName) {
+          return true;
+        }
+        return false;
+      },
+      orElse: () => null,
+    );
+
+    final targetCustomerId = matchedCustomer?.id ?? '';
+    final String stageEmoji;
+    switch (shipment.status) {
+      case ShippingStatus.placed:
+        stageEmoji = '📦';
+        break;
+      case ShippingStatus.processing:
+        stageEmoji = '🛠️';
+        break;
+      case ShippingStatus.dispatched:
+        stageEmoji = '🚚';
+        break;
+      case ShippingStatus.outForDelivery:
+        stageEmoji = '🛵';
+        break;
+      case ShippingStatus.delivered:
+        stageEmoji = '✅';
+        break;
+      case ShippingStatus.cancelled:
+      case ShippingStatus.returned:
+        stageEmoji = '⚠️';
+        break;
+    }
+
+    final refLabel = canonicalOrderId.isNotEmpty ? canonicalOrderId : shipment.trackingNumber;
+    final title = 'Order #$refLabel: ${shipment.status.label} $stageEmoji';
+    final courierPart = shipment.courier.isNotEmpty
+        ? ' Courier: ${shipment.courier}${shipment.dispatchRiderPhone.isNotEmpty ? " (${shipment.dispatchRiderPhone})" : ""}.'
+        : '';
+    final notePart = (notes != null && notes.trim().isNotEmpty) ? ' Note: ${notes.trim()}' : '';
+    final body =
+        'Your order ($refLabel • ${shipment.itemsDescription}) has moved to "${shipment.status.label}". Current location: ${shipment.lastLocationUpdate}.$courierPart$notePart';
+
+    final notifId = 'NOTIF_SHIP_${refLabel}_${shipment.status.name}_${now.millisecondsSinceEpoch}';
+    final notifMap = <String, dynamic>{
+      'id': notifId,
+      'name': title,
+      'title': title,
+      'message': body,
+      'body': body,
+      'brand': 'Shipping & Logistics',
+      'category': 'NOTIFICATION_RECORD',
+      'price': 0.0,
+      'original_price': 0.0,
+      'stock': 1,
+      'customerId': targetCustomerId,
+      'orderId': canonicalOrderId,
+      'specs': jsonEncode({
+        'id': notifId,
+        'type': 'shipping',
+        'title': title,
+        'body': body,
+        'orderId': canonicalOrderId,
+        'shipmentId': shipment.id,
+        'trackingNumber': shipment.trackingNumber,
+        'shippingStatus': shipment.status.name,
+        'statusLabel': shipment.status.label,
+        'customerId': targetCustomerId,
+        'customerName': shipment.customerName,
+        'customerPhone': shipment.customerPhone,
+        'customerEmail': shipment.customerEmail,
+        'channel': 'inApp',
+        'channelLabel': 'Shipping Update',
+        'sentBy': 'Store Manager',
+        'target': 'customer',
+        'timestamp': now.toIso8601String(),
+        'isUnread': true,
+      }),
+      'condition': 'unread',
+      'storage': targetCustomerId,
+      'ram': shipment.customerPhone,
+      'color': shipment.customerEmail,
+      'created_at': now.toIso8601String(),
+    };
+
+    _customerNotifications.insert(0, notifMap);
+    LocalSyncServer.broadcast('notification', notifMap);
+
+    final orderUpdatePayload = <String, dynamic>{
+      'id': canonicalOrderId,
+      'orderId': canonicalOrderId,
+      'shipmentId': shipment.id,
+      'status': mappedOrderStatus.name,
+      'shippingStatus': shipment.status.name,
+      'statusLabel': shipment.status.label,
+      'trackingNumber': shipment.trackingNumber,
+      'courier': shipment.courier,
+      'riderPhone': shipment.dispatchRiderPhone,
+      'lastLocationUpdate': shipment.lastLocationUpdate,
+      'estimatedDelivery': shipment.estimatedDelivery.toIso8601String(),
+      'customerId': targetCustomerId,
+      'customerEmail': shipment.customerEmail,
+      'customerPhone': shipment.customerPhone,
+      'customerName': shipment.customerName,
+      'updatedAt': now.toIso8601String(),
+    };
+    LocalSyncServer.broadcast('order_update', orderUpdatePayload);
+
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _supabase.upsertRawRecord(notifMap);
+      _supabase.upsertNotificationRaw({
+        'id': notifId,
+        'customer_id': targetCustomerId,
+        'reference_id': canonicalOrderId,
+        'title': title,
+        'message': body,
+        'type': 'shipping',
+        'channel': 'inApp',
+        'target': 'customer',
+        'is_read': false,
+        'created_at': now.toIso8601String(),
+      });
     }
   }
 
@@ -3267,8 +3819,12 @@ class ManagerRepository extends ChangeNotifier {
     for (final order in _orders) {
       final cleanOrderId = order.id.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
       final idx = _shipments.indexWhere((s) {
-        final sClean = s.orderOrProcessId.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
-        return sClean == cleanOrderId || s.id == 'SHIP-$cleanOrderId' || s.id == 'SHIP-${order.id}';
+        final rawRef = s.orderOrProcessId.replaceFirst('ORDER_', '').trim();
+        final mappedRef = _legacyOrderIdMap[rawRef] ?? rawRef;
+        final sClean = mappedRef.replaceFirst('ORD-', '').replaceFirst('ORDER_', '');
+        return sClean == cleanOrderId ||
+            s.id == 'SHIP-$cleanOrderId' ||
+            s.id == 'SHIP-${order.id}';
       });
 
       ShippingStatus shippingStatus = ShippingStatus.placed;
@@ -3294,6 +3850,7 @@ class ManagerRepository extends ChangeNotifier {
       }
 
       if (idx != -1) {
+        _shipments[idx].orderOrProcessId = order.id;
         _shipments[idx].status = shippingStatus;
       } else {
         final cleanGps = order.gpsCode.replaceAll('-', '');

@@ -14,6 +14,10 @@ class OrderModel {
   final String paymentMethod;
   final OrderStatus status;
   final String trackingNumber;
+  final String courierName;
+  final String riderPhone;
+  final String lastLocationUpdate;
+  final DateTime? estimatedDelivery;
 
   const OrderModel({
     required this.orderId,
@@ -27,6 +31,10 @@ class OrderModel {
     required this.paymentMethod,
     required this.status,
     required this.trackingNumber,
+    this.courierName = 'Circle Express Logistics',
+    this.riderPhone = '',
+    this.lastLocationUpdate = '',
+    this.estimatedDelivery,
   });
 
   String get statusDisplay {
@@ -58,6 +66,10 @@ class OrderModel {
     String? paymentMethod,
     OrderStatus? status,
     String? trackingNumber,
+    String? courierName,
+    String? riderPhone,
+    String? lastLocationUpdate,
+    DateTime? estimatedDelivery,
   }) {
     return OrderModel(
       orderId: orderId ?? this.orderId,
@@ -71,6 +83,10 @@ class OrderModel {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       status: status ?? this.status,
       trackingNumber: trackingNumber ?? this.trackingNumber,
+      courierName: courierName ?? this.courierName,
+      riderPhone: riderPhone ?? this.riderPhone,
+      lastLocationUpdate: lastLocationUpdate ?? this.lastLocationUpdate,
+      estimatedDelivery: estimatedDelivery ?? this.estimatedDelivery,
     );
   }
 }

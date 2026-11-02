@@ -296,7 +296,7 @@ class SupportViewModel extends ChangeNotifier {
           'Our Customer Care Team is available on $customerServicePhone during working hours ($workingHours). You can tap the "Call Line" button at the top to connect immediately.';
     } else if (lower.contains('track') || lower.contains('order')) {
       reply =
-          'You can track active shipments anytime in the "Track Order" or "My Orders" sections. Enter your order ID (e.g. SP-88421) for instant status.';
+          'You can track active shipments anytime in the "Track Order" or "My Orders" sections. Enter your order ID (e.g. ORD-000001) for instant status.';
     } else if (lower.contains('warranty') || lower.contains('repair')) {
       reply =
           'All flagship phones from Siaka Phones come with 1 year official brand warranty + SiakaCare+ protection. You can book an inspection under "Repairs" in the menu.';

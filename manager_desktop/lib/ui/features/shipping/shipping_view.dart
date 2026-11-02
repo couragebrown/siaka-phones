@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -414,257 +416,279 @@ class _ShippingViewState extends State<ShippingView> {
                           ),
                         ),
                       )
-                    : Scrollbar(
-                        controller: _verticalScrollController,
-                        thumbVisibility: true,
-                        child: SingleChildScrollView(
-                          controller: _verticalScrollController,
-                          child: Scrollbar(
-                            controller: _horizontalScrollController,
+                    : LayoutBuilder(
+                        builder: (context, tableConstraints) {
+                          final availableWidth = tableConstraints.maxWidth.isFinite
+                              ? tableConstraints.maxWidth
+                              : 1220.0;
+                          final tableMinWidth = math.max(1220.0, availableWidth);
+                          final extraWidth = math.max(0.0, tableMinWidth - 1220.0);
+                          final columnSpacing = (24.0 + extraWidth * 0.05).clamp(20.0, 64.0);
+                          final destWidth = (240.0 + extraWidth * 0.25).clamp(220.0, 440.0);
+                          final itemsWidth = (195.0 + extraWidth * 0.20).clamp(180.0, 360.0);
+                          final locWidth = (205.0 + extraWidth * 0.20).clamp(190.0, 360.0);
+
+                          return Scrollbar(
+                            controller: _verticalScrollController,
                             thumbVisibility: true,
-                            trackVisibility: true,
-                            notificationPredicate: (notif) => notif.metrics.axis == Axis.horizontal,
                             child: SingleChildScrollView(
-                              controller: _horizontalScrollController,
-                              scrollDirection: Axis.horizontal,
-                              child: DataTable(
-                                headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
-                                dataRowMinHeight: 70,
-                                dataRowMaxHeight: 76,
-                                horizontalMargin: 20,
-                                columnSpacing: 24,
-                                columns: const [
-                                  DataColumn(label: Text('TRACKING # & TYPE', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
-                                  DataColumn(label: Text('CUSTOMER & CONTACT', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
-                                  DataColumn(label: Text('DESTINATION & COURIER', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
-                                  DataColumn(label: Text('ITEMS / PACKAGE', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
-                                  DataColumn(label: Text('CURRENT LOCATION', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
-                                  DataColumn(label: Text('STATUS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
-                                  DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
-                                ],
-                                rows: filteredShipments.map((shipment) {
-                                  return DataRow(
-                                    cells: [
-                                      // Tracking # & Process
-                                      DataCell(
-                                        Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              shipment.trackingNumber,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 13,
-                                                color: Color(0xFF0F172A),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(shipment.processType.icon, size: 12, color: Color(shipment.processType.colorValue)),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '${shipment.processType.label} (${shipment.orderOrProcessId})',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Color(shipment.processType.colorValue),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // Customer & Contact
-                                      DataCell(
-                                        Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              shipment.customerName,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 13,
-                                                color: Color(0xFF0F172A),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              shipment.customerPhone,
-                                              style: TextStyle(
-                                                fontSize: 11.5,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // Destination & Courier
-                                      DataCell(
-                                        Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              '${shipment.destinationCity} • ${shipment.destinationAddress}',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF1E293B),
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              '${shipment.courier} ${shipment.dispatchRiderPhone.isNotEmpty ? "(${shipment.dispatchRiderPhone})" : ""}',
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: Color(0xFF64748B),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // Items
-                                      DataCell(
-                                        SizedBox(
-                                          width: 180,
-                                          child: Text(
-                                            shipment.itemsDescription,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF334155),
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Current Location
-                                      DataCell(
-                                        SizedBox(
-                                          width: 190,
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
+                              controller: _verticalScrollController,
+                              child: Scrollbar(
+                                controller: _horizontalScrollController,
+                                thumbVisibility: true,
+                                trackVisibility: true,
+                                notificationPredicate: (notif) => notif.metrics.axis == Axis.horizontal,
+                                child: SingleChildScrollView(
+                                  controller: _horizontalScrollController,
+                                  scrollDirection: Axis.horizontal,
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: tableMinWidth),
+                                    child: DataTable(
+                                      headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                                      dataRowMinHeight: 70,
+                                      dataRowMaxHeight: 76,
+                                      horizontalMargin: 24,
+                                      columnSpacing: columnSpacing,
+                                      columns: const [
+                                        DataColumn(label: Text('TRACKING # & TYPE', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
+                                        DataColumn(label: Text('CUSTOMER & CONTACT', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
+                                        DataColumn(label: Text('DESTINATION & COURIER', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
+                                        DataColumn(label: Text('ITEMS / PACKAGE', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
+                                        DataColumn(label: Text('CURRENT LOCATION', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
+                                        DataColumn(label: Text('STATUS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
+                                        DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)))),
+                                      ],
+                                      rows: filteredShipments.map((shipment) {
+                                        return DataRow(
+                                          cells: [
+                                            // Tracking # & Process
+                                            DataCell(
+                                              Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  const Icon(Icons.pin_drop_rounded, size: 13, color: Color(0xFFE11D48)),
-                                                  const SizedBox(width: 4),
-                                                  Expanded(
-                                                    child: Text(
-                                                      shipment.lastLocationUpdate,
-                                                      style: const TextStyle(
-                                                        fontSize: 11.5,
-                                                        fontWeight: FontWeight.w600,
-                                                        color: Color(0xFF0F172A),
+                                                  Text(
+                                                    shipment.trackingNumber,
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.w800,
+                                                      fontSize: 13,
+                                                      color: Color(0xFF0F172A),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(shipment.processType.icon, size: 12, color: Color(shipment.processType.colorValue)),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        '${shipment.processType.label} (${shipment.orderOrProcessId})',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: Color(shipment.processType.colorValue),
+                                                        ),
                                                       ),
-                                                      maxLines: 2,
-                                                      overflow: TextOverflow.ellipsis,
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            // Customer & Contact
+                                            DataCell(
+                                              Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    shipment.customerName,
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.w700,
+                                                      fontSize: 13,
+                                                      color: Color(0xFF0F172A),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    shipment.customerPhone,
+                                                    style: TextStyle(
+                                                      fontSize: 11.5,
+                                                      color: Colors.grey.shade600,
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                'ETA: ${DateFormat('h:mm a, d MMM').format(shipment.estimatedDelivery)}',
-                                                style: TextStyle(
-                                                  fontSize: 10.5,
-                                                  color: Colors.grey.shade500,
+                                            ),
+
+                                            // Destination & Courier
+                                            DataCell(
+                                              SizedBox(
+                                                width: destWidth,
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      '${shipment.destinationCity} • ${shipment.destinationAddress}',
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: Color(0xFF1E293B),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      '${shipment.courier} ${shipment.dispatchRiderPhone.isNotEmpty ? "(${shipment.dispatchRiderPhone})" : ""}',
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color: Color(0xFF64748B),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Status Badge
-                                      DataCell(
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                          decoration: BoxDecoration(
-                                            color: Color(shipment.status.bgColor),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(
-                                              color: Color(shipment.status.textColor).withValues(alpha: 0.3),
                                             ),
-                                          ),
-                                          child: Text(
-                                            shipment.status.label,
-                                            style: TextStyle(
-                                              fontSize: 11.5,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(shipment.status.textColor),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
 
-                                      // Actions
-                                      DataCell(
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            // Update Shipping Button
-                                            OutlinedButton.icon(
-                                              onPressed: () => _showUpdateShippingDialog(context, shipment),
-                                              icon: const Icon(Icons.edit_location_alt_rounded, size: 14),
-                                              label: const Text('Update Status'),
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor: const Color(0xFF1C7BFF),
-                                                side: const BorderSide(color: Color(0xFF93C5FD)),
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            // Items
+                                            DataCell(
+                                              SizedBox(
+                                                width: itemsWidth,
+                                                child: Text(
+                                                  shipment.itemsDescription,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Color(0xFF334155),
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
                                             ),
-                                            const SizedBox(width: 6),
 
-                                            // Message Customer Button
-                                            IconButton(
-                                              tooltip: 'Send Shipping Update to Customer',
-                                              icon: const Icon(Icons.mark_chat_unread_rounded, size: 18, color: Color(0xFF4F46E5)),
-                                              onPressed: () {
-                                                if (widget.onMessageCustomer != null) {
-                                                  final subject = 'Delivery Update: Shipment #${shipment.trackingNumber}';
-                                                  final body = 'Hello ${shipment.customerName},\n\nThis is an update from Siaka Phones regarding your shipment (#${shipment.trackingNumber}).\nStatus: ${shipment.status.label}\nCurrent Location: ${shipment.lastLocationUpdate}\nCourier: ${shipment.courier} (Rider: ${shipment.dispatchRiderPhone})\n\nPlease contact us if you need any assistance.';
-                                                  widget.onMessageCustomer!(
-                                                    shipment.customerName,
-                                                    shipment.customerPhone,
-                                                    shipment.customerEmail,
-                                                    initialSubject: subject,
-                                                    initialBody: body,
-                                                    initialCategory: MessageCategory.orderUpdate,
-                                                  );
-                                                }
-                                              },
+                                            // Current Location
+                                            DataCell(
+                                              SizedBox(
+                                                width: locWidth,
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        const Icon(Icons.pin_drop_rounded, size: 13, color: Color(0xFFE11D48)),
+                                                        const SizedBox(width: 4),
+                                                        Expanded(
+                                                          child: Text(
+                                                            shipment.lastLocationUpdate,
+                                                            style: const TextStyle(
+                                                              fontSize: 11.5,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: Color(0xFF0F172A),
+                                                            ),
+                                                            maxLines: 2,
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      'ETA: ${DateFormat('h:mm a, d MMM').format(shipment.estimatedDelivery)}',
+                                                      style: TextStyle(
+                                                        fontSize: 10.5,
+                                                        color: Colors.grey.shade500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                             ),
 
-                                            // View History / Timeline
-                                            IconButton(
-                                              tooltip: 'View Checkpoint Timeline',
-                                              icon: const Icon(Icons.history_rounded, size: 18, color: Color(0xFF64748B)),
-                                              onPressed: () => _showTimelineDialog(context, shipment),
+                                            // Status Badge
+                                            DataCell(
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                                decoration: BoxDecoration(
+                                                  color: Color(shipment.status.bgColor),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                    color: Color(shipment.status.textColor).withValues(alpha: 0.3),
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  shipment.status.label,
+                                                  style: TextStyle(
+                                                    fontSize: 11.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(shipment.status.textColor),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+
+                                            // Actions
+                                            DataCell(
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // Update Shipping Button
+                                                  OutlinedButton.icon(
+                                                    onPressed: () => _showUpdateShippingDialog(context, shipment),
+                                                    icon: const Icon(Icons.edit_location_alt_rounded, size: 14),
+                                                    label: const Text('Update Status'),
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: const Color(0xFF1C7BFF),
+                                                      side: const BorderSide(color: Color(0xFF93C5FD)),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+
+                                                  // Message Customer Button
+                                                  IconButton(
+                                                    tooltip: 'Send Shipping Update to Customer',
+                                                    icon: const Icon(Icons.mark_chat_unread_rounded, size: 18, color: Color(0xFF4F46E5)),
+                                                    onPressed: () {
+                                                      if (widget.onMessageCustomer != null) {
+                                                        final subject = 'Delivery Update: Shipment #${shipment.trackingNumber}';
+                                                        final body = 'Hello ${shipment.customerName},\n\nThis is an update from Siaka Phones regarding your shipment (#${shipment.trackingNumber}).\nStatus: ${shipment.status.label}\nCurrent Location: ${shipment.lastLocationUpdate}\nCourier: ${shipment.courier} (Rider: ${shipment.dispatchRiderPhone})\n\nPlease contact us if you need any assistance.';
+                                                        widget.onMessageCustomer!(
+                                                          shipment.customerName,
+                                                          shipment.customerPhone,
+                                                          shipment.customerEmail,
+                                                          initialSubject: subject,
+                                                          initialBody: body,
+                                                          initialCategory: MessageCategory.orderUpdate,
+                                                        );
+                                                      }
+                                                    },
+                                                  ),
+
+                                                  // View History / Timeline
+                                                  IconButton(
+                                                    tooltip: 'View Checkpoint Timeline',
+                                                    icon: const Icon(Icons.history_rounded, size: 18, color: Color(0xFF64748B)),
+                                                    onPressed: () => _showTimelineDialog(context, shipment),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ],
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                }).toList(),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
               ),
             ],

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../services/device_notification_service.dart';
+import 'user_repository.dart';
 
 class CustomerNotification {
   final String id;
@@ -140,17 +141,27 @@ class CustomerNotificationRepository extends ChangeNotifier {
     ];
   }
 
+  Timer? _localPollTimer;
+  bool _isDisposed = false;
+
   void _initSync() {
     if (Platform.environment.containsKey('FLUTTER_TEST')) return;
 
     fetchRemoteNotifications();
+    fetchLocalNotifications();
 
-    // 25-second auto-poll (with quota protection)
+    // 25-second auto-poll (with quota protection for Supabase)
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 25), (_) {
       if (!SupabaseService.isQuotaRestricted) {
         fetchRemoteNotifications();
       }
+    });
+
+    // 3-second fast local poll to manager desktop
+    _localPollTimer?.cancel();
+    _localPollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      fetchLocalNotifications();
     });
 
     // Supabase Realtime Stream
@@ -160,17 +171,19 @@ class CustomerNotificationRepository extends ChangeNotifier {
       }, onError: (_) {});
     } catch (_) {}
 
-    // Local SSE Events listener
+    // Local SSE Events listener with auto-reconnect
     _listenLocalSse();
   }
 
   void _listenLocalSse() async {
+    if (_isDisposed) return;
     try {
       final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+      _sseClient?.close(force: true);
       _sseClient = HttpClient()..connectionTimeout = const Duration(seconds: 2);
       final request = await _sseClient!.getUrl(Uri.parse('http://$host:8088/api/events'));
       request.headers.set('Accept', 'text/event-stream');
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         response.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
           if (line.startsWith('data:')) {
@@ -182,17 +195,61 @@ class CustomerNotificationRepository extends ChangeNotifier {
               }
             } catch (_) {}
           }
-        }, onError: (_) {});
+        }, onDone: () {
+          if (!_isDisposed) {
+            Future.delayed(const Duration(seconds: 3), _listenLocalSse);
+          }
+        }, onError: (_) {
+          if (!_isDisposed) {
+            Future.delayed(const Duration(seconds: 3), _listenLocalSse);
+          }
+        });
+      } else {
+        if (!_isDisposed) {
+          Future.delayed(const Duration(seconds: 4), _listenLocalSse);
+        }
       }
-    } catch (_) {}
+    } catch (_) {
+      if (!_isDisposed) {
+        Future.delayed(const Duration(seconds: 4), _listenLocalSse);
+      }
+    }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _pollTimer?.cancel();
+    _localPollTimer?.cancel();
     _remoteSub?.cancel();
     _sseClient?.close(force: true);
     super.dispose();
+  }
+
+  Future<void> fetchLocalNotifications() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final profile = UserRepository.instance.profile;
+      final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+      final uri = Uri.parse('http://$host:8088/api/notifications').replace(
+        queryParameters: {
+          'customerId': profile.id,
+          'phone': profile.phone,
+          'email': profile.email,
+        },
+      );
+      final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 950);
+      final req = await client.getUrl(uri);
+      final res = await req.close().timeout(const Duration(milliseconds: 950));
+      if (res.statusCode == HttpStatus.ok) {
+        final body = await res.transform(utf8.decoder).join();
+        if (body.isNotEmpty && body.startsWith('[')) {
+          final list = jsonDecode(body) as List;
+          final maps = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+          _applyRemoteRecords(maps);
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> fetchRemoteNotifications() async {
@@ -207,20 +264,7 @@ class CustomerNotificationRepository extends ChangeNotifier {
     } catch (_) {}
 
     // 2. Fetch from Local PC Sync Server
-    try {
-      final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
-      final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 1000);
-      final req = await client.getUrl(Uri.parse('http://$host:8088/api/notifications'));
-      final res = await req.close().timeout(const Duration(milliseconds: 1000));
-      if (res.statusCode == HttpStatus.ok) {
-        final body = await res.transform(utf8.decoder).join();
-        if (body.isNotEmpty && body.startsWith('[')) {
-          final list = jsonDecode(body) as List;
-          final maps = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
-          _applyRemoteRecords(maps);
-        }
-      }
-    } catch (_) {}
+    await fetchLocalNotifications();
   }
 
   void _applyRemoteRecords(List<Map<String, dynamic>> records) {

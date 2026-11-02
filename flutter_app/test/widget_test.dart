@@ -1941,8 +1941,8 @@ void main() {
       (WidgetTester tester) async {
     final orderRepo =
         OrderRepository(initialOrders: OrderRepository.sampleOrders);
-    orderRepo.updateOrderStatus('SP-883921', OrderStatus.placed);
-    final placedOrder = orderRepo.getOrderById('SP-883921')!;
+    orderRepo.updateOrderStatus('ORD-000002', OrderStatus.placed);
+    final placedOrder = orderRepo.getOrderById('ORD-000002')!;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -2797,6 +2797,7 @@ void main() {
 
     // Orders is now 1!
     expect(orderRepo.orders.length, 1);
+    expect(orderRepo.orders.first.orderId, 'ORD-000001');
     expect(find.text('0'), findsNothing);
   });
 

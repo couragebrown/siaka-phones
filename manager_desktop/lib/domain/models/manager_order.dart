@@ -72,5 +72,7 @@ class ManagerOrder {
     this.status = OrderStatus.placed,
   });
 
+  int get totalQuantity => items.fold(0, (acc, i) => acc + i.quantity);
+
   String get itemsSummary => items.map((i) => '${i.quantity}x ${i.title}').join(', ');
 }

@@ -65,6 +65,7 @@ class ManagerProduct {
   bool get isMerchandise {
     if (id.startsWith('CAT_') ||
         id.startsWith('ORDER_') ||
+        id.startsWith('ORD-') ||
         id.startsWith('BNPL_') ||
         id.startsWith('REPAIR_') ||
         id.startsWith('SWAP_') ||
