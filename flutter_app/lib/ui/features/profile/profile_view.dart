@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../data/services/live_location_service.dart';
+import '../../core/widgets/live_mini_map_painter.dart';
 import 'profile_view_model.dart';
 
 class ProfileView extends StatelessWidget {
@@ -1004,6 +1006,9 @@ class ProfileView extends StatelessWidget {
         ? viewModel.profile.region
         : 'Greater Accra';
 
+    bool isFetchingLiveLocation = false;
+    LiveLocationResult? liveLocationResult;
+
     const regions = [
       'Greater Accra',
       'Ashanti',
@@ -1028,8 +1033,44 @@ class ProfileView extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
+        Future<void> fetchAndApplyLiveLocation(StateSetter setSheetState) async {
+          if (isFetchingLiveLocation) return;
+          FocusScope.of(sheetContext).unfocus();
+          setSheetState(() {
+            isFetchingLiveLocation = true;
+          });
+          try {
+            final result = await LiveLocationService.fetchLiveGpsCode(
+              selectedRegion: selectedRegion,
+            );
+            setSheetState(() {
+              liveLocationResult = result;
+              gpsController.text = result.gpsCode;
+              if (result.detectedRegion != null && regions.contains(result.detectedRegion)) {
+                selectedRegion = result.detectedRegion!;
+              }
+            });
+          } catch (e) {
+            if (sheetContext.mounted) {
+              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                SnackBar(
+                  content: Text(e.toString()),
+                  backgroundColor: const Color(0xFFDC2626),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } finally {
+            setSheetState(() {
+              isFetchingLiveLocation = false;
+            });
+          }
+        }
+
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final hasLiveFix = liveLocationResult != null || gpsController.text.trim().isNotEmpty;
+
             return Container(
               padding: EdgeInsets.only(
                 left: 20,
@@ -1156,43 +1197,287 @@ class ProfileView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    TextField(
-                      controller: gpsController,
-                      textCapitalization: TextCapitalization.characters,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF111827),
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: hasLiveFix
+                              ? const Color(0xFF1C7BFF)
+                              : const Color(0xFFE2E8F0),
+                          width: hasLiveFix ? 1.5 : 1.0,
+                        ),
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'e.g. GA-014-2041',
-                        hintStyle: const TextStyle(
-                          color: Color(0xFF9CA3AF),
-                          fontSize: 13.5,
-                          letterSpacing: 0,
+                      padding: const EdgeInsets.only(left: 12, right: 6),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 20,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: gpsController,
+                              textCapitalization: TextCapitalization.characters,
+                              style: const TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                              decoration: const InputDecoration(
+                                hintText: 'e.g. GA-123-4567',
+                                hintStyle: TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  letterSpacing: 0,
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
+                          ),
+                          Tooltip(
+                            message: 'Get live GPS location',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: isFetchingLiveLocation
+                                    ? null
+                                    : () => fetchAndApplyLiveLocation(setSheetState),
+                                borderRadius: BorderRadius.circular(9),
+                                child: Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFF6FF),
+                                    borderRadius: BorderRadius.circular(9),
+                                    border: Border.all(
+                                      color: const Color(0xFFBFDBFE),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: isFetchingLiveLocation
+                                        ? const SizedBox(
+                                            width: 15,
+                                            height: 15,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF1C7BFF),
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.map_rounded,
+                                            size: 18,
+                                            color: Color(0xFF1C7BFF),
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Clickable Small Map Design under the GPS code field
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: isFetchingLiveLocation
+                            ? null
+                            : () => fetchAndApplyLiveLocation(setSheetState),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 98,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: hasLiveFix
+                                  ? const Color(0xFF1C7BFF)
+                                  : const Color(0xFFCBD5E1),
+                              width: hasLiveFix ? 1.3 : 1.0,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(11),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CustomPaint(
+                                  painter: LiveMiniMapPainter(isLocated: hasLiveFix),
+                                ),
+                                // Top-left Live Coordinates / Status Badge
+                                Positioned(
+                                  top: 8,
+                                  left: 8,
+                                  right: 44,
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.94),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 7,
+                                            height: 7,
+                                            decoration: BoxDecoration(
+                                              color: hasLiveFix
+                                                  ? const Color(0xFF16A34A)
+                                                  : const Color(0xFF1C7BFF),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Flexible(
+                                            child: Text(
+                                              liveLocationResult != null
+                                                  ? liveLocationResult!.formattedCoordinates
+                                                  : (gpsController.text.trim().isNotEmpty
+                                                      ? 'Live GPS: ${gpsController.text.trim()}'
+                                                      : 'Live GPS Map'),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Color(0xFF0F172A),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Top-right target badge
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.94),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: Center(
+                                      child: isFetchingLiveLocation
+                                          ? const SizedBox(
+                                              width: 13,
+                                              height: 13,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 1.8,
+                                                color: Color(0xFF1C7BFF),
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.my_location_rounded,
+                                              size: 15,
+                                              color: Color(0xFF1C7BFF),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                                // Bottom strip bar
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0F172A).withValues(alpha: 0.72),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.pin_drop_rounded,
+                                          size: 13,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Expanded(
+                                          child: Text(
+                                            isFetchingLiveLocation
+                                                ? 'Detecting your live GPS location...'
+                                                : (hasLiveFix
+                                                    ? 'Live GPS: ${gpsController.text.trim()} • Tap map to refresh'
+                                                    : 'Tap map to get your current live GPS code'),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        prefixIcon: const Icon(Icons.qr_code_rounded,
-                            size: 19, color: Color(0xFF1C7BFF)),
-                        filled: true,
-                        fillColor: const Color(0xFFF9FAFB),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFE5E7EB)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFE5E7EB)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF1C7BFF), width: 1.5),
-                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // Red instructional note under the map
+                    const Padding(
+                      padding: EdgeInsets.only(left: 2),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(top: 1.5),
+                            child: Icon(
+                              Icons.location_searching_rounded,
+                              size: 13,
+                              color: Color(0xFFDC2626),
+                            ),
+                          ),
+                          SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              'Click on the map to add current live location',
+                              style: TextStyle(
+                                color: Color(0xFFDC2626),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 14),
