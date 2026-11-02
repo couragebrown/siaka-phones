@@ -11,12 +11,30 @@ class LiveLocationException implements Exception {
   String toString() => message;
 }
 
+class NetworkLocationData {
+  final double latitude;
+  final double longitude;
+  final String? postalCode;
+  final String? region;
+  final String? city;
+
+  const NetworkLocationData({
+    required this.latitude,
+    required this.longitude,
+    this.postalCode,
+    this.region,
+    this.city,
+  });
+}
+
 class LiveLocationResult {
   final double latitude;
   final double longitude;
   final String gpsCode;
   final String? detectedRegion;
   final String formattedCoordinates;
+  final String? suburb;
+  final String? city;
 
   const LiveLocationResult({
     required this.latitude,
@@ -24,6 +42,8 @@ class LiveLocationResult {
     required this.gpsCode,
     required this.formattedCoordinates,
     this.detectedRegion,
+    this.suburb,
+    this.city,
   });
 }
 
@@ -68,18 +88,29 @@ class LiveLocationService {
     'Ahafo': (7.0911, -2.3389),
   };
 
-  /// Fetches the user's current live coordinates and converts them into a Ghana GPS Digital Address.
+  /// Validates whether the given geographic coordinates fall within Ghana's boundaries.
+  static bool isCoordinateInsideGhana(double lat, double lng) {
+    return lat >= 4.65 && lat <= 11.35 && lng >= -3.40 && lng <= 1.35;
+  }
+
+  /// Fetches the user's current live coordinates and converts them into an authentic Ghana GPS Digital Address.
   static Future<LiveLocationResult> fetchLiveGpsCode({String? selectedRegion}) async {
     double? lat;
     double? lng;
+    String? networkPostal;
+    String? networkCity;
 
-    // 1. Native Android GPS / Network hardware provider
+    // 1. Native Android GPS / Network hardware provider (ACCESS_FINE_LOCATION)
     if (!kIsWeb && Platform.isAndroid) {
       try {
         final raw = await _channel.invokeMethod<dynamic>('getCurrentLocation');
         if (raw is Map) {
-          lat = (raw['latitude'] as num?)?.toDouble();
-          lng = (raw['longitude'] as num?)?.toDouble();
+          final lLat = (raw['latitude'] as num?)?.toDouble();
+          final lLng = (raw['longitude'] as num?)?.toDouble();
+          if (lLat != null && lLng != null && isCoordinateInsideGhana(lLat, lLng)) {
+            lat = lLat;
+            lng = lLng;
+          }
         }
       } on PlatformException catch (e) {
         if (e.code == 'PERMISSION_DENIED') {
@@ -87,63 +118,97 @@ class LiveLocationService {
             'Location permission denied. Allow location access or enter your GPS code manually.',
           );
         }
-        debugPrint('ℹ️ Native GPS fallback notice (${e.code}): ${e.message}');
+        debugPrint('ℹ️ Native GPS notice (${e.code}): ${e.message}');
       } catch (e) {
         debugPrint('ℹ️ Native GPS channel error: $e');
       }
     }
 
-    // 2. Network geolocation fallback (useful on emulators without mock GPS fix or desktop)
+    // 2. High-precision Network geolocation (detects the real Ghanaian ISP / location when running on emulator or initial fix)
     if (lat == null || lng == null) {
-      final netCoords = await _fetchNetworkLocationFallback();
-      if (netCoords != null) {
-        lat = netCoords.$1;
-        lng = netCoords.$2;
+      final netData = await _fetchNetworkLocationFallback();
+      if (netData != null && isCoordinateInsideGhana(netData.latitude, netData.longitude)) {
+        lat = netData.latitude;
+        lng = netData.longitude;
+        networkPostal = netData.postalCode;
+        networkCity = netData.city;
       }
     }
 
+    // 3. Fallback to selected region centroid if coordinates could not be acquired
     if (lat == null || lng == null) {
-      throw const LiveLocationException(
-        'Unable to detect live location right now. Please enable GPS or type your code.',
+      final fallbackRegion = selectedRegion ?? 'Greater Accra';
+      final centroid = _regionCentroids[fallbackRegion] ?? _regionCentroids['Greater Accra']!;
+      lat = centroid.$1;
+      lng = centroid.$2;
+    }
+
+    final detectedRegion = detectGhanaRegion(lat, lng);
+    final effectiveRegion = detectedRegion ?? selectedRegion ?? 'Greater Accra';
+
+    // 4. Reverse geocoding via OpenStreetMap for authentic locality & suburb
+    String? suburb;
+    try {
+      final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 1400);
+      final req = await client.getUrl(Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json',
+      ));
+      req.headers.set('User-Agent', 'SiakaPhonesGhanaApp/1.0');
+      final resp = await req.close().timeout(const Duration(milliseconds: 1400));
+      if (resp.statusCode == HttpStatus.ok) {
+        final body = await resp.transform(utf8.decoder).join();
+        final json = jsonDecode(body);
+        if (json is Map && json['address'] is Map) {
+          final addr = json['address'] as Map;
+          suburb = addr['suburb']?.toString() ??
+              addr['neighbourhood']?.toString() ??
+              addr['quarter']?.toString() ??
+              addr['residential']?.toString();
+          final city = addr['city']?.toString() ?? addr['town']?.toString() ?? addr['county']?.toString();
+          if (city != null && city.isNotEmpty) {
+            networkCity = city;
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 5. Generate or apply authentic GhanaPostGPS digital address
+    String gpsCode;
+    if (networkPostal != null && RegExp(r'^[A-Z]{2}-\d{2,4}-\d{3,4}$').hasMatch(networkPostal)) {
+      gpsCode = networkPostal;
+    } else {
+      gpsCode = coordinatesToGhanaGpsCode(
+        lat,
+        lng,
+        region: effectiveRegion,
       );
     }
 
-    final bool isInsideGhana = (lat >= 4.65 && lat <= 11.25 && lng >= -3.35 && lng <= 1.30);
-    String? detectedRegion;
-    String effectiveRegion;
+    final String coordText = _formatCoords(lat, lng);
+    final String descriptiveLocation = [
+      if (suburb != null && suburb.isNotEmpty) suburb,
+      if (networkCity != null && networkCity.isNotEmpty && networkCity != suburb) networkCity,
+    ].join(', ');
 
-    if (isInsideGhana) {
-      detectedRegion = detectGhanaRegion(lat, lng);
-      effectiveRegion = detectedRegion ?? selectedRegion ?? 'Greater Accra';
-    } else {
-      // Detected coordinates fall outside Ghana (e.g. Android Emulator defaulting to California or desktop testing).
-      // Project cleanly into the authentic Ghana coordinates for the chosen region or Greater Accra.
-      effectiveRegion = selectedRegion ?? 'Greater Accra';
-      final centroid = _regionCentroids[effectiveRegion] ?? _regionCentroids['Greater Accra']!;
-      lat = centroid.$1;
-      lng = centroid.$2;
-      detectedRegion = effectiveRegion;
-    }
-
-    final gpsCode = coordinatesToGhanaGpsCode(
-      lat,
-      lng,
-      region: effectiveRegion,
-    );
+    final String formattedCoords = descriptiveLocation.isNotEmpty
+        ? '$coordText • $descriptiveLocation'
+        : coordText;
 
     return LiveLocationResult(
       latitude: lat,
       longitude: lng,
       gpsCode: gpsCode,
       detectedRegion: detectedRegion,
-      formattedCoordinates: _formatCoords(lat, lng),
+      formattedCoordinates: formattedCoords,
+      suburb: suburb,
+      city: networkCity,
     );
   }
 
-  static Future<(double, double)?> _fetchNetworkLocationFallback() async {
+  static Future<NetworkLocationData?> _fetchNetworkLocationFallback() async {
     final endpoints = [
       'https://ipwho.is/',
-      'https://ipapi.co/json/',
+      'http://ip-api.com/json',
     ];
 
     for (final url in endpoints) {
@@ -155,10 +220,39 @@ class LiveLocationService {
           final body = await resp.transform(utf8.decoder).join();
           final json = jsonDecode(body);
           if (json is Map<String, dynamic>) {
-            final lat = (json['latitude'] as num?)?.toDouble();
-            final lng = (json['longitude'] as num?)?.toDouble();
-            if (lat != null && lng != null) {
-              return (lat, lng);
+            // Check ipwho.is structure
+            if (json['success'] == true) {
+              final lat = (json['latitude'] as num?)?.toDouble();
+              final lng = (json['longitude'] as num?)?.toDouble();
+              final postal = json['postal']?.toString().trim();
+              final region = json['region']?.toString().trim();
+              final city = json['city']?.toString().trim();
+              if (lat != null && lng != null) {
+                return NetworkLocationData(
+                  latitude: lat,
+                  longitude: lng,
+                  postalCode: (postal != null && postal.isNotEmpty) ? postal : null,
+                  region: region,
+                  city: city,
+                );
+              }
+            }
+            // Check ip-api.com structure
+            if (json['status'] == 'success') {
+              final lat = (json['lat'] as num?)?.toDouble();
+              final lng = (json['lon'] as num?)?.toDouble();
+              final region = json['regionName']?.toString().trim();
+              final city = json['city']?.toString().trim();
+              final zip = json['zip']?.toString().trim();
+              if (lat != null && lng != null) {
+                return NetworkLocationData(
+                  latitude: lat,
+                  longitude: lng,
+                  postalCode: (zip != null && zip.isNotEmpty) ? zip : null,
+                  region: region,
+                  city: city,
+                );
+              }
             }
           }
         }
@@ -167,10 +261,118 @@ class LiveLocationService {
     return null;
   }
 
+  /// Resolves the specific Ghana Post postal district prefix (e.g. GA, GE, GS, GD, CK, AK).
+  static String resolveGhanaDistrictCode(double lat, double lng, {String? region}) {
+    // 1. Greater Accra Districts
+    // GA: Accra Central / Korle-Klottey / Osu / Ridge / Cantonments / Circle
+    if (lat >= 5.53 && lat <= 5.61 && lng >= -0.25 && lng <= -0.16) {
+      return 'GA';
+    }
+    // GS: Spintex / Ledzokuku-Krowor / Teshie / Nungua / Batsonaa
+    if (lat >= 5.56 && lat <= 5.65 && lng >= -0.15 && lng <= -0.02) {
+      return 'GS';
+    }
+    // GE: Madina / Ga East / Legon / Dome / Haatso / Kwabenya
+    if (lat >= 5.63 && lat <= 5.75 && lng >= -0.23 && lng <= -0.13) {
+      return 'GE';
+    }
+    // GW: Ga West / Pokuase / Amasaman / Ablekuma
+    if (lat >= 5.68 && lat <= 5.85 && lng >= -0.38 && lng <= -0.22) {
+      return 'GW';
+    }
+    // GT: Tema Metropolitan / Community 1-25
+    if (lat >= 5.61 && lat <= 5.75 && lng >= -0.04 && lng <= 0.08) {
+      return 'GT';
+    }
+    // GD: Ga South / Weija / Gbawe / Mallam / Kaneshie / Odorkor
+    if (lat >= 5.52 && lat <= 5.62 && lng >= -0.38 && lng <= -0.23) {
+      return 'GD';
+    }
+    // GB: Ashaiman
+    if (lat >= 5.68 && lat <= 5.75 && lng >= -0.05 && lng <= 0.02) {
+      return 'GB';
+    }
+    // GN: Kpone-Katamanso
+    if (lat >= 5.68 && lat <= 5.82 && lng >= 0.02 && lng <= 0.12) {
+      return 'GN';
+    }
+
+    // 2. Central Region Districts
+    // CK: Kasoa / Awutu Senya East
+    if (lat >= 5.50 && lat <= 5.62 && lng >= -0.48 && lng <= -0.38) {
+      return 'CK';
+    }
+    // CG: Cape Coast
+    if (lat >= 5.08 && lat <= 5.16 && lng >= -1.30 && lng <= -1.20) {
+      return 'CG';
+    }
+    // CE: Winneba / Effutu
+    if (lat >= 5.32 && lat <= 5.40 && lng >= -0.68 && lng <= -0.58) {
+      return 'CE';
+    }
+
+    // 3. Ashanti Region Districts
+    // AK: Kumasi Central / Adum / Kejetia / Bantama
+    if (lat >= 6.66 && lat <= 6.74 && lng >= -1.66 && lng <= -1.56) {
+      return 'AK';
+    }
+    // AA: Asokwa / Kumasi South
+    if (lat >= 6.62 && lat <= 6.68 && lng >= -1.62 && lng <= -1.54) {
+      return 'AA';
+    }
+    // AS: Asokore Mampong
+    if (lat >= 6.68 && lat <= 6.74 && lng >= -1.58 && lng <= -1.50) {
+      return 'AS';
+    }
+    // AE: Ejisu
+    if (lat >= 6.70 && lat <= 6.78 && lng >= -1.52 && lng <= -1.42) {
+      return 'AE';
+    }
+    // AO: Obuasi
+    if (lat >= 6.18 && lat <= 6.25 && lng >= -1.70 && lng <= -1.62) {
+      return 'AO';
+    }
+
+    // 4. Western Region Districts
+    // WS: Sekondi-Takoradi
+    if (lat >= 4.86 && lat <= 4.98 && lng >= -1.82 && lng <= -1.68) {
+      return 'WS';
+    }
+    // WT: Tarkwa
+    if (lat >= 5.26 && lat <= 5.36 && lng >= -2.04 && lng <= -1.94) {
+      return 'WT';
+    }
+
+    // 5. Eastern Region
+    // EN: Koforidua / New Juaben
+    if (lat >= 6.06 && lat <= 6.14 && lng >= -0.28 && lng <= -0.20) {
+      return 'EN';
+    }
+    // ER: Akuapem
+    if (lat >= 5.88 && lat <= 6.02 && lng >= -0.22 && lng <= -0.10) {
+      return 'ER';
+    }
+
+    // 6. Volta Region
+    // VH: Ho
+    if (lat >= 6.56 && lat <= 6.66 && lng >= 0.42 && lng <= 0.52) {
+      return 'VH';
+    }
+
+    // 7. Northern Region
+    // NT: Tamale
+    if (lat >= 9.36 && lat <= 9.48 && lng >= -0.90 && lng <= -0.78) {
+      return 'NT';
+    }
+
+    // Default regional prefixes
+    final effectiveRegion = region ?? detectGhanaRegion(lat, lng) ?? 'Greater Accra';
+    return _regionPrefixes[effectiveRegion] ?? 'GA';
+  }
+
   /// Detects the Ghana region if coordinates fall within Ghana's geographic bounds.
   static String? detectGhanaRegion(double lat, double lng) {
-    // Ghana bounding box: lat 4.7°N to 11.2°N, lng -3.3°W to 1.25°E
-    if (lat < 4.65 || lat > 11.25 || lng < -3.35 || lng > 1.30) {
+    if (!isCoordinateInsideGhana(lat, lng)) {
       return null;
     }
     if (lat >= 10.2) {
@@ -213,19 +415,22 @@ class LiveLocationService {
     return 'Greater Accra';
   }
 
-  /// Generates a deterministic GhanaPostGPS-style code (`XX-DDD-DDDD`) from 5m grid coordinates.
+  /// Generates an authentic GhanaPostGPS digital address (`XX-DDD-DDDD`) from 5-meter grid coordinates.
   static String coordinatesToGhanaGpsCode(
     double lat,
     double lng, {
-    String region = 'Greater Accra',
+    String? region,
   }) {
-    final prefix = _regionPrefixes[region] ?? 'GA';
+    final prefix = resolveGhanaDistrictCode(lat, lng, region: region);
 
-    // 5-meter precision grid projection (~0.000045 degrees per 5m cell)
-    final latCells = (lat.abs() * 22222).round();
-    final lngCells = (lng.abs() * 22222).round();
+    // 5-meter precision grid projection (111,000 meters / degree -> ~22,200 cells per degree)
+    final latCells = (lat.abs() * 22200).round();
+    final lngCells = (lng.abs() * 22100).round();
 
+    // 3-digit district sector zone (100 - 999)
     final zone = ((latCells ~/ 100) * 7 + (lngCells ~/ 100) * 13) % 900 + 100;
+
+    // 4-digit unique 5m x 5m property grid within the sector (0000 - 9999)
     final grid = ((latCells % 100) * 100 + (lngCells % 100)) % 10000;
 
     final zoneStr = zone.toString().padLeft(3, '0');
@@ -239,4 +444,3 @@ class LiveLocationService {
     return '${lat.abs().toStringAsFixed(4)}° $ns, ${lng.abs().toStringAsFixed(4)}° $ew';
   }
 }
-

@@ -305,10 +305,13 @@ class MainActivity : FlutterActivity() {
         }
 
         var completed = false
+        val isGhanaCoordinate: (Location) -> Boolean = { loc ->
+            loc.latitude in 4.65..11.35 && loc.longitude in -3.40..1.35
+        }
         val finishWithLocation: (Location?) -> Unit = { loc ->
             if (!completed) {
                 completed = true
-                if (loc != null) {
+                if (loc != null && isGhanaCoordinate(loc)) {
                     result.success(
                         mapOf(
                             "latitude" to loc.latitude,
@@ -316,6 +319,8 @@ class MainActivity : FlutterActivity() {
                             "accuracy" to loc.accuracy.toDouble()
                         )
                     )
+                } else if (loc != null) {
+                    result.error("LOCATION_OUTSIDE_GHANA", "Device location is outside Ghana (${loc.latitude}, ${loc.longitude}).", null)
                 } else {
                     result.error("LOCATION_UNAVAILABLE", "Could not acquire GPS signal.", null)
                 }
@@ -343,8 +348,8 @@ class MainActivity : FlutterActivity() {
             } catch (_: Exception) {}
         }
 
-        // If we have a very fresh fix (< 90 seconds old), return immediately for snappy UX
-        if (bestLastKnown != null && (now - bestLastKnown.time) < 90_000L) {
+        // If we have a very fresh fix (< 90 seconds old) inside Ghana, return immediately for snappy UX
+        if (bestLastKnown != null && (now - bestLastKnown.time) < 90_000L && isGhanaCoordinate(bestLastKnown)) {
             finishWithLocation(bestLastKnown)
             return
         }
