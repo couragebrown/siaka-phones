@@ -49,6 +49,25 @@ class LiveLocationService {
     'Ahafo': 'AH',
   };
 
+  static const Map<String, (double, double)> _regionCentroids = {
+    'Greater Accra': (5.5583, -0.2078),
+    'Ashanti': (6.6885, -1.6244),
+    'Central': (5.1054, -1.2466),
+    'Western': (4.8967, -1.7554),
+    'Western North': (6.1333, -2.8000),
+    'Eastern': (6.0945, -0.2608),
+    'Volta': (6.6101, 0.4786),
+    'Oti': (7.8731, 0.2974),
+    'Northern': (9.4008, -0.8393),
+    'Savannah': (9.0833, -1.8167),
+    'North East': (10.5167, -0.3667),
+    'Upper East': (10.7856, -0.8514),
+    'Upper West': (10.0601, -2.5099),
+    'Bono': (7.3399, -2.3268),
+    'Bono East': (7.7411, -1.0544),
+    'Ahafo': (7.0911, -2.3389),
+  };
+
   /// Fetches the user's current live coordinates and converts them into a Ghana GPS Digital Address.
   static Future<LiveLocationResult> fetchLiveGpsCode({String? selectedRegion}) async {
     double? lat;
@@ -89,8 +108,23 @@ class LiveLocationService {
       );
     }
 
-    final detectedRegion = detectGhanaRegion(lat, lng);
-    final effectiveRegion = detectedRegion ?? selectedRegion ?? 'Greater Accra';
+    final bool isInsideGhana = (lat >= 4.65 && lat <= 11.25 && lng >= -3.35 && lng <= 1.30);
+    String? detectedRegion;
+    String effectiveRegion;
+
+    if (isInsideGhana) {
+      detectedRegion = detectGhanaRegion(lat, lng);
+      effectiveRegion = detectedRegion ?? selectedRegion ?? 'Greater Accra';
+    } else {
+      // Detected coordinates fall outside Ghana (e.g. Android Emulator defaulting to California or desktop testing).
+      // Project cleanly into the authentic Ghana coordinates for the chosen region or Greater Accra.
+      effectiveRegion = selectedRegion ?? 'Greater Accra';
+      final centroid = _regionCentroids[effectiveRegion] ?? _regionCentroids['Greater Accra']!;
+      lat = centroid.$1;
+      lng = centroid.$2;
+      detectedRegion = effectiveRegion;
+    }
+
     final gpsCode = coordinatesToGhanaGpsCode(
       lat,
       lng,
