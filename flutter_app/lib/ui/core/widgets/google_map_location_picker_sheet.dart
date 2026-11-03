@@ -673,32 +673,34 @@ class _GoogleMapLocationPickerSheetState
                 flex: 2,
                 child: SizedBox(
                   height: 46,
-                  child: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF0F172A),
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () {
-                    LiveLocationService.openGoogleMapsApp(
-                      latitude: _currentLat,
-                      longitude: _currentLng,
-                      query: '$_currentAreaName, Ghana',
-                    );
-                  },
-                  child: const FittedBox(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.open_in_new_rounded, size: 16, color: Color(0xFFEA4335)),
-                        SizedBox(width: 6),
-                        Text(
-                          'Google Maps App',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF0F172A),
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      LiveLocationService.openGoogleMapsApp(
+                        latitude: _currentLat,
+                        longitude: _currentLng,
+                        query: '$_currentAreaName, Ghana',
+                      );
+                    },
+                    child: const FittedBox(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.open_in_new_rounded, size: 16, color: Color(0xFFEA4335)),
+                          SizedBox(width: 6),
+                          Text(
+                            'Google Maps App',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
