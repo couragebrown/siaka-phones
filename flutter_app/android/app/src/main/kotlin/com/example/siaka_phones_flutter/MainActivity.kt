@@ -90,6 +90,7 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, LOCATION_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getCurrentLocation" -> handleGetCurrentLocation(result)
+                "openGoogleMaps" -> handleOpenGoogleMaps(call, result)
                 else -> result.notImplemented()
             }
         }
@@ -396,6 +397,42 @@ class MainActivity : FlutterActivity() {
             }, 3500L)
         } catch (_: Exception) {
             finishWithLocation(bestLastKnown)
+        }
+    }
+
+    private fun handleOpenGoogleMaps(call: io.flutter.plugin.common.MethodCall, result: MethodChannel.Result) {
+        val query = call.argument<String>("query") ?: ""
+        val lat = call.argument<Double>("latitude")
+        val lng = call.argument<Double>("longitude")
+        try {
+            val geoUri = when {
+                lat != null && lng != null -> {
+                    val label = if (query.isNotEmpty()) "($query)" else ""
+                    Uri.parse("geo:$lat,$lng?q=$lat,$lng$label")
+                }
+                query.isNotEmpty() -> Uri.parse("geo:0,0?q=" + Uri.encode(query))
+                else -> Uri.parse("geo:5.5560,-0.1969?q=Accra,Ghana")
+            }
+            val intent = Intent(Intent.ACTION_VIEW, geoUri).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+            result.success(true)
+        } catch (e: Exception) {
+            try {
+                val webUrl = when {
+                    lat != null && lng != null -> "https://www.google.com/maps/search/?api=1&query=$lat,$lng"
+                    query.isNotEmpty() -> "https://www.google.com/maps/search/?api=1&query=" + Uri.encode(query)
+                    else -> "https://www.google.com/maps"
+                }
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(webUrl)).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                startActivity(webIntent)
+                result.success(true)
+            } catch (err: Exception) {
+                result.error("MAPS_UNAVAILABLE", err.localizedMessage, null)
+            }
         }
     }
 

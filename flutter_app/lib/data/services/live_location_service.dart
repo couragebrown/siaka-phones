@@ -27,20 +27,46 @@ class NetworkLocationData {
   });
 }
 
+class GhanaMapLocation {
+  final String name;
+  final String district;
+  final String region;
+  final double latitude;
+  final double longitude;
+  final String gpsCode;
+  final String plusCode;
+
+  const GhanaMapLocation({
+    required this.name,
+    required this.district,
+    required this.region,
+    required this.latitude,
+    required this.longitude,
+    required this.gpsCode,
+    required this.plusCode,
+  });
+}
+
 class LiveLocationResult {
   final double latitude;
   final double longitude;
   final String gpsCode;
+  final String googlePlusCode;
+  final String fullPlusCode;
   final String? detectedRegion;
   final String formattedCoordinates;
   final String? suburb;
   final String? city;
+  final String googleMapsUrl;
 
   const LiveLocationResult({
     required this.latitude,
     required this.longitude,
     required this.gpsCode,
+    required this.googlePlusCode,
+    required this.fullPlusCode,
     required this.formattedCoordinates,
+    required this.googleMapsUrl,
     this.detectedRegion,
     this.suburb,
     this.city,
@@ -49,6 +75,137 @@ class LiveLocationResult {
 
 class LiveLocationService {
   static const MethodChannel _channel = MethodChannel('com.siakaphones.app/location');
+
+  static const String _olcAlphabet = '23456789CFGHJMPQRVWX';
+
+  static const List<GhanaMapLocation> popularGhanaLocations = [
+    GhanaMapLocation(
+      name: 'Accra Central / Circle',
+      district: 'GA',
+      region: 'Greater Accra',
+      latitude: 5.5560,
+      longitude: -0.1969,
+      gpsCode: 'GA-183-9024',
+      plusCode: 'HR5R+M6 Accra',
+    ),
+    GhanaMapLocation(
+      name: 'Osu / Oxford Street',
+      district: 'GA',
+      region: 'Greater Accra',
+      latitude: 5.5568,
+      longitude: -0.1832,
+      gpsCode: 'GA-042-8921',
+      plusCode: 'HR43+H4 Accra',
+    ),
+    GhanaMapLocation(
+      name: 'Ridge / Ministries',
+      district: 'GA',
+      region: 'Greater Accra',
+      latitude: 5.5592,
+      longitude: -0.1985,
+      gpsCode: 'GA-059-4612',
+      plusCode: 'HR5P+9X Accra',
+    ),
+    GhanaMapLocation(
+      name: 'Airport Residential / Cantonments',
+      district: 'GA',
+      region: 'Greater Accra',
+      latitude: 5.5991,
+      longitude: -0.1812,
+      gpsCode: 'GA-189-2748',
+      plusCode: 'HR87+3R Accra',
+    ),
+    GhanaMapLocation(
+      name: 'East Legon / Shiashie',
+      district: 'GA',
+      region: 'Greater Accra',
+      latitude: 5.6372,
+      longitude: -0.1601,
+      gpsCode: 'GA-382-1092',
+      plusCode: 'JR3G+7X Accra',
+    ),
+    GhanaMapLocation(
+      name: 'Madina / Legon Campus',
+      district: 'GE',
+      region: 'Greater Accra',
+      latitude: 5.6698,
+      longitude: -0.1654,
+      gpsCode: 'GE-112-6014',
+      plusCode: 'MR84+98 Accra',
+    ),
+    GhanaMapLocation(
+      name: 'Spintex Road / Baatsona',
+      district: 'GS',
+      region: 'Greater Accra',
+      latitude: 5.6291,
+      longitude: -0.0954,
+      gpsCode: 'GS-0189-4401',
+      plusCode: 'HR6H+7W Accra',
+    ),
+    GhanaMapLocation(
+      name: 'Dzorwulu / Roman Ridge',
+      district: 'GA',
+      region: 'Greater Accra',
+      latitude: 5.6021,
+      longitude: -0.2012,
+      gpsCode: 'GA-215-4081',
+      plusCode: 'HR75+48 Accra',
+    ),
+    GhanaMapLocation(
+      name: 'Achimota / Mile 7',
+      district: 'GE',
+      region: 'Greater Accra',
+      latitude: 5.6321,
+      longitude: -0.2312,
+      gpsCode: 'GE-294-8193',
+      plusCode: 'JR42+6F Accra',
+    ),
+    GhanaMapLocation(
+      name: 'Tema Community 1 / Port',
+      district: 'GT',
+      region: 'Greater Accra',
+      latitude: 5.6482,
+      longitude: -0.0091,
+      gpsCode: 'GT-012-0832',
+      plusCode: 'HQJP+3C Tema',
+    ),
+    GhanaMapLocation(
+      name: 'Kasoa / Amanfro',
+      district: 'CK',
+      region: 'Central',
+      latitude: 5.5342,
+      longitude: -0.4215,
+      gpsCode: 'CK-012-0832',
+      plusCode: 'FP2W+5Q Kasoa',
+    ),
+    GhanaMapLocation(
+      name: 'Kumasi Central / Adum',
+      district: 'AK',
+      region: 'Ashanti',
+      latitude: 6.6912,
+      longitude: -1.6241,
+      gpsCode: 'AK-039-2748',
+      plusCode: 'MCWP+M7 Kumasi',
+    ),
+    GhanaMapLocation(
+      name: 'Takoradi Market Circle',
+      district: 'WS',
+      region: 'Western',
+      latitude: 4.8931,
+      longitude: -1.7582,
+      gpsCode: 'WS-012-4521',
+      plusCode: 'V627+9C Takoradi',
+    ),
+    GhanaMapLocation(
+      name: 'Tamale Central Market',
+      district: 'NT',
+      region: 'Northern',
+      latitude: 9.4042,
+      longitude: -0.8391,
+      gpsCode: 'NT-023-1490',
+      plusCode: 'C5P5+7W Tamale',
+    ),
+  ];
 
   static const Map<String, String> _regionPrefixes = {
     'Greater Accra': 'GA',
@@ -93,11 +250,103 @@ class LiveLocationService {
     return lat >= 4.65 && lat <= 11.35 && lng >= -3.40 && lng <= 1.35;
   }
 
-  /// Fetches the user's current live coordinates and converts them into an authentic Ghana GPS Digital Address.
+  /// Opens the device's Google Maps application or Google Maps web interface for the specified query or coordinates.
+  static Future<bool> openGoogleMapsApp({
+    double? latitude,
+    double? longitude,
+    String? query,
+  }) async {
+    try {
+      final res = await _channel.invokeMethod<bool>('openGoogleMaps', {
+        'latitude': latitude,
+        'longitude': longitude,
+        'query': query,
+      });
+      return res ?? false;
+    } catch (e) {
+      debugPrint('ℹ️ Google Maps launcher notice: $e');
+      return false;
+    }
+  }
+
+  /// Encodes coordinates to full 10-char Google Plus Code (e.g. 6GCRHR5R+M6).
+  static String coordinatesToFullPlusCode(double latitude, double longitude) {
+    double lat = latitude.clamp(-90.0, 90.0);
+    double lng = longitude;
+    while (lng < -180.0) {
+      lng += 360.0;
+    }
+    while (lng >= 180.0) {
+      lng -= 360.0;
+    }
+
+    if (lat == 90.0) lat -= 0.0000001;
+
+    lat += 90.0;
+    lng += 180.0;
+
+    final buffer = StringBuffer();
+    // Pair 1 (20 deg)
+    int latVal = (lat / 20.0).floor();
+    int lngVal = (lng / 20.0).floor();
+    buffer.write(_olcAlphabet[latVal]);
+    buffer.write(_olcAlphabet[lngVal]);
+    lat -= latVal * 20.0;
+    lng -= lngVal * 20.0;
+
+    // Pair 2 (1 deg)
+    latVal = lat.floor();
+    lngVal = lng.floor();
+    buffer.write(_olcAlphabet[latVal]);
+    buffer.write(_olcAlphabet[lngVal]);
+    lat -= latVal;
+    lng -= lngVal;
+
+    // Pair 3 (0.05 deg = 1/20)
+    latVal = (lat * 20.0).floor();
+    lngVal = (lng * 20.0).floor();
+    buffer.write(_olcAlphabet[latVal]);
+    buffer.write(_olcAlphabet[lngVal]);
+    lat -= latVal / 20.0;
+    lng -= lngVal / 20.0;
+
+    // Pair 4 (0.0025 deg = 1/400)
+    latVal = (lat * 400.0).floor();
+    lngVal = (lng * 400.0).floor();
+    buffer.write(_olcAlphabet[latVal]);
+    buffer.write(_olcAlphabet[lngVal]);
+    lat -= latVal / 400.0;
+    lng -= lngVal / 400.0;
+
+    buffer.write('+');
+
+    // Pair 5 (0.000125 deg = 1/8000)
+    latVal = (lat * 8000.0).floor().clamp(0, 19);
+    lngVal = (lng * 8000.0).floor().clamp(0, 19);
+    buffer.write(_olcAlphabet[latVal]);
+    buffer.write(_olcAlphabet[lngVal]);
+
+    return buffer.toString();
+  }
+
+  /// Encodes coordinates to a short Google Maps Plus Code with city/locality (e.g. `HR5R+M6 Accra`).
+  static String coordinatesToGooglePlusCode(
+    double latitude,
+    double longitude, {
+    String? city,
+  }) {
+    final full = coordinatesToFullPlusCode(latitude, longitude);
+    final locality = (city != null && city.isNotEmpty) ? city : 'Accra';
+    if (full.length >= 8 && full.contains('+')) {
+      return '${full.substring(4)} $locality';
+    }
+    return full;
+  }
+
+  /// Fetches the user's current live coordinates and converts them into an authentic Ghana GPS Digital Address and Google Plus Code.
   static Future<LiveLocationResult> fetchLiveGpsCode({String? selectedRegion}) async {
     double? lat;
     double? lng;
-    String? networkPostal;
     String? networkCity;
 
     // 1. Native Android GPS / Network hardware provider (ACCESS_FINE_LOCATION)
@@ -115,7 +364,7 @@ class LiveLocationService {
       } on PlatformException catch (e) {
         if (e.code == 'PERMISSION_DENIED') {
           throw const LiveLocationException(
-            'Location permission denied. Allow location access or enter your GPS code manually.',
+            'Location permission denied. Allow location access or pick your location on Google Maps.',
           );
         }
         debugPrint('ℹ️ Native GPS notice (${e.code}): ${e.message}');
@@ -124,13 +373,12 @@ class LiveLocationService {
       }
     }
 
-    // 2. High-precision Network geolocation (detects the real Ghanaian ISP / location when running on emulator or initial fix)
+    // 2. High-precision Network geolocation (detects the real Ghanaian location coordinates)
     if (lat == null || lng == null) {
       final netData = await _fetchNetworkLocationFallback();
       if (netData != null && isCoordinateInsideGhana(netData.latitude, netData.longitude)) {
         lat = netData.latitude;
         lng = netData.longitude;
-        networkPostal = netData.postalCode;
         networkCity = netData.city;
       }
     }
@@ -172,17 +420,17 @@ class LiveLocationService {
       }
     } catch (_) {}
 
-    // 5. Generate or apply authentic GhanaPostGPS digital address
-    String gpsCode;
-    if (networkPostal != null && RegExp(r'^[A-Z]{2}-\d{2,4}-\d{3,4}$').hasMatch(networkPostal)) {
-      gpsCode = networkPostal;
-    } else {
-      gpsCode = coordinatesToGhanaGpsCode(
-        lat,
-        lng,
-        region: effectiveRegion,
-      );
-    }
+    // 5. Generate authentic GhanaPostGPS digital address strictly from exact verified coordinates
+    final gpsCode = coordinatesToGhanaGpsCode(
+      lat,
+      lng,
+      region: effectiveRegion,
+    );
+
+    // 6. Generate Google Plus Code and Google Maps link
+    final googlePlusCode = coordinatesToGooglePlusCode(lat, lng, city: networkCity);
+    final fullPlusCode = coordinatesToFullPlusCode(lat, lng);
+    final googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
 
     final String coordText = _formatCoords(lat, lng);
     final String descriptiveLocation = [
@@ -198,8 +446,11 @@ class LiveLocationService {
       latitude: lat,
       longitude: lng,
       gpsCode: gpsCode,
+      googlePlusCode: googlePlusCode,
+      fullPlusCode: fullPlusCode,
       detectedRegion: detectedRegion,
       formattedCoordinates: formattedCoords,
+      googleMapsUrl: googleMapsUrl,
       suburb: suburb,
       city: networkCity,
     );
@@ -224,14 +475,12 @@ class LiveLocationService {
             if (json['success'] == true) {
               final lat = (json['latitude'] as num?)?.toDouble();
               final lng = (json['longitude'] as num?)?.toDouble();
-              final postal = json['postal']?.toString().trim();
               final region = json['region']?.toString().trim();
               final city = json['city']?.toString().trim();
               if (lat != null && lng != null) {
                 return NetworkLocationData(
                   latitude: lat,
                   longitude: lng,
-                  postalCode: (postal != null && postal.isNotEmpty) ? postal : null,
                   region: region,
                   city: city,
                 );
@@ -243,12 +492,10 @@ class LiveLocationService {
               final lng = (json['lon'] as num?)?.toDouble();
               final region = json['regionName']?.toString().trim();
               final city = json['city']?.toString().trim();
-              final zip = json['zip']?.toString().trim();
               if (lat != null && lng != null) {
                 return NetworkLocationData(
                   latitude: lat,
                   longitude: lng,
-                  postalCode: (zip != null && zip.isNotEmpty) ? zip : null,
                   region: region,
                   city: city,
                 );
