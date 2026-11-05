@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -2186,6 +2186,8 @@ class ManagerRepository extends ChangeNotifier {
         notifType = NotificationType.bnpl;
       } else if (typeStr.contains('repair')) {
         notifType = NotificationType.repair;
+      } else if (typeStr.contains('swap') || typeStr.contains('tradein')) {
+        notifType = NotificationType.swap;
       } else if (typeStr.contains('message') || typeStr.contains('inquiry')) {
         notifType = NotificationType.customerMessage;
       }
@@ -2200,7 +2202,15 @@ class ManagerRepository extends ChangeNotifier {
             severity: NotificationSeverity.success,
             timestamp: DateTime.now(),
             referenceId: refId,
-            actionRouteIndex: notifType == NotificationType.order ? 1 : null,
+            actionRouteIndex: notifType == NotificationType.order
+                ? 1
+                : (notifType == NotificationType.bnpl
+                    ? 3
+                    : (notifType == NotificationType.repair
+                        ? 4
+                        : (notifType == NotificationType.swap
+                            ? 5
+                            : (notifType == NotificationType.customerMessage ? 8 : null)))),
           ),
         );
       }

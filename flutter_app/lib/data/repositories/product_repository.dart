@@ -49,7 +49,14 @@ class ProductRepository with ChangeNotifier {
             .map((item) => Product.fromMap(item as Map<String, dynamic>))
             .toList();
         if (cached.isNotEmpty) {
+          final existingIds = cached.map((p) => p.id).toSet();
+          for (final mock in MockData.products) {
+            if (!existingIds.contains(mock.id)) {
+              cached.add(mock);
+            }
+          }
           _processProductList(cached);
+          _saveToStorage(_products);
           notifyListeners();
         }
       }
@@ -86,7 +93,30 @@ class ProductRepository with ChangeNotifier {
     } catch (_) {}
   }
 
+  static bool _isSystemCategory(String cat) {
+    final upper = cat.trim().toUpperCase();
+    if (upper.isEmpty) return true;
+    if (upper == 'CATEGORY') return true;
+    if (upper == 'METRICS_RECORD' || upper.startsWith('METRICS')) return true;
+    if (upper == 'BANNER_PLAYLIST' || upper.startsWith('BANNER')) return true;
+    if (upper.startsWith('ORDER')) return true;
+    if (upper.startsWith('BNPL')) return true;
+    if (upper.startsWith('REPAIR')) return true;
+    if (upper.startsWith('SWAP')) return true;
+    if (upper.startsWith('CART')) return true;
+    if (upper.startsWith('CUSTOMER')) return true;
+    if (upper.startsWith('PROD_SORT')) return true;
+    if (upper.startsWith('TEST')) return true;
+    if (upper.startsWith('SETTING')) return true;
+    if (upper.startsWith('CAT_')) return true;
+    return false;
+  }
+
   static const List<String> defaultCategories = [
+    'Phones',
+    'Accessories',
+    'Covers',
+    'Keyboards',
     'Smartphones',
     'UK Used',
     'Keypad Phones',
@@ -103,13 +133,13 @@ class ProductRepository with ChangeNotifier {
     for (final p in list) {
       if (p.id.startsWith('CAT_')) {
         final catName = p.name.trim().isNotEmpty ? p.name.trim() : p.category.trim();
-        if (catName.isNotEmpty && catName.toLowerCase() != 'category') {
+        if (catName.isNotEmpty && !_isSystemCategory(catName)) {
           freshCats.add(catName);
         }
       } else if (p.isMerchandise) {
         final cat = p.category.trim();
         if (cat.isNotEmpty &&
-            cat.toLowerCase() != 'category' &&
+            !_isSystemCategory(cat) &&
             !defaultCategories.any((b) => b.toLowerCase() == cat.toLowerCase())) {
           freshCats.add(cat);
         }
@@ -351,19 +381,61 @@ class ProductRepository with ChangeNotifier {
     super.dispose();
   }
 
+  bool matchesCategory(Product p, String? category) {
+    if (category == null) return true;
+    final cat = category.trim().toLowerCase();
+    if (cat.isEmpty || cat == 'all' || cat == 'all products') return true;
+    if (cat == 'uk used') {
+      return p.condition.toLowerCase() == 'uk used';
+    }
+    if (cat == 'phones' || cat == 'smartphones') {
+      final pCat = p.category.toLowerCase();
+      return pCat == 'smartphones' || pCat == 'phones' || pCat == 'keypad phones' || pCat == 'foldables';
+    }
+    if (cat == 'covers' || cat == 'cover' || cat == 'cases' || cat == 'case') {
+      final pCat = p.category.toLowerCase();
+      final pName = p.name.toLowerCase();
+      return pCat == 'covers' || pCat == 'cases' || pName.contains('cover') || pName.contains('case');
+    }
+    if (cat == 'keyboards' || cat == 'keyboard') {
+      final pCat = p.category.toLowerCase();
+      final pName = p.name.toLowerCase();
+      return pCat == 'keyboards' || pCat == 'keyboard' || pName.contains('keyboard');
+    }
+    if (cat == 'tech' || cat == 'accessories') {
+      final pCat = p.category.toLowerCase();
+      return pCat == 'accessories' || pCat == 'covers' || pCat == 'cases' || pCat == 'keyboards' || pCat == 'headphones';
+    }
+    if (cat == 'consoles' || cat == 'console' || cat == 'gaming') {
+      final pCat = p.category.toLowerCase();
+      final pName = p.name.toLowerCase();
+      return pCat == 'consoles' || pCat == 'console' || pName.contains('playstation') || pName.contains('switch') || pName.contains('console');
+    }
+    if (cat == 'macbooks' || cat == 'macbook' || cat == 'laptops' || cat == 'laptop') {
+      final pCat = p.category.toLowerCase();
+      final pName = p.name.toLowerCase();
+      return pCat == 'laptops' || pName.contains('macbook') || pName.contains('mac') || pName.contains('laptop');
+    }
+    if (cat == 'tablets' || cat == 'tablet' || cat == 'ipad') {
+      final pCat = p.category.toLowerCase();
+      final pName = p.name.toLowerCase();
+      return pCat == 'tablets' || pCat == 'tablet' || pName.contains('ipad') || pName.contains('tablet');
+    }
+    if (cat == 'watches' || cat == 'wearables' || cat == 'smartwatches') {
+      final pCat = p.category.toLowerCase();
+      return pCat == 'wearables' || pCat == 'smartwatches' || pCat == 'watches';
+    }
+    return p.category.toLowerCase() == cat;
+  }
+
   List<Product> filterProducts({String? category, String? query}) {
     final trimmedQuery = query?.trim().toLowerCase() ?? '';
     final hasQuery = trimmedQuery.isNotEmpty;
 
     if (!hasQuery) {
       if (category != null && category != 'All' && category != 'All Products') {
-        if (category.toLowerCase() == 'uk used') {
-          return _products
-              .where((p) => p.condition.toLowerCase() == 'uk used')
-              .toList();
-        }
         return _products
-            .where((p) => p.category.toLowerCase() == category.toLowerCase())
+            .where((p) => matchesCategory(p, category))
             .toList();
       }
       return List.from(_products);
@@ -453,11 +525,7 @@ class ProductRepository with ChangeNotifier {
       if (category != null &&
           category != 'All' &&
           category != 'All Products') {
-        if (category.toLowerCase() == 'uk used') {
-          if (p.condition.toLowerCase() != 'uk used') return false;
-        } else if (p.category.toLowerCase() != category.toLowerCase()) {
-          return false;
-        }
+        if (!matchesCategory(p, category)) return false;
       }
       return matchesAllTokens(p);
     }).toList();
@@ -494,24 +562,22 @@ class ProductRepository with ChangeNotifier {
   }
 
   List<String> get categories {
-    final result = <String>['All', 'Smartphones'];
-    // Insert custom categories right after Smartphones so newly added categories
-    // (e.g. Drones, Cameras, Gaming) are instantly visible upfront in the pills!
+    final result = <String>['All', 'Phones', 'Accessories', 'Covers', 'Keyboards'];
     for (final cat in _customCategories) {
-      if (cat.isNotEmpty && !result.any((c) => c.toLowerCase() == cat.toLowerCase())) {
+      if (cat.isNotEmpty && !_isSystemCategory(cat) && !result.any((c) => c.toLowerCase() == cat.toLowerCase())) {
         result.add(cat);
       }
     }
     for (final p in _products) {
       final cat = p.category.trim();
       if (cat.isNotEmpty &&
-          cat.toLowerCase() != 'category' &&
+          !_isSystemCategory(cat) &&
           !result.any((c) => c.toLowerCase() == cat.toLowerCase())) {
         result.add(cat);
       }
     }
-    for (final cat in defaultCategories.skip(1)) {
-      if (!result.any((c) => c.toLowerCase() == cat.toLowerCase())) {
+    for (final cat in defaultCategories) {
+      if (!_isSystemCategory(cat) && !result.any((c) => c.toLowerCase() == cat.toLowerCase())) {
         result.add(cat);
       }
     }

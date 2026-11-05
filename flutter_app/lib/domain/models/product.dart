@@ -54,6 +54,9 @@ class Product {
         id.startsWith('SWAP_') ||
         id.startsWith('CART_WISHLIST_') ||
         id.startsWith('CUSTOMER_') ||
+        id.startsWith('METRICS_') ||
+        id.startsWith('PROD_SORT_') ||
+        id.startsWith('TEST_') ||
         id.startsWith('SP-') ||
         id.startsWith('TRK-') ||
         id.startsWith('BANNER_') ||
@@ -72,6 +75,11 @@ class Product {
         catUpper == 'SWAP_RECORD' ||
         catUpper == 'CART_WISHLIST_RECORD' ||
         catUpper == 'CUSTOMER_RECORD' ||
+        catUpper == 'METRICS_RECORD' ||
+        catUpper.startsWith('METRICS_') ||
+        catUpper == 'METRICS' ||
+        catUpper.startsWith('PROD_SORT_') ||
+        catUpper.startsWith('TEST_') ||
         catUpper == 'CATEGORY' ||
         catUpper == 'BANNER_PLAYLIST' ||
         catUpper.startsWith('BANNER_') ||

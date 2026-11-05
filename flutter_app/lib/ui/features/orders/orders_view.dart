@@ -548,15 +548,19 @@ class _OrdersViewState extends State<OrdersView> {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                order.orderId.toUpperCase().startsWith('ORD-')
-                                    ? order.orderId
-                                    : '#${order.orderId}',
-                                style: const TextStyle(
-                                  color: Color(0xFF0F172A),
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15,
-                                  letterSpacing: -0.2,
+                              Flexible(
+                                child: Text(
+                                  order.orderId.toUpperCase().startsWith('ORD-')
+                                      ? order.orderId
+                                      : '#${order.orderId}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    letterSpacing: -0.2,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),

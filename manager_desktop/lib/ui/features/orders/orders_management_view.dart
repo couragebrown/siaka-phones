@@ -44,7 +44,29 @@ class _OrdersManagementViewState extends State<OrdersManagementView> {
   final ScrollController _outerScrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    widget.repository.addListener(_onRepositoryUpdated);
+  }
+
+  @override
+  void didUpdateWidget(OrdersManagementView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.repository != widget.repository) {
+      oldWidget.repository.removeListener(_onRepositoryUpdated);
+      widget.repository.addListener(_onRepositoryUpdated);
+    }
+  }
+
+  void _onRepositoryUpdated() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
+    widget.repository.removeListener(_onRepositoryUpdated);
     _searchController.dispose();
     _horizontalScrollController.dispose();
     _verticalTableScrollController.dispose();

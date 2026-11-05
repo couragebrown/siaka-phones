@@ -1127,6 +1127,17 @@ class MockManagerData {
         referenceId: 'SRV-2026-005',
         actionRouteIndex: 9,
       ),
+      ManagerNotification(
+        id: 'NOTIF-007',
+        title: 'New Device Swap Request',
+        message: 'Kweku Mensah submitted an iPhone 13 (128GB) to swap for iPhone 15 Pro Max. Valuation inspection pending.',
+        type: NotificationType.swap,
+        severity: NotificationSeverity.info,
+        timestamp: now.subtract(const Duration(hours: 3, minutes: 15)),
+        isRead: false,
+        referenceId: 'SWP-2026-001',
+        actionRouteIndex: 5,
+      ),
     ];
   }
 

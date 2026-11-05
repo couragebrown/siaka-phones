@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../data/services/live_location_service.dart';
-import '../../core/widgets/google_map_location_picker_sheet.dart';
 import '../../core/widgets/live_mini_map_painter.dart';
 import 'profile_view_model.dart';
 
@@ -1034,36 +1033,6 @@ class ProfileView extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        Future<void> openGoogleMapPicker(StateSetter setSheetState) async {
-          FocusScope.of(sheetContext).unfocus();
-          final result = await showGoogleMapLocationPicker(
-            context: sheetContext,
-            initialGpsCode: gpsController.text.trim(),
-            initialRegion: selectedRegion,
-          );
-          if (result != null && sheetContext.mounted) {
-            setSheetState(() {
-              liveLocationResult = result;
-              gpsController.text = result.gpsCode;
-              if (result.detectedRegion != null && regions.contains(result.detectedRegion)) {
-                selectedRegion = result.detectedRegion!;
-              }
-              if (detailController.text.trim().isEmpty &&
-                  result.suburb != null &&
-                  result.suburb!.isNotEmpty) {
-                detailController.text = result.suburb!;
-              }
-            });
-            ScaffoldMessenger.of(sheetContext).showSnackBar(
-              SnackBar(
-                content: Text('📍 Location set from Google Maps: ${result.gpsCode} (${result.googlePlusCode})'),
-                backgroundColor: const Color(0xFF0F172A),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        }
-
         Future<void> fetchAndApplyLiveLocation(StateSetter setSheetState) async {
           if (isFetchingLiveLocation) return;
           FocusScope.of(sheetContext).unfocus();
@@ -1080,21 +1049,7 @@ class ProfileView extends StatelessWidget {
               if (result.detectedRegion != null && regions.contains(result.detectedRegion)) {
                 selectedRegion = result.detectedRegion!;
               }
-              if (detailController.text.trim().isEmpty &&
-                  result.suburb != null &&
-                  result.suburb!.isNotEmpty) {
-                detailController.text = result.suburb!;
-              }
             });
-            if (sheetContext.mounted) {
-              ScaffoldMessenger.of(sheetContext).showSnackBar(
-                SnackBar(
-                  content: Text('📍 Live GPS updated: ${result.gpsCode} (${result.googlePlusCode})'),
-                  backgroundColor: const Color(0xFF0F172A),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            }
           } catch (e) {
             if (sheetContext.mounted) {
               ScaffoldMessenger.of(sheetContext).showSnackBar(
@@ -1287,11 +1242,13 @@ class ProfileView extends StatelessWidget {
                             ),
                           ),
                           Tooltip(
-                            message: 'Pick on Google Maps',
+                            message: 'Get live GPS location',
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                onTap: () => openGoogleMapPicker(setSheetState),
+                                onTap: isFetchingLiveLocation
+                                    ? null
+                                    : () => fetchAndApplyLiveLocation(setSheetState),
                                 borderRadius: BorderRadius.circular(9),
                                 child: Container(
                                   width: 34,
@@ -1304,12 +1261,21 @@ class ProfileView extends StatelessWidget {
                                       width: 1.0,
                                     ),
                                   ),
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.map_rounded,
-                                      size: 18,
-                                      color: Color(0xFF1C7BFF),
-                                    ),
+                                  child: Center(
+                                    child: isFetchingLiveLocation
+                                        ? const SizedBox(
+                                            width: 15,
+                                            height: 15,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF1C7BFF),
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.map_rounded,
+                                            size: 18,
+                                            color: Color(0xFF1C7BFF),
+                                          ),
                                   ),
                                 ),
                               ),
@@ -1320,11 +1286,13 @@ class ProfileView extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    // Clickable Small Map Design under the GPS code field - opens Google Maps Picker
+                    // Clickable Small Map Design under the GPS code field
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () => openGoogleMapPicker(setSheetState),
+                        onTap: isFetchingLiveLocation
+                            ? null
+                            : () => fetchAndApplyLiveLocation(setSheetState),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           height: 98,
@@ -1387,10 +1355,10 @@ class ProfileView extends StatelessWidget {
                                           Flexible(
                                             child: Text(
                                               liveLocationResult != null
-                                                  ? '${liveLocationResult!.gpsCode} • ${liveLocationResult!.googlePlusCode}'
+                                                  ? liveLocationResult!.formattedCoordinates
                                                   : (gpsController.text.trim().isNotEmpty
-                                                      ? 'GPS: ${gpsController.text.trim()}'
-                                                      : 'Google Maps GPS'),
+                                                      ? 'Live GPS: ${gpsController.text.trim()}'
+                                                      : 'Live GPS Map'),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
@@ -1405,42 +1373,33 @@ class ProfileView extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                // Top-right quick-locate badge
+                                // Top-right target badge
                                 Positioned(
                                   top: 8,
                                   right: 8,
-                                  child: Tooltip(
-                                    message: 'Quick live GPS locate',
-                                    child: InkWell(
-                                      onTap: isFetchingLiveLocation
-                                          ? null
-                                          : () => fetchAndApplyLiveLocation(setSheetState),
+                                  child: Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.94),
                                       borderRadius: BorderRadius.circular(8),
-                                      child: Container(
-                                        width: 28,
-                                        height: 28,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.94),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                                        ),
-                                        child: Center(
-                                          child: isFetchingLiveLocation
-                                              ? const SizedBox(
-                                                  width: 13,
-                                                  height: 13,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 1.8,
-                                                    color: Color(0xFF1C7BFF),
-                                                  ),
-                                                )
-                                              : const Icon(
-                                                  Icons.my_location_rounded,
-                                                  size: 15,
-                                                  color: Color(0xFF1C7BFF),
-                                                ),
-                                        ),
-                                      ),
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: Center(
+                                      child: isFetchingLiveLocation
+                                          ? const SizedBox(
+                                              width: 13,
+                                              height: 13,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 1.8,
+                                                color: Color(0xFF1C7BFF),
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.my_location_rounded,
+                                              size: 15,
+                                              color: Color(0xFF1C7BFF),
+                                            ),
                                     ),
                                   ),
                                 ),
@@ -1468,10 +1427,10 @@ class ProfileView extends StatelessWidget {
                                         Expanded(
                                           child: Text(
                                             isFetchingLiveLocation
-                                                ? 'Detecting live GPS location...'
+                                                ? 'Detecting your live GPS location...'
                                                 : (hasLiveFix
-                                                    ? 'GPS: ${gpsController.text.trim()} • Tap to pick on Google Maps'
-                                                    : 'Tap map to pick exact location on Google Maps'),
+                                                    ? 'Live GPS: ${gpsController.text.trim()} • Tap map to refresh'
+                                                    : 'Tap map to get your current live GPS code'),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
@@ -1496,7 +1455,9 @@ class ProfileView extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(left: 2),
                       child: InkWell(
-                        onTap: () => openGoogleMapPicker(setSheetState),
+                        onTap: isFetchingLiveLocation
+                            ? null
+                            : () => fetchAndApplyLiveLocation(setSheetState),
                         child: const Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1511,7 +1472,7 @@ class ProfileView extends StatelessWidget {
                             SizedBox(width: 5),
                             Expanded(
                               child: Text(
-                                'Click on the map to pick your location on Google Maps',
+                                'Click on the map to add current live location',
                                 style: TextStyle(
                                   color: Color(0xFFDC2626),
                                   fontSize: 12,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/app_colors.dart';
 import '../../core/widgets/featured_phone_card.dart';
-import '../../core/widgets/banner_video_player.dart';
 import '../../../domain/models/product.dart';
 import '../../../data/repositories/wishlist_repository.dart';
 import 'catalog_view_model.dart';
@@ -221,7 +220,7 @@ class _CatalogViewState extends State<CatalogView> {
                             cat,
                             style: TextStyle(
                               color: isSelected
-                                  ? Colors.white
+                                   ? Colors.white
                                   : const Color(0xFF1F2937),
                               fontSize: 12.5,
                               fontWeight: isSelected
@@ -236,7 +235,12 @@ class _CatalogViewState extends State<CatalogView> {
                 ),
               ),
 
-              const SizedBox(height: 6),
+              const SizedBox(height: 10),
+
+              // Department Quick Category Cards Row (as in image 1)
+              _buildCategoryShortcuts(),
+
+              const SizedBox(height: 8),
 
               // Main body: Featured Banners initially vs Search Results when typing
               Expanded(
@@ -263,27 +267,36 @@ class _CatalogViewState extends State<CatalogView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Featured Promotional Hero Banner
-          _buildHeroBanner(),
-          const SizedBox(height: 18),
-
           // Featured section header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Expanded(
-                  child: Text(
-                    'Featured Phones',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Color(0xFF1E2432),
-                      fontSize: 17.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
-                    ),
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Flexible(
+                        child: Text(
+                          'Featured Phones',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Color(0xFF1E2432),
+                            fontSize: 17.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Image.asset(
+                        'assets/images/ic_fire.png',
+                        height: 22,
+                        fit: BoxFit.contain,
+                      ),
+                    ],
                   ),
                 ),
                 Container(
@@ -544,629 +557,168 @@ class _CatalogViewState extends State<CatalogView> {
     );
   }
 
-  Widget _buildBenefitPill(IconData icon, String line1, String line2) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(icon, size: 12.5, color: const Color(0xFF0D62FE)),
-        const SizedBox(width: 2.5),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              line1,
-              style: const TextStyle(
-                color: Color(0xFF1E293B),
-                fontSize: 8.5,
-                fontWeight: FontWeight.w700,
-                height: 1.1,
-              ),
-            ),
-            Text(
-              line2,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 8,
-                fontWeight: FontWeight.w500,
-                height: 1.1,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
-  Widget _buildDot(Color c) => Container(
-        width: 3.5,
-        height: 3.5,
-        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-      );
 
-  Widget _buildHeroBanner() {
-    return Container(
-      height: 204,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFE4D6),
-            Color(0xFFFFF5EE),
-            Color(0xFFFFDBCD),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+  Widget _buildCategoryShortcuts() {
+    const shortcuts = [
+      _CategoryShortcutItem(
+        label: 'Phones',
+        targetCategory: 'Phones',
+        assetPath: 'assets/images/cat_phones.png',
+        fallbackIcon: Icons.phone_iphone_rounded,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // 1. Protruding soft circle on far left
-          Positioned(
-            left: -22,
-            top: 60,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFED7AA).withValues(alpha: 0.45),
-              ),
-            ),
-          ),
+      _CategoryShortcutItem(
+        label: 'Tablets',
+        targetCategory: 'Tablets',
+        assetPath: 'assets/images/cat_tablets.png',
+        fallbackIcon: Icons.tablet_mac_rounded,
+      ),
+      _CategoryShortcutItem(
+        label: 'Wearables',
+        targetCategory: 'Wearables',
+        assetPath: 'assets/images/cat_wearables.png',
+        fallbackIcon: Icons.watch_rounded,
+      ),
+      _CategoryShortcutItem(
+        label: 'Tech',
+        targetCategory: 'Accessories',
+        assetPath: 'assets/images/cat_tech.png',
+        fallbackIcon: Icons.headphones_rounded,
+      ),
+      _CategoryShortcutItem(
+        label: 'Consoles',
+        targetCategory: 'Consoles',
+        assetPath: 'assets/images/cat_consoles.png',
+        fallbackIcon: Icons.sports_esports_rounded,
+      ),
+      _CategoryShortcutItem(
+        label: 'Macbooks',
+        targetCategory: 'Laptops',
+        assetPath: 'assets/images/cat_macbooks.png',
+        fallbackIcon: Icons.laptop_mac_rounded,
+      ),
+      _CategoryShortcutItem(
+        label: 'Covers',
+        targetCategory: 'Covers',
+        assetPath: 'assets/images/cat_covers.png',
+        fallbackIcon: Icons.shield_rounded,
+      ),
+      _CategoryShortcutItem(
+        label: 'Keyboards',
+        targetCategory: 'Keyboards',
+        assetPath: 'assets/images/cat_keyboards.png',
+        fallbackIcon: Icons.keyboard_rounded,
+      ),
+    ];
 
-          // 2. Soft pastel glow halo behind video on the right
-          Positioned(
-            right: -14,
-            top: -6,
-            child: Container(
-              width: 175,
-              height: 175,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFFFFEDD5).withValues(alpha: 0.75),
-                    const Color(0xFFFFEDD5).withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
+    return SizedBox(
+      height: 94,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: shortcuts.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final item = shortcuts[index];
+          final isSelected =
+              widget.viewModel.selectedCategory.toLowerCase() ==
+                  item.targetCategory.toLowerCase() ||
+              (item.targetCategory == 'Accessories' &&
+                  widget.viewModel.selectedCategory.toLowerCase() == 'tech') ||
+              (item.targetCategory == 'Laptops' &&
+                  widget.viewModel.selectedCategory.toLowerCase() == 'macbooks');
 
-          // 3. 2x3 colorful dot grid near top-middle
-          Positioned(
-            top: 14,
-            left: 146,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildDot(const Color(0xFFF97316)),
-                    const SizedBox(width: 4),
-                    _buildDot(const Color(0xFFA855F7)),
-                    const SizedBox(width: 4),
-                    _buildDot(const Color(0xFFF97316)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildDot(const Color(0xFFA855F7)),
-                    const SizedBox(width: 4),
-                    _buildDot(const Color(0xFFF97316)),
-                    const SizedBox(width: 4),
-                    _buildDot(const Color(0xFFA855F7)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // 4. Yellow sparkle star near top
-          const Positioned(
-            top: 12,
-            left: 178,
-            child: SizedBox(
-              width: 13,
-              height: 13,
-              child: CustomPaint(
-                painter: _SparkleStarPainter(
-                  color: Color(0xFFFACC15),
-                ),
-              ),
-            ),
-          ),
-
-          // 5. Floating tilted yellow capsule sprinkles
-          Positioned(
-            top: 76,
-            left: 144,
-            child: Transform.rotate(
-              angle: 0.4,
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                if (isSelected) {
+                  widget.viewModel.setCategory('All');
+                } else {
+                  widget.viewModel.setCategory(item.targetCategory);
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
               child: Container(
-                width: 15,
-                height: 5,
+                width: 86,
+                height: 90,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFDE047).withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 68,
-            right: 14,
-            child: Transform.rotate(
-              angle: -0.6,
-              child: Container(
-                width: 17,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFDE047).withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-
-          // 6. Yellow sparkle star near bottom
-          const Positioned(
-            bottom: 12,
-            left: 136,
-            child: SizedBox(
-              width: 12,
-              height: 12,
-              child: CustomPaint(
-                painter: _SparkleStarPainter(
-                  color: Color(0xFFFACC15),
-                ),
-              ),
-            ),
-          ),
-
-          // 7. Soft circular dot at bottom
-          Positioned(
-            bottom: 6,
-            left: 162,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFB923C).withValues(alpha: 0.7),
-              ),
-            ),
-          ),
-
-          // Main Layout Content Row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-            child: Row(
-              children: [
-                // Left Column: Tag, Title, Subtitle, Benefits Row, CTA Button
-                Expanded(
-                  flex: 10,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'PREMIUM CARE',
-                            style: TextStyle(
-                              color: Color(0xFFD97706),
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Premium care.\nMade simple.',
-                            style: TextStyle(
-                              color: Color(0xFF0F172A),
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w800,
-                              height: 1.15,
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          const Text(
-                            'Protect, repair, and enjoy\nyour phone with confidence.',
-                            style: TextStyle(
-                              color: Color(0xFF475467),
-                              fontSize: 11,
-                              height: 1.25,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildBenefitPill(
-                                Icons.shield_outlined,
-                                'Screen',
-                                'Protect',
-                              ),
-                              const SizedBox(width: 5),
-                              _buildBenefitPill(
-                                Icons.build_circle_outlined,
-                                'OEM',
-                                'Parts',
-                              ),
-                              const SizedBox(width: 5),
-                              _buildBenefitPill(
-                                Icons.verified_user_outlined,
-                                '1 Year',
-                                'Warranty',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 7),
-                          GestureDetector(
-                            onTap: () {
-                              widget.onRepairsTap?.call();
-                            },
-                            child: Container(
-                              height: 31,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0D62FE),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF0D62FE)
-                                        .withValues(alpha: 0.35),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Explore Care',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  SizedBox(width: 4),
-                                  Icon(
-                                    Icons.arrow_forward_rounded,
-                                    color: Colors.white,
-                                    size: 15,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFF1C7BFF)
+                        : const Color(0xFFE5E7EB),
+                    width: isSelected ? 1.8 : 1.0,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(width: 4),
-
-                // Right Column: Video inside smartphone mockup frame with UP TO 40% OFF badge and Smarter Tech Brighter Days
-                Expanded(
-                  flex: 12,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.center,
-                      child: SizedBox(
-                        width: 196,
-                        height: 186,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            // Video Player inside tilted Smartphone frame
-                            Center(
-                              child: Transform.rotate(
-                                angle: -0.065,
-                                child: Container(
-                                  width: 176,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1E222A),
-                                    borderRadius: BorderRadius.circular(15),
-                                    border: Border.all(
-                                      color: const Color(0xFF282D37),
-                                      width: 3.2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.30),
-                                        blurRadius: 12,
-                                        offset: const Offset(2, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(11),
-                                    child: Builder(
-                                      builder: (context) {
-                                        final playlist = widget.viewModel.getBannerPlaylist('banner_search_1');
-                                        final activeVideos = (playlist != null && playlist.isActive && playlist.activeVideos.isNotEmpty)
-                                            ? playlist.activeVideos.map((v) => v.videoUrl).toList()
-                                            : null;
-
-                                        return BannerVideoPlayer(
-                                          isActive: true,
-                                          aspectRatio: 16 / 10,
-                                          autoReplay: true,
-                                          replayDelay: const Duration(seconds: 3),
-                                          videoSources: activeVideos,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            // Floating badge with speech tail at top-right
-                            Positioned(
-                              top: 6,
-                              right: 20,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 52,
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: const LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          Color(0xFFFF5722),
-                                          Color(0xFFE64A19),
-                                        ],
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFFFF5722)
-                                              .withValues(alpha: 0.45),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
-                                      border: Border.all(
-                                        color: Colors.white
-                                            .withValues(alpha: 0.85),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: const Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'UP TO',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 7.5,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0.4,
-                                            height: 1.0,
-                                          ),
-                                        ),
-                                        Text(
-                                          '40%',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.5,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: -0.5,
-                                            height: 1.05,
-                                          ),
-                                        ),
-                                        Text(
-                                          'OFF',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 7.5,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0.4,
-                                            height: 1.0,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 6),
-                                    child: SizedBox(
-                                      width: 8,
-                                      height: 5,
-                                      child: CustomPaint(
-                                        painter: _SpeechBubbleTrianglePainter(
-                                          color: Color(0xFFE64A19),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // "Smarter Tech Brighter Days" with curved doodle arrow at bottom-right
-                            Positioned(
-                              bottom: 4,
-                              right: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Transform.rotate(
-                                    angle: -0.07,
-                                    child: const Text(
-                                      'Smarter\nTech\nBrighter\nDays',
-                                      textAlign: TextAlign.right,
-                                      style: TextStyle(
-                                        color: Color(0xFFC2410C),
-                                        fontStyle: FontStyle.italic,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 8.5,
-                                        height: 1.05,
-                                        letterSpacing: -0.2,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  const SizedBox(
-                                    width: 22,
-                                    height: 10,
-                                    child: CustomPaint(
-                                      painter: _CurvedDoodleArrowPainter(
-                                        color: Color(0xFFEA580C),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Sparkle star near Smarter Tech
-                            const Positioned(
-                              top: 48,
-                              right: 6,
-                              child: SizedBox(
-                                width: 11,
-                                height: 11,
-                                child: CustomPaint(
-                                  painter: _SparkleStarPainter(
-                                    color: Color(0xFFFACC15),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: Image.asset(
+                          item.assetPath,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Icon(
+                            item.fallbackIcon,
+                            size: 28,
+                            color: const Color(0xFF334155),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isSelected
+                            ? const Color(0xFF1C7BFF)
+                            : const Color(0xFF1E2432),
+                        fontSize: 12,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w600,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 }
 
-class _CurvedDoodleArrowPainter extends CustomPainter {
-  final Color color;
-  const _CurvedDoodleArrowPainter({required this.color});
+class _CategoryShortcutItem {
+  final String label;
+  final String targetCategory;
+  final String assetPath;
+  final IconData fallbackIcon;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.6
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    path.moveTo(size.width - 2, 2);
-    path.quadraticBezierTo(
-      size.width * 0.5,
-      size.height + 3,
-      3,
-      size.height * 0.45,
-    );
-    canvas.drawPath(path, paint);
-
-    final headPaint = Paint()
-      ..color = color
-      ..strokeWidth = 1.6
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final headPath = Path();
-    headPath.moveTo(8, size.height * 0.2);
-    headPath.lineTo(3, size.height * 0.45);
-    headPath.lineTo(9, size.height * 0.7);
-    canvas.drawPath(headPath, headPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _SparkleStarPainter extends CustomPainter {
-  final Color color;
-  const _SparkleStarPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final w = size.width;
-    final h = size.height;
-    final path = Path();
-    path.moveTo(w / 2, 0);
-    path.quadraticBezierTo(w / 2, h / 2, w, h / 2);
-    path.quadraticBezierTo(w / 2, h / 2, w / 2, h);
-    path.quadraticBezierTo(w / 2, h / 2, 0, h / 2);
-    path.quadraticBezierTo(w / 2, h / 2, w / 2, 0);
-    path.close();
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _SpeechBubbleTrianglePainter extends CustomPainter {
-  final Color color;
-  const _SpeechBubbleTrianglePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-    final path = Path();
-    path.moveTo(0, 0);
-    path.lineTo(size.width, 0);
-    path.lineTo(size.width * 0.25, size.height);
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  const _CategoryShortcutItem({
+    required this.label,
+    required this.targetCategory,
+    required this.assetPath,
+    required this.fallbackIcon,
+  });
 }

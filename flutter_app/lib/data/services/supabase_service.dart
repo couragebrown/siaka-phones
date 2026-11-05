@@ -391,6 +391,9 @@ class SupabaseService {
       return client!
           .from('products')
           .stream(primaryKey: ['id'])
+          .handleError((e) {
+            _logThrottled('streamProducts', 'ℹ️ Supabase products realtime stream reconnecting');
+          })
           .map((data) {
             final sorted = List<Map<String, dynamic>>.from(data);
             sorted.sort((a, b) {
@@ -446,12 +449,18 @@ class SupabaseService {
     }
     if (!_isInitialized || client == null) return false;
     try {
-      await client!.from('products').upsert(record).timeout(const Duration(seconds: 2));
+      final safeRecord = Map<String, dynamic>.from(record);
+      if (safeRecord['brand'] == null || safeRecord['brand'].toString().trim().isEmpty) {
+        safeRecord['brand'] = safeRecord['category'] ?? 'Siaka Universal';
+      }
+      await client!.from('products').upsert(safeRecord).timeout(const Duration(seconds: 4));
       debugPrint('✅ Synced record to Supabase: ${record['id']}');
       return true;
     } catch (e) {
       checkAndHandleQuotaError(e);
-      _logThrottled('upsertRawRecord', '⚠️ Error upserting record to Supabase: $e');
+      if (!e.toString().contains('TimeoutException')) {
+        _logThrottled('upsertRawRecord', '⚠️ Error upserting record to Supabase: $e');
+      }
       return false;
     }
   }
@@ -533,7 +542,7 @@ class SupabaseService {
           .from('products')
           .select()
           .order('created_at', ascending: false)
-          .timeout(const Duration(seconds: 2));
+          .timeout(const Duration(seconds: 4));
       final List<dynamic> data = response as List<dynamic>;
       return data
           .map((item) => item as Map<String, dynamic>)
@@ -545,7 +554,9 @@ class SupabaseService {
           .toList();
     } catch (e) {
       checkAndHandleQuotaError(e);
-      _logThrottled('fetchOrderRecords', 'ℹ️ Mobile fetchOrderRecords error: $e');
+      if (!e.toString().contains('TimeoutException')) {
+        _logThrottled('fetchOrderRecords', 'ℹ️ Mobile fetchOrderRecords error: $e');
+      }
       return null;
     }
   }
@@ -557,6 +568,9 @@ class SupabaseService {
       return client!
           .from('products')
           .stream(primaryKey: ['id'])
+          .handleError((e) {
+            _logThrottled('streamOrderRecords', 'ℹ️ Orders realtime reconnecting');
+          })
           .map((data) => List<Map<String, dynamic>>.from(data).where((m) {
                 final cat = m['category']?.toString().toUpperCase() ?? '';
                 final id = m['id']?.toString().toUpperCase() ?? '';
@@ -634,6 +648,9 @@ class SupabaseService {
       return client!
           .from('products')
           .stream(primaryKey: ['id'])
+          .handleError((e) {
+            _logThrottled('streamNotif', 'ℹ️ Notifications realtime reconnecting');
+          })
           .map((data) => List<Map<String, dynamic>>.from(data).where((m) {
                 final cat = m['category']?.toString().toUpperCase() ?? '';
                 final id = m['id']?.toString() ?? '';
@@ -745,6 +762,9 @@ class SupabaseService {
       return client!
           .from('products')
           .stream(primaryKey: ['id'])
+          .handleError((e) {
+            _logThrottled('streamChat', 'ℹ️ Chat messages realtime reconnecting');
+          })
           .map((data) => List<Map<String, dynamic>>.from(data).where((m) {
                 final cat = m['category']?.toString().toUpperCase() ?? '';
                 final id = m['id']?.toString() ?? '';

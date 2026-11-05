@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -2696,16 +2696,29 @@ class _HomeViewState extends State<HomeView> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
-                child: Text(
-                  'Shop by Brand',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Color(0xFF1E2432),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Flexible(
+                      child: Text(
+                        'Shop by Brand',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Color(0xFF1E2432),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Image.asset(
+                      'assets/images/badge_best_seller.png',
+                      height: 22,
+                      fit: BoxFit.contain,
+                    ),
+                  ],
                 ),
               ),
               InkWell(
@@ -2803,22 +2816,33 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildSectionHeader(String title, String actionLabel) {
+  Widget _buildSectionHeader(String title, String actionLabel, {Widget? trailingBadge}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF1E2432),
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF1E2432),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (trailingBadge != null) ...[
+                  const SizedBox(width: 8),
+                  trailingBadge,
+                ],
+              ],
             ),
           ),
           InkWell(
@@ -2889,8 +2913,16 @@ class _HomeViewState extends State<HomeView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header with "Featured Phones" title + View all link
-        _buildSectionHeader('Featured Phones', 'View all'),
+        // Section header with "Featured Phones" title + View all link + Fire design
+        _buildSectionHeader(
+          'Featured Phones',
+          'View all',
+          trailingBadge: Image.asset(
+            'assets/images/ic_fire.png',
+            height: 22,
+            fit: BoxFit.contain,
+          ),
+        ),
         const SizedBox(height: 14),
         // One horizontal-scroll row per brand, followed by an alternating Flash Sale banner under each
         for (int i = 0; i < brandEntries.length; i++) ...[

@@ -29,6 +29,7 @@ class _NotificationsViewState extends State<NotificationsView> {
     'Orders',
     'BNPL Credit',
     'Repairs',
+    'Swaps',
     'Shipping',
     'Low Stock',
     'Inquiries',
@@ -57,6 +58,10 @@ class _NotificationsViewState extends State<NotificationsView> {
       if (_selectedFilter == 'Orders' && n.type != NotificationType.order) return false;
       if (_selectedFilter == 'BNPL Credit' && n.type != NotificationType.bnpl) return false;
       if (_selectedFilter == 'Repairs' && n.type != NotificationType.repair) return false;
+      if ((_selectedFilter == 'Swaps' || _selectedFilter == 'Swap' || _selectedFilter == 'Device Swaps') &&
+          n.type != NotificationType.swap) {
+        return false;
+      }
       if (_selectedFilter == 'Shipping' && n.type != NotificationType.shipping) return false;
       if (_selectedFilter == 'Low Stock' && n.type != NotificationType.inventory) return false;
       if (_selectedFilter == 'Inquiries' && n.type != NotificationType.customerMessage) return false;

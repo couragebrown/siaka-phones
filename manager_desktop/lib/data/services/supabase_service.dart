@@ -85,19 +85,15 @@ class SupabaseService {
     return {
       'id': product.id,
       'name': product.name,
-      'brand': product.brand,
+      'brand': product.brand.isNotEmpty ? product.brand : 'Siaka',
       'category': product.category,
       'price': product.price,
       'original_price': product.originalPrice,
       'stock': product.stock,
       'specs': product.specs,
-      'specs_list': product.specsList,
       'storage': product.storage,
-      'storages': product.storages,
       'storage_options': product.storages,
       'ram': product.ram,
-      'rams': product.rams,
-      'ram_options': product.rams,
       'color': product.color,
       'colors': product.colors,
       'condition': product.condition,
@@ -218,10 +214,16 @@ class SupabaseService {
       return false;
     }
     try {
-      await client!.from('products').upsert(record).timeout(const Duration(seconds: 4));
+      final safeRecord = Map<String, dynamic>.from(record);
+      if (safeRecord['brand'] == null || safeRecord['brand'].toString().trim().isEmpty) {
+        safeRecord['brand'] = safeRecord['category'] ?? 'Siaka Universal';
+      }
+      await client!.from('products').upsert(safeRecord).timeout(const Duration(seconds: 4));
       return true;
     } catch (e) {
-      debugPrint('⚠️ Error upserting raw record to Supabase: $e');
+      if (!e.toString().contains('TimeoutException')) {
+        _logThrottled('upsertRawRecord', '⚠️ Error upserting raw record to Supabase: $e');
+      }
       return false;
     }
   }
@@ -237,7 +239,9 @@ class SupabaseService {
       await client!.from('customers').upsert(record).timeout(const Duration(seconds: 3));
       return true;
     } catch (e) {
-      debugPrint('ℹ️ Supabase customers table sync (fallback to universal products table): $e');
+      if (!e.toString().contains('TimeoutException')) {
+        _logThrottled('upsertCustomerRaw', 'ℹ️ Supabase customers table sync notice: $e');
+      }
       return false;
     }
   }
@@ -255,7 +259,9 @@ class SupabaseService {
       final List<dynamic> data = response as List<dynamic>;
       return data.map((json) => json as Map<String, dynamic>).toList();
     } catch (e) {
-      _logThrottled('fetchCustomerRecords', 'ℹ️ Supabase customers table fetch notice: $e');
+      if (!e.toString().contains('TimeoutException')) {
+        _logThrottled('fetchCustomerRecords', 'ℹ️ Supabase customers table fetch notice: $e');
+      }
       return null;
     }
   }
@@ -427,6 +433,9 @@ class SupabaseService {
       return client!
           .from('products')
           .stream(primaryKey: ['id'])
+          .handleError((e) {
+            _logThrottled('streamChat', 'ℹ️ Supabase chat stream reconnecting');
+          })
           .map((data) => List<Map<String, dynamic>>.from(data).where((m) {
                 final cat = m['category']?.toString().toUpperCase() ?? '';
                 final id = m['id']?.toString() ?? '';
@@ -570,6 +579,9 @@ class SupabaseService {
       return client!
           .from('products')
           .stream(primaryKey: ['id'])
+          .handleError((e) {
+            _logThrottled('streamProducts', 'ℹ️ Supabase products stream reconnecting');
+          })
           .map((data) {
             final sorted = List<Map<String, dynamic>>.from(data);
             sorted.sort((a, b) {

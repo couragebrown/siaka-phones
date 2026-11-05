@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../data/services/live_location_service.dart';
-import '../../core/widgets/google_map_location_picker_sheet.dart';
 import '../../core/widgets/live_mini_map_painter.dart';
+import 'terms_and_conditions_view.dart';
 
 class SignUpView extends StatefulWidget {
   final VoidCallback onBack;
@@ -61,40 +61,6 @@ class _SignUpViewState extends State<SignUpView> {
   LiveLocationResult? _liveLocationResult;
   Map<String, String> _fieldErrors = {};
 
-  Future<void> _openGoogleMapLocationPicker() async {
-    FocusScope.of(context).unfocus();
-    final result = await showGoogleMapLocationPicker(
-      context: context,
-      initialGpsCode: _gpsCodeController.text.trim(),
-      initialRegion: _selectedRegion,
-    );
-    if (result != null && mounted) {
-      setState(() {
-        _liveLocationResult = result;
-        _gpsCodeController.text = result.gpsCode;
-        _fieldErrors.remove('gpsCode');
-        if (result.detectedRegion != null && _regions.contains(result.detectedRegion)) {
-          _selectedRegion = result.detectedRegion;
-          _fieldErrors.remove('region');
-        }
-        if (_addressController.text.trim().isEmpty &&
-            result.suburb != null &&
-            result.suburb!.isNotEmpty) {
-          _addressController.text = result.suburb!;
-          _fieldErrors.remove('address');
-        }
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('📍 Location set from Google Maps: ${result.gpsCode} (${result.googlePlusCode})'),
-          backgroundColor: const Color(0xFF0F172A),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
   Future<void> _fetchAndApplyLiveLocation() async {
     if (_isFetchingLiveLocation) return;
     FocusScope.of(context).unfocus();
@@ -117,16 +83,10 @@ class _SignUpViewState extends State<SignUpView> {
           _selectedRegion = result.detectedRegion;
           _fieldErrors.remove('region');
         }
-        if (_addressController.text.trim().isEmpty &&
-            result.suburb != null &&
-            result.suburb!.isNotEmpty) {
-          _addressController.text = result.suburb!;
-          _fieldErrors.remove('address');
-        }
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Live GPS location added: ${result.gpsCode} (${result.googlePlusCode})'),
+          content: Text('Live GPS location added: ${result.gpsCode}'),
           backgroundColor: const Color(0xFF0F172A),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -146,7 +106,7 @@ class _SignUpViewState extends State<SignUpView> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not fetch live location. Tap map to select your location on Google Maps.'),
+          content: Text('Could not fetch live location. You can also type your GPS code manually.'),
           backgroundColor: Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 3),
@@ -295,6 +255,20 @@ class _SignUpViewState extends State<SignUpView> {
       _selectedRegion!,
       gpsCode,
     );
+  }
+
+  Future<void> _openTermsAndConditions() async {
+    final agreed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const TermsAndConditionsView(),
+      ),
+    );
+    if (agreed == true && mounted) {
+      setState(() {
+        _acceptedTerms = true;
+        _fieldErrors.remove('terms');
+      });
+    }
   }
 
   @override
@@ -522,36 +496,77 @@ class _SignUpViewState extends State<SignUpView> {
           errorText: _fieldErrors['confirmPassword'],
         ),
         const SizedBox(height: 14),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: Checkbox(
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-                value: _acceptedTerms,
-                onChanged: (val) =>
-                    setState(() => _acceptedTerms = val ?? false),
-                activeColor: const Color(0xFF1C7BFF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5),
+        InkWell(
+          onTap: _openTermsAndConditions,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: Checkbox(
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    value: _acceptedTerms,
+                    onChanged: (val) {
+                      if (val == true && !_acceptedTerms) {
+                        _openTermsAndConditions();
+                      } else {
+                        setState(() {
+                          _acceptedTerms = val ?? false;
+                          if (_acceptedTerms) {
+                            _fieldErrors.remove('terms');
+                          }
+                        });
+                      }
+                    },
+                    activeColor: const Color(0xFF1C7BFF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'I agree to the Terms and Privacy Policy',
-                style: TextStyle(
-                  color: Color(0xFF334155),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'I agree to the ',
+                      style: const TextStyle(
+                        color: Color(0xFF334155),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      children: [
+                        const TextSpan(
+                          text: 'Terms and Conditions',
+                          style: TextStyle(
+                            color: Color(0xFF1C7BFF),
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Color(0xFF1C7BFF),
+                          ),
+                        ),
+                        if (_acceptedTerms) ...[
+                          const TextSpan(text: ' '),
+                          const WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Icon(
+                              Icons.verified_rounded,
+                              size: 15,
+                              color: Color(0xFF16A34A),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
         if (_fieldErrors.containsKey('terms'))
           Padding(
@@ -728,11 +743,11 @@ class _SignUpViewState extends State<SignUpView> {
                 ),
               ),
               Tooltip(
-                message: 'Pick on Google Maps',
+                message: 'Get live GPS location',
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: _openGoogleMapLocationPicker,
+                    onTap: _isFetchingLiveLocation ? null : _fetchAndApplyLiveLocation,
                     borderRadius: BorderRadius.circular(9),
                     child: Container(
                       width: 34,
@@ -745,12 +760,21 @@ class _SignUpViewState extends State<SignUpView> {
                           width: 1.0,
                         ),
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.map_rounded,
-                          size: 18,
-                          color: Color(0xFF1C7BFF),
-                        ),
+                      child: Center(
+                        child: _isFetchingLiveLocation
+                            ? const SizedBox(
+                                width: 15,
+                                height: 15,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF1C7BFF),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.map_rounded,
+                                size: 18,
+                                color: Color(0xFF1C7BFF),
+                              ),
                       ),
                     ),
                   ),
@@ -768,11 +792,11 @@ class _SignUpViewState extends State<SignUpView> {
             ),
           ),
         const SizedBox(height: 10),
-        // Clickable Small Map Design under the GPS code field - opens Google Maps Picker
+        // Clickable Small Map Design under the GPS code field
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: _openGoogleMapLocationPicker,
+            onTap: _isFetchingLiveLocation ? null : _fetchAndApplyLiveLocation,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               height: 98,
@@ -835,10 +859,8 @@ class _SignUpViewState extends State<SignUpView> {
                               Flexible(
                                 child: Text(
                                   hasLiveFix
-                                      ? (_liveLocationResult != null
-                                          ? '${_liveLocationResult!.gpsCode} • ${_liveLocationResult!.googlePlusCode}'
-                                          : 'GPS: ${_gpsCodeController.text.trim()}')
-                                      : 'Google Maps GPS',
+                                      ? _liveLocationResult!.formattedCoordinates
+                                      : 'Live GPS Map',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -853,40 +875,33 @@ class _SignUpViewState extends State<SignUpView> {
                         ),
                       ),
                     ),
-                    // Top-right live GPS quick-locate badge
+                    // Top-right target badge
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: Tooltip(
-                        message: 'Quick live GPS locate',
-                        child: InkWell(
-                          onTap: _isFetchingLiveLocation ? null : _fetchAndApplyLiveLocation,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.94),
                           borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.94),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: Center(
-                              child: _isFetchingLiveLocation
-                                  ? const SizedBox(
-                                      width: 13,
-                                      height: 13,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.8,
-                                        color: Color(0xFF1C7BFF),
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.my_location_rounded,
-                                      size: 15,
-                                      color: Color(0xFF1C7BFF),
-                                    ),
-                            ),
-                          ),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Center(
+                          child: _isFetchingLiveLocation
+                              ? const SizedBox(
+                                  width: 13,
+                                  height: 13,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.8,
+                                    color: Color(0xFF1C7BFF),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.my_location_rounded,
+                                  size: 15,
+                                  color: Color(0xFF1C7BFF),
+                                ),
                         ),
                       ),
                     ),
@@ -914,10 +929,10 @@ class _SignUpViewState extends State<SignUpView> {
                             Expanded(
                               child: Text(
                                 _isFetchingLiveLocation
-                                    ? 'Detecting live GPS location...'
+                                    ? 'Detecting your live GPS location...'
                                     : hasLiveFix
-                                        ? 'GPS: ${_gpsCodeController.text.trim()} • Tap to pick on Google Maps'
-                                        : 'Tap map to pick exact location on Google Maps',
+                                        ? 'Live GPS: ${_liveLocationResult!.gpsCode} • Tap map to refresh'
+                                        : 'Tap map to get your current live GPS code',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -942,7 +957,7 @@ class _SignUpViewState extends State<SignUpView> {
         Padding(
           padding: const EdgeInsets.only(left: 2),
           child: InkWell(
-            onTap: _openGoogleMapLocationPicker,
+            onTap: _isFetchingLiveLocation ? null : _fetchAndApplyLiveLocation,
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -957,7 +972,7 @@ class _SignUpViewState extends State<SignUpView> {
                 SizedBox(width: 5),
                 Expanded(
                   child: Text(
-                    'Click on the map to pick your location on Google Maps',
+                    'Click on the map to add current live location',
                     style: TextStyle(
                       color: Color(0xFFDC2626),
                       fontSize: 12,
